@@ -28,8 +28,8 @@ populations.  They should be passed as a named vector, in that order.
 The parameters for the model are beta, the infection parameter, and gamma, the recovery
 parameter.  These should be passed in as a named vector; the order doesn't matter.  
 
-Optionally, instead of a number, beta may be a data frame with two columns,
-'time' and 'beta'.  The time column must start at zero and be strictly
+Optionally, instead of a number, beta and gamma may be data frames with two columns,
+'time' and 'value'.  The time column must start at zero and be strictly
 increasing, while the beta column may hold any positive values. In this case,
 beta is considered to be piecewise constant; each time t reaches the the next
 value of 'time', the value of beta changes to the corresponding value from
