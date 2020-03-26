@@ -18,7 +18,7 @@ fetch_vdh_cov19 <- function()
 {
   vdh_url <- 'http://www.vdh.virginia.gov/content/uploads/sites/182/2020/03/VDH-COVID-19-PublicUseDataset-Cases.csv'
   vdh_data <- 
-    read.csv(vdh_url, stringsAsFactors = FALSE)
+    utils::read.csv(vdh_url, stringsAsFactors = FALSE)
   ## First column name sometimes has odd characters in it.
   names(vdh_data)[1] <- 'Report.Date'
   stopifnot(setequal(names(vdh_data), 

@@ -9,6 +9,7 @@ Authors@R:
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: The goal is to simulate the spread of the COVID infection in each virginia county and then
   use that information plus other assummptions about health care utilization to estmate demand.
+Depends: R (>= 3.3.3)  
 Imports:
   deSolve(>= 1.28),
   lubridate (>= 1.7)

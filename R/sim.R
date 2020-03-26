@@ -19,7 +19,7 @@
 #' 
 #' @param t Simulation time value
 #' @param variables Vector of current variable values (see details)
-#' @param parameter List or vector of parameter values (see details)
+#' @param parameters List or vector of parameter values (see details)
 #' @return A list, as described in \code{\link[deSolve]{ode}}.  In this case we provide only
 #' the first element of the list, which is a vector of derivative values.
 #' @export

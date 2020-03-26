@@ -11,7 +11,7 @@ sir_equations(t, variables, parameters)
 
 \item{variables}{Vector of current variable values (see details)}
 
-\item{parameter}{List or vector of parameter values (see details)}
+\item{parameters}{List or vector of parameter values (see details)}
 }
 \value{
 A list, as described in \code{\link[deSolve]{ode}}.  In this case we provide only
