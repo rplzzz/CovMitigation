@@ -358,7 +358,7 @@ newCasesBoundToUVA <- inpatientEstimates %>%
 plotNewCasesBoundToUVA <-ggplot(newCasesBoundToUVA, aes(x = time, y = newCasesPerDay, group = scenarioValue, colour = scenarioValue)) + geom_line() +
   ggtitle("New Community Infections in UVA Referral Base Epidemiologic Curve") + 
   scale_x_continuous(breaks=seq(0, 180, by= 5 )) +geom_vline(xintercept = c(0, 30, 60, 90, 120, 150, 180)) 
-plotNewCasesBoundToUVA  
+print(plotNewCasesBoundToUVA)
 
 
 newSymptoCasesBoundToUVA <- inpatientEstimates %>%
@@ -366,9 +366,9 @@ newSymptoCasesBoundToUVA <- inpatientEstimates %>%
   group_by(scenarioLabel, scenarioValue, daysToSympto) %>%
   summarize(newCasesPerDay = sum(symptoInfection))
 plotNewSymptoCasesBoundToUVA <-ggplot(newSymptoCasesBoundToUVA, aes(x = daysToSympto, y = newCasesPerDay, group = scenarioValue, colour = scenarioValue)) + geom_line() +
-  ggtitle("New Symptomatic Community Infections in UVA Referral Base Epidemiologic Curve") + ylab("New Sumptomatic Infections in UVA Referral Area")
+  ggtitle("New Symptomatic Community Infections in UVA Referral Base Epidemiologic Curve") + ylab("New Sumptomatic Infections in UVA Referral Area") +
   scale_x_continuous(breaks=seq(0, 180, by= 5 )) +geom_vline(xintercept = c(0, 30, 60, 90, 120, 150, 180)) 
-plotNewSymptoCasesBoundToUVA  
+print(plotNewSymptoCasesBoundToUVA)
 
 
 newAcuteHospBoundToUVA <- inpatientEstimates %>%
@@ -378,7 +378,7 @@ newAcuteHospBoundToUVA <- inpatientEstimates %>%
 plotNewAcuteHospBoundToUVA <-ggplot(newAcuteHospBoundToUVA, aes(x = daysToAcuteHosp, y = newAcutePerDay, group = scenarioValue, colour = scenarioValue)) + geom_line()+
   ggtitle("New Acute Care Admissions for UVA Epidemiologic Curve") + 
   scale_x_continuous(breaks=seq(0, 180, by= 5 ))  + geom_vline(xintercept = c(0, 30, 60, 90, 120, 150, 180))
-plotNewAcuteHospBoundToUVA  
+print(plotNewAcuteHospBoundToUVA)
 
 newICUHospBoundToUVA <- inpatientEstimates %>%
   select(daysToicuHosp, scenarioLabel, scenarioValue, marketFraction, locality, icuHosp) %>%
@@ -387,7 +387,7 @@ newICUHospBoundToUVA <- inpatientEstimates %>%
 plotNewICUHospBoundToUVA <-ggplot(newICUHospBoundToUVA, aes(x = daysToicuHosp, y = newICUPerDay, group = scenarioValue, colour = scenarioValue)) + geom_line()+
   ggtitle("New ICU Admissions for UVA Epidemiologic Curve") + 
   scale_x_continuous(breaks=seq(0, 180, by= 5 ))  + geom_vline(xintercept = c(0, 30, 60, 90, 120, 150, 180))
-plotNewICUHospBoundToUVA  
+print(plotNewICUHospBoundToUVA)
 
 
 newIMVHospBoundToUVA <- inpatientEstimates %>%
@@ -397,8 +397,7 @@ newIMVHospBoundToUVA <- inpatientEstimates %>%
 plotNewIMVHospBoundToUVA <-ggplot(newIMVHospBoundToUVA, aes(x = daysToIMVHosp, y = newIMVPerDay, group = scenarioValue, colour = scenarioValue)) + geom_line()+
   ggtitle("New Invasive Mechanical Ventilation Admissions for UVA Epidemiologic Curve") + 
   xlab("time (days") + ylab("New Daily Admissions for IMV") +
-  ylim(0,20) + 
   scale_y_continuous(breaks=1:40) +
   scale_x_continuous(breaks=seq(0, 180, by= 5 ))  + geom_vline(xintercept = c(0, 30, 60, 90, 120, 150, 180))
-plotNewIMVHospBoundToUVA 
+print(plotNewIMVHospBoundToUVA)
 
