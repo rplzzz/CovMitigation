@@ -41,3 +41,21 @@
 #' Same as \code{\link{marketFractionFinal}}, except includes an additional column for FIPS
 #' code and hs been filtered to just localities with UVA market shares >= 20%
 "sampleCounties"
+
+#' Virginia Department of Health COVID-19 surveillance data
+#' 
+#' Dataset with reported COVID-19 cases by date and locality.  It is not yet clear whether the
+#' "Total Cases" reported are cumulative or new on that day.
+#' 
+#' @format Data frame with 5 columns:
+#' \describe{
+#' \item{Report.Date}{Date of the report}
+#' \item{FIPS}{FIPS code for the locality}
+#' \item{Locality}{Name of the locality}
+#' \item{Health.District}{Health district the locality belongs to}
+#' \item{Total.Cases}{Number of COVID-19 cases reported.  It's not yet clear whether this is for
+#' that day only, or cumulative.}
+#' }
+#' @source Virginia Department of Health:\cr
+#' \code{http://www.vdh.virginia.gov/content/uploads/sites/182/2020/03/VDH-COVID-19-PublicUseDataset-Cases.csv}
+"vdh_covid19"
