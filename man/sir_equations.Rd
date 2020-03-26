@@ -4,14 +4,14 @@
 \alias{sir_equations}
 \title{Differential equations for the SIR model}
 \usage{
-sir_equations(time, variables, parameters)
+sir_equations(t, variables, parameters)
 }
 \arguments{
-\item{time}{Simulation time value}
+\item{t}{Simulation time value}
 
 \item{variables}{Vector of current variable values (see details)}
 
-\item{parameter}{Vector of parameter values (see details)}
+\item{parameter}{List or vector of parameter values (see details)}
 }
 \value{
 A list, as described in \code{\link[deSolve]{ode}}.  In this case we provide only
@@ -26,5 +26,12 @@ The variables for this model are S, I, and R, the susceptible, infected, and rec
 populations.  They should be passed as a named vector, in that order.
 
 The parameters for the model are beta, the infection parameter, and gamma, the recovery
-parameter.  These should be passed in as a named vector; the order doesn't matter.
+parameter.  These should be passed in as a named vector; the order doesn't matter.  
+
+Optionally, instead of a number, beta may be a data frame with two columns,
+'time' and 'beta'.  The time column must start at zero and be strictly
+increasing, while the beta column may hold any positive values. In this case,
+beta is considered to be piecewise constant; each time t reaches the the next
+value of 'time', the value of beta changes to the corresponding value from
+the beta column.
 }
