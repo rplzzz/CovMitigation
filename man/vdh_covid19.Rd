@@ -11,8 +11,9 @@ Data frame with 5 columns:
 \item{FIPS}{FIPS code for the locality}
 \item{Locality}{Name of the locality}
 \item{Health.District}{Health district the locality belongs to}
-\item{Total.Cases}{Number of COVID-19 cases reported.  It's not yet clear whether this is for
-that day only, or cumulative.}
+\item{Total.Cases}{Number of COVID-19 cases reported.  It's not documented in
+the original source whether this is cumulative or for that day only, but the data
+matches the figures given on the agency's website, which appears to be cumulative.}
 }
 }
 \source{
