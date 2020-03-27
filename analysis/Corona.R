@@ -187,8 +187,8 @@ for (EloopRun in 1:runCountELoop){
     #begin the SIR equation now
     #set the initial values and labels for each scenario
     
+    N <- population * S
     parameters_values <- c(
-      N = population * S ,
       #beta <- R0/(N*durationInfection) * M,      # infectious contact rate (/person/day) * mitigation factor
       beta =  (1 + (log(2)*durationInfection)/T)/(N*durationInfection) * M,
       gamma = 1/durationInfection                # recovery rate (/day)

@@ -192,8 +192,8 @@ for (EloopRun in 1:runCountELoop){
     ## recovery rate (/day)
     gamma_schedule <- data.frame(time=c(0,14,75), value=c(1/durationInfection, 2/durationInfection, 1/durationInfection))
     
+    N <- population * S
     parameters_values <- list(
-      N = population * S ,
       beta =  beta_schedule,
       ## The change in the infection duration is pretty aggressive and seems a little unrealistic,
       ## so for now we'll leave the duration constant
