@@ -1,6 +1,6 @@
 Package: CovMitigation
 Title: Demand estimates for medical centers in Virginia
-Version: 0.2.1.9000
+Version: 0.3.0
 Authors@R: 
     person(given = "First",
            family = "Last",
@@ -11,12 +11,14 @@ Description: The goal is to simulate the spread of the COVID infection in each v
   use that information plus other assummptions about health care utilization to estmate demand.
 Depends: R (>= 3.3.3)  
 Imports:
-  deSolve(>= 1.28),
-  lubridate (>= 1.7)
+  deSolve (>= 1.28),
+  lubridate (>= 1.7),
+  foreach (>= 1.4),
+  doParallel (>= 1.0),
+  dplyr (>= 0.7)
 Suggests:
   here (>= 0.1),
   ggplot2 (>= 3.3),
-  dplyr (>= 0.7),
   tidyr (>= 1.0)
 License: TBD
 Encoding: UTF-8

@@ -140,7 +140,7 @@ validate_params <- function(params)
 #' The results returned will be:
 #' \itemize{
 #' \item{New community infections in UVA referral base}
-#' \item{New symptomatic community Infections in UVA referral base}
+#' \item{New symptomatic community infections in UVA referral base}
 #' \item{New acute care admissions for UVA}
 #' \item{New ICU admissions for UVA}
 #' \item{New invasive mechanical ventilation admissions for UVA}
