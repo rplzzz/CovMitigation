@@ -51,7 +51,7 @@ getparam <- function(t, param)
   if(is.data.frame(param)) {
     tmin <- min(param$time)
     stopifnot(t >= tmin)
-    irow <- rle(t >= param$time)$lengths[1]    # Find the last param$t that is <= t
+    irow <- max(which(t >= param$time))
     param$value[irow]
   }
   else {
