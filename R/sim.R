@@ -72,7 +72,7 @@ param_defaults <-
     I0                = 1,    # Initial number of infected
     
     ## Disease progression parameters
-    symptoFraction = 0.5,   
+    symptoFraction = 0.43,   
     hospFraction  = 0.03,   # MMWR(20.7-31.4%)  range I think likely is half that 10.4 - 15.7% with a mean of 13%
                             # but even this is likely an overestimate so I'll start with half of that 6.5%
                             # It looks like we halved this again.  Consult JV.  -rpl

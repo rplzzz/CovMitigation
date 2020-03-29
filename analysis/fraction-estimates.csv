@@ -1,0 +1,8 @@
+parameter,estimate,num.cases,source,notes
+symptoFraction,0.43,23,http://dx.doi.org/10.15585/mmwr.mm6913e1,"There are more studies about this available out there, so we should be able to reduce this uncertainty considerably."
+hospFraction,0.03,NA,JV assessment,"Need to discuss more what went into this estimate.  For now, model it as Beta(4,97), which gives a plausible uncertainty range."
+hospFraction (alternate),0.3,2449,http://dx.doi.org/10.15585/mmwr.mm6912e2,It is unclear what the denominator in this figure is.  Need to read more closely.
+ratioICUtoAcute,0.238,508,http://dx.doi.org/10.15585/mmwr.mm6912e2,
+fractionMV,0.32,201,doi:10.1001/jamainternmed.2020.0994,
+hospFractionNIPPV,0.2605,201,doi:10.1001/jamainternmed.2020.0994,
+hospFractionIMV,0.0675,201,doi:10.1001/jamainternmed.2020.0994,
