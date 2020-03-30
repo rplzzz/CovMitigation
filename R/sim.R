@@ -73,7 +73,7 @@ param_defaults <-
   list(
     ## Epidemiological model parameters
     T0                = 7.4,     # initial doubling time - this will be turned into an infection rate
-    D0                = 7,       # base infection duration - this will be turned into a recovery rate
+    D0                = 4,       # base infection duration - this will be turned into a recovery rate
     A0                = 3,       # base incubation time - this will be turned into a progression rate
     beta_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection rate
     duration_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection duration
