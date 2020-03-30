@@ -1,21 +1,26 @@
 
-#' Differential equations for the SIR model
+#' Differential equations for the SEIR model
 #' 
-#' Computes the derivatives of the susceptible (S), infected (I), and recovered (R) 
-#' populations.
+#' Computes the derivatives of the susceptible (S), exposed, infected (I), and recovered (R) 
+#' populations.  This version of the model omits the population birth and death rates.
 #' 
-#' The variables for this model are S, I, and R, the susceptible, infected, and recovered 
-#' populations.  They should be passed as a named vector, in that order.
+#' The variables for this model are S, E, I, and R, the susceptible, infected, and recovered 
+#' populations.  They should be passed as a named vector, in that order.  (The order
+#' is important because the ODE solver ignores names.)
 #' 
-#' The parameters for the model are beta, the infection parameter, and gamma, the recovery
-#' parameter.  These should be passed in as a named vector; the order doesn't matter.  
+#' The parameters for the model are beta, the infection rate parameter, gamma, the recovery
+#' rate parameter, and alpha, the progression rate parameter (i.e., the rate at 
+#' which people move from exposed to infected)
+#' These should be passed in as a named vector; the order doesn't matter.  Also,
+#' note that previous versions absorbed the 1/N factor into beta, but this one 
+#' does not.
 #' 
-#' Optionally, instead of a number, beta and gamma may be data frames with two columns,
+#' Optionally, instead of a number, alpha, beta and/or gamma may be data frames with two columns,
 #' 'time' and 'value'.  The time column must start at zero and be strictly
 #' increasing, while the beta column may hold any positive values. In this case,
-#' beta is considered to be piecewise constant; each time t reaches the the next
-#' value of 'time', the value of beta changes to the corresponding value from
-#' the beta column.
+#' the parameter is considered to be piecewise constant; each time t reaches the the next
+#' value of 'time', the value of the parameter changes to the corresponding value from
+#' the value column.
 #' 
 #' @param t Simulation time value
 #' @param variables Vector of current variable values (see details)
@@ -23,17 +28,22 @@
 #' @return A list, as described in \code{\link[deSolve]{ode}}.  In this case we provide only
 #' the first element of the list, which is a vector of derivative values.
 #' @export
-sir_equations <- function(t, variables, parameters)
+seir_equations <- function(t, variables, parameters)
 {
   beta <- getparam(t, parameters[['beta']])
   gamma <- getparam(t, parameters[['gamma']])
+  alpha <- getparam (t, parameters[['alpha']])
   with(as.list(variables), {
-    dS <- -beta * I * S
-    dI <-  beta * I * S - gamma * I
+    N <- S + E + I + R
+    expos <- beta * I * S / N
+    dS <- -expos
+    dE <- expos  - alpha*E
+    dI <-  alpha*E - gamma * I
     dR <-  gamma * I
-    return(list(c(dS, dI, dR)))
+    return(list(c(dS, dE, dI, dR)))
   })
 }
+
 
 #' Get a time variable parameter from a table of step-changes
 #' 
@@ -63,13 +73,16 @@ param_defaults <-
   list(
     ## Epidemiological model parameters
     T0                = 7.4,     # initial doubling time - this will be turned into an infection rate
-    D0                = 7,       # base infection duration
+    D0                = 7,       # base infection duration - this will be turned into a recovery rate
+    A0                = 3,       # base incubation time - this will be turned into a progression rate
     beta_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection rate
     duration_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection duration
+    prog_schedule = data.frame(time=0, value=1),  # schedule for relative changes in progression rate
     
     ## Initial state parameters
     S0                = 1,    # Fraction initially susceptible (the rest are uninfected but immune)
-    I0                = 1,    # Initial number of infected
+    E0                = 0,    # Initial number of exposed (number, not fraction)
+    I0                = 1,    # Initial number of infected (a number, not a fraction)
     
     ## Disease progression parameters
     symptoFraction = 0.43,   
@@ -151,6 +164,8 @@ validate_params <- function(params)
 #' \item{T0}{(scalar) Base doubling time.  Doubling time for number of cases when the number of infections
 #' is small compared to the total population.}
 #' \item{D0}{(scalar) Base recovery time.  Average base recovery time for an infected person.}
+#' \item{A0}{(scalar) Base incubation time.  Average tie for an exposed person to 
+#' become infected.}
 #' \item{(various time lags)}{Time after infection for various events (RTS for details)}
 #' \item{(a whole slew of others)}{see definition of \code{param_defaults} for definitions}
 #' 
@@ -218,7 +233,7 @@ run_single_county <- function(locality, mktshare, tmax, params)
   
   ## Calculate derived parameters
   N <- (pop-params$I0) * params$S0
-  beta0 <- (1 + (log(2) * params$D0/params$T0)) / (N*params$D0)
+  beta0 <- (1 + (log(2) * params$D0/params$T0)) / (params$D0)
   
   beta_schedule <- params$beta_schedule
   beta_schedule$value <- beta_schedule$value * beta0
@@ -226,11 +241,14 @@ run_single_county <- function(locality, mktshare, tmax, params)
   gamma_schedule <- params$duration_schedule
   gamma_schedule$value <- 1/(gamma_schedule$value * params$D0)
   
-  ode_params <- list(beta=beta_schedule, gamma=gamma_schedule)
-  initvals <- c(S=N, I=params$I0, R=(pop-params$I0)*(1-params$S0))
+  alpha_schedule <- params$prog_schedule
+  alpha_schedule$value <- 1/(alpha_schedule$value * params$A0)
+  
+  ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule)
+  initvals <- c(S=N, E=params$E0, I=params$I0, R=(pop-params$I0)*(1-params$S0))
   
   timevals <- seq(0, tmax)
-  rslt <- as.data.frame(deSolve::ode(initvals, timevals, sir_equations, ode_params))
+  rslt <- as.data.frame(deSolve::ode(initvals, timevals, seir_equations, ode_params))
   
   ## Add some identifiers for the locality
   rslt$locality <- locality
