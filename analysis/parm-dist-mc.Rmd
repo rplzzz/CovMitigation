@@ -3,8 +3,8 @@ title: "Priors for model parameters"
 author: "Robert Link"
 date: "3/27/2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, echo = FALSE}
@@ -105,8 +105,8 @@ I went ahead with some simulations using the priors we have, for the 5-day and
 ## Produce baseline simulations
 library(CovMitigation)
 tmax <- 180
-baseline5day <- run_scenario(tmax, list(T0=5), '5-day baseline')
-baseline7p4day <- run_scenario(tmax, list(T0=7.4), '7.4-day baseline')
+baseline5day <- run_scenario(tmax, list(T0=5, A0=0.1), '5-day baseline')
+baseline7p4day <- run_scenario(tmax, list(T0=7.4, A0=0.1), '7.4-day baseline')
 ```
 
 ```{r montecarlo, cache=TRUE}
@@ -122,8 +122,8 @@ distparms <- list(
 )
 N <- 1024
 
-mc7p4 <- run_mc(N, distparms, tmax, list(T0=7.4), '7.4-day MC')
-mc5 <- run_mc(N, distparms, tmax, list(T0=5), '5-day MC')
+mc7p4 <- run_mc(N, distparms, tmax, list(T0=7.4, A0=0.1), '7.4-day MC')
+mc5 <- run_mc(N, distparms, tmax, list(T0=5, A0=0.1), '5-day MC')
 ```
 
 ```{r makeplots}
@@ -168,7 +168,7 @@ rununcert <- function(T0, scenName) {
            function(parm) {
              dp <- distparms[parm]
              mc <- 
-               run_mc(N, dp, tmax, list(T0=T0), scenName)
+               run_mc(N, dp, tmax, list(T0=T0, A0=0.1), scenName)
              for (i in seq_along(mc)) {
                mc[[i]][['uncertParm']] <- parm
              }
