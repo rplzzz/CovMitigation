@@ -233,16 +233,20 @@ run_single_county <- function(locality, mktshare, tmax, params)
   
   ## Calculate derived parameters
   N <- (pop-params$I0) * params$S0
-  beta0 <- (1 + (log(2) * params$D0/params$T0)) / (params$D0)
+  
+  gamma_schedule <- params$duration_schedule
+  gamma_schedule$value <- 1/(gamma_schedule$value * params$D0)
+  gamma0 <- getparam(0, gamma_schedule)
+  
+  alpha_schedule <- params$prog_schedule
+  alpha_schedule$value <- 1/(alpha_schedule$value * params$A0)
+  alpha0 <- getparam(0, alpha_schedule)
+  
+  beta0 <- (1 + (log(2) * params$D0/params$T0) * (alpha0+gamma0)/alpha0) / (params$D0)
   
   beta_schedule <- params$beta_schedule
   beta_schedule$value <- beta_schedule$value * beta0
   
-  gamma_schedule <- params$duration_schedule
-  gamma_schedule$value <- 1/(gamma_schedule$value * params$D0)
-  
-  alpha_schedule <- params$prog_schedule
-  alpha_schedule$value <- 1/(alpha_schedule$value * params$A0)
   
   ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule)
   initvals <- c(S=N, E=params$E0, I=params$I0, R=(pop-params$I0)*(1-params$S0))
