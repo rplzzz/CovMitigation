@@ -23,11 +23,15 @@ projected variables will be returned in a single data frame.
 \details{
 The results returned will be:
 \itemize{
-\item{New community infections in UVA referral base}
-\item{New symptomatic community infections in UVA referral base}
-\item{New acute care admissions for UVA}
-\item{New ICU admissions for UVA}
-\item{New invasive mechanical ventilation admissions for UVA}
+\item{New community infections in the selected counties}
+\item{New symptomatic community infections in the selected counties}
+\item{Total infected population in the selected counties}
+\item{Symptomatic infected population in the selected counties}
+\item{Recovered population in the selected counties}
+\item{Remaining susceptible population in the selected counties}
+\item{Cumulative infected population (includes those who later recovered)}
+\item{Cumulative infected share of population (includes recovered)}
+\item{UVA market share of symptomatic infections}
 }
 
 The parameters for the model are:

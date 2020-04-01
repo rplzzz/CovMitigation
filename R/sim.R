@@ -1,16 +1,22 @@
 
 #' Differential equations for the SEIR model
 #' 
-#' Computes the derivatives of the susceptible (S), exposed, infected (I), and recovered (R) 
+#' Computes the derivatives of the susceptible (S), exposed (E), infected (I), 
+#' symptomatic (Is), and recovered (R) 
 #' populations.  This version of the model omits the population birth and death rates.
 #' 
-#' The variables for this model are S, E, I, and R, the susceptible, infected, and recovered 
+#' The variables for this model are S, E, I, Is, and R, the susceptible, infected
+#' asymptomatic, infected symptomatic, and recovered 
 #' populations.  They should be passed as a named vector, in that order.  (The order
 #' is important because the ODE solver ignores names.)
 #' 
-#' The parameters for the model are beta, the infection rate parameter, gamma, the recovery
-#' rate parameter, and alpha, the progression rate parameter (i.e., the rate at 
-#' which people move from exposed to infected)
+#' The parameters for the model are:
+#' \describe{
+#'   \item{alpha}{Progression rate parameter (i.e., the rate at which people move from exposed to infected)}
+#'   \item{beta}{Infection rate parameter:  relative rate at which infected people infect susceptible people.} 
+#'   \item{gamma}{Recovery rate parameter:  relative rate at which infected people recover (whether symptomatic or not)}
+#'   \item{epsilon}{Symptom rate parameter:  relative rate at which asymptomatic people develop symptoms.}
+#' }
 #' These should be passed in as a named vector; the order doesn't matter.  Also,
 #' note that previous versions absorbed the 1/N factor into beta, but this one 
 #' does not.
@@ -20,7 +26,7 @@
 #' increasing, while the beta column may hold any positive values. In this case,
 #' the parameter is considered to be piecewise constant; each time t reaches the the next
 #' value of 'time', the value of the parameter changes to the corresponding value from
-#' the value column.
+#' the value column.  (Time varying epsilon is not currently supported.)
 #' 
 #' @param t Simulation time value
 #' @param variables Vector of current variable values (see details)
@@ -33,14 +39,17 @@ seir_equations <- function(t, variables, parameters)
   beta <- getparam(t, parameters[['beta']])
   gamma <- getparam(t, parameters[['gamma']])
   alpha <- getparam (t, parameters[['alpha']])
+  epsilon <- parameters[['epsilon']]
   with(as.list(variables), {
-    N <- S + E + I + R
-    expos <- beta * I * S / N
+    N <- S + E + I + Is + R
+    Itot <- I + Is
+    expos <- beta * Itot * S / N
     dS <- -expos
     dE <- expos  - alpha*E
-    dI <-  alpha*E - gamma * I
-    dR <-  gamma * I
-    return(list(c(dS, dE, dI, dR)))
+    dI <-  alpha*E - gamma * I - epsilon*I
+    dIs <- epsilon*I - gamma*Is
+    dR <-  gamma * Itot
+    return(list(c(dS, dE, dI, dIs, dR)))
   })
 }
 
@@ -75,6 +84,7 @@ param_defaults <-
     T0                = 7.4,     # initial doubling time - this will be turned into an infection rate
     D0                = 4,       # base infection duration - this will be turned into a recovery rate
     A0                = 3,       # base incubation time - this will be turned into a progression rate
+    Ts                = 3,       # average time to symptom onset, once progressed to infectious state
     beta_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection rate
     duration_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection duration
     prog_schedule = data.frame(time=0, value=1),  # schedule for relative changes in progression rate
@@ -97,16 +107,10 @@ param_defaults <-
     
     ## Selection and filtering parameters
     selectMarketShare = 0.2,  # Minimum market share for localities to be in the UVA catchment
-    typeAMCDRG = "fractionAllUVA",   # other valid values are "fractionAllVCU"  "fractionRespUVA" "fractionRespVCU" "fractionAllUVA"
+    typeAMCDRG = "fractionAllUVA"   # other valid values are "fractionAllVCU"  "fractionRespUVA" "fractionRespVCU" "fractionAllUVA"
 
 
     ## time lags (all times in days)
-    timeToSympto      = 3,
-    timeToAcuteHosp   = 5,
-    timeToICU         = 6,
-    timeToMV          = 6,
-    timeToNIPPV       = 6,
-    timeToIMV         = 6
   )
 
 #' Add default parameters for parameters not overridden in the input
@@ -152,11 +156,15 @@ validate_params <- function(params)
 #' 
 #' The results returned will be:
 #' \itemize{
-#' \item{New community infections in UVA referral base}
-#' \item{New symptomatic community infections in UVA referral base}
-#' \item{New acute care admissions for UVA}
-#' \item{New ICU admissions for UVA}
-#' \item{New invasive mechanical ventilation admissions for UVA}
+#' \item{New community infections in the selected counties}
+#' \item{New symptomatic community infections in the selected counties}
+#' \item{Total infected population in the selected counties}
+#' \item{Symptomatic infected population in the selected counties}
+#' \item{Recovered population in the selected counties}
+#' \item{Remaining susceptible population in the selected counties}
+#' \item{Cumulative infected population (includes those who later recovered)}
+#' \item{Cumulative infected share of population (includes recovered)}
+#' \item{UVA market share of symptomatic infections}
 #' }
 #' 
 #' The parameters for the model are:
@@ -198,20 +206,14 @@ run_scenario <- function(tmax, params=list(), scenarioName = 'HospCensus') {
   ## return value:  sum up over the counties
   dplyr::group_by(inpatientEstimates, time) %>%
     dplyr::summarise(newCases = sum(newCases),
-                     symptoInfection = sum(symptoInfection),
-                     acuteHosp = sum(acuteHosp),
-                     icuHosp = sum(icuHosp),
-                     imvHosp = sum(IMVHosp),
-                     ## The daysToX values should be the same for all localities.  We could 
-                     ## retain these columns by including them in the groupings, 
-                     ## but on the off chance that they're different for some reason, we'll 
-                     ## average them instead.
-                     daysToSympto = mean(daysToSympto),
-                     daysToAcuteHosp = mean(daysToAcuteHosp),
-                     daysToicuHosp = mean(daysToicuHosp),
-                     daysToAnyMV = mean(daysToAnyMV),
-                     daysToNIPPVHosp = mean(daysToNIPPVHosp),
-                     daysToIMVHosp = mean(daysToIMVHosp)
+                     newSympto = sum(newSympto),
+                     PopInfection = sum(PopInfection),
+                     MktSympto = sum(PopSympto * marketFraction),
+                     PopSympto = sum(PopSympto),
+                     PopCumulInfection = sum(PopCumulInfection),
+                     PopCumulFrac = sum(PopCumulInfection) / sum(population),
+                     PopRecovered = sum(PopRecovered),
+                     PopSuscept = sum(PopSuscept)
                      ) %>%
     ## Add some identifiers for the scenario
     dplyr::mutate(scenario=scenarioName, doublingTime=params$T0,
@@ -247,9 +249,16 @@ run_single_county <- function(locality, mktshare, tmax, params)
   beta_schedule <- params$beta_schedule
   beta_schedule$value <- beta_schedule$value * beta0
   
+  epsilon <- 1/params$Ts
   
-  ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule)
-  initvals <- c(S=N, E=params$E0, I=params$I0, R=(pop-params$I0)*(1-params$S0))
+  
+  ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule,
+                     epsilon=epsilon)
+  initvals <- c(S=(N-params$E0-params$I0)*params$S0,
+                E=params$E0, 
+                I=params$I0,
+                Is=0,
+                R=(pop-params$I0-params$E0)*(1-params$S0))
   
   timevals <- seq(0, tmax)
   rslt <- as.data.frame(deSolve::ode(initvals, timevals, seir_equations, ode_params))
@@ -265,19 +274,26 @@ run_single_county <- function(locality, mktshare, tmax, params)
   ## This will have one fewer results than the original vector; deem the new cases at t=0 to be 0
   rslt$newCases <- c(0, newcases)
   
-  ## Calculate hospitalization numbers and days to hospitalization etc
-  rslt$symptoInfection <- rslt$newCases * params$symptoFraction
-  rslt$daysToSympto    <- rslt$time + params$timeToSympto
-  rslt$acuteHosp       <- rslt$symptoInfection * params$hospFraction * (1-params$ratioICUtoAcute)
-  rslt$daysToAcuteHosp <- rslt$time + params$timeToAcuteHosp
-  rslt$icuHosp         <- rslt$symptoInfection * params$hospFraction * params$ratioICUtoAcute
-  rslt$daysToicuHosp   <- rslt$time + params$timeToICU
-  rslt$anyMV           <- rslt$symptoInfection * params$hospFraction* params$fractionMV
-  rslt$daysToAnyMV     <- rslt$time + params$timeToMV
-  rslt$NIPPVHosp       <- rslt$symptoInfection *  params$hospFraction * params$hospFractionNIPPV
-  rslt$daysToNIPPVHosp <- rslt$time + params$timeToNIPPV
-  rslt$IMVHosp         <- rslt$symptoInfection  *  params$hospFraction * params$hospFractionIMV
-  rslt$daysToIMVHosp   <- rslt$time + params$timeToIMV
+  rslt$fs <- rslt$Is / (rslt$Is+rslt$I)
   
+  ## New symptomatic cases are tricky because we have cases entering and leaving
+  ## the pool.  Here's how we do it:  
+  ## deltaIs = newSympto - deltaRs
+  ## deltaR  = deltaRs + deltaRa
+  ## deltaRa / deltaRs = I/Is = ras
+  ##    --> deltaR = (1+ras) deltaRs  --> deltaRs = deltaR/(1+ras)
+  ## newSympto = deltaIs + deltaRs
+  ras <- rslt$I / rslt$Is
+  deltaIs <- c(0, diff(rslt$Is))
+  deltaR <- c(0, -diff(rslt$R))
+  deltaRs <- deltaR/(1+ras)
+  rslt$newSympto <- deltaIs + deltaRs
+  
+  rslt$PopInfection <- rslt$I + rslt$Is
+  rslt$PopRecovered <- rslt$R
+  rslt$PopSympto <- rslt$Is
+  rslt$PopSuscept <- rslt$S
+  rslt$PopCumulInfection <- cumsum(rslt$newCases)
+
   rslt
 }
