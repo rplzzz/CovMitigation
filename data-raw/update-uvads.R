@@ -14,11 +14,16 @@ uvads_covid19 <-
   filter(vdh_new, !is.na(Date)) %>%
   rename(posTestFrac=pos_pct_of_tests, date=Date, vaNewCases=VA_New_Confirmed_Cases,
          vaCumCases=VA_Cumulative_Confirmed_Cases, tjNewCases=TJ_Confirmed_Cases,
-         tjCumCases=TJ_Cumulative_Cases, nhosp=num_hospitalizations, ntest=num_tests,
-         vapop=va_population) %>%
-  mutate(date=mdy(date), ftest=ntest/vapop) %>%
+         tjCumCases=TJ_Cumulative_Cases, nhosp=num_hospitalizations, ntest_cum=num_tests,
+         vapop=va_population)
+
+
+## Add a new tests column
+uvads_covid19$ntest <- c(NA, diff(uvads_covid19$ntest_cum))
+uvads_covid19 <-
+  mutate(uvads_covid19, date=mdy(date), ftest=ntest/vapop) %>%
   select(date, vaNewCases, vaCumCases, tjNewCases, tjCumCases, nhosp, 
-         ntest, ftest, posTestFrac, vapop)
+         ntest, ntest_cum, ftest, posTestFrac, vapop)
 
 
 usethis::use_data(uvads_covid19, overwrite=TRUE)

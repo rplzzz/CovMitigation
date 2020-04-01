@@ -1,0 +1,75 @@
+---
+title: "COVID-19 Growth in Virginia"
+author: "Robert Link"
+date: "4/1/2020"
+output: 
+  pdf_document: default
+  rmarkdown::html_vignette: default
+vignette: >
+  %\VignetteIndexEntry{COVID-19 Growth in Virginia}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup}
+suppressPackageStartupMessages(library(dplyr))
+library(tidyr)
+library(ggplot2)
+library(CovMitigation)
+library(ggthemes)
+library(latex2exp)
+```
+
+## Assumptions
+
+We have to make a slight approximation here.  The growth rate we are interested
+in is the growth in active cases, which is affected by both the infection rate and
+the recovery rate.  The data from the department of health only has new cases (which
+grow a little more slowly) and cumulative cases (which grow a little faster).  For
+this analysis we went with new cases.
+
+## Growth observations
+
+```{r growthrate, fig.width=7, fig.height=4}
+pltdata <- 
+  select(uvads_covid19, date, vaNewCases, ftest, ntest) %>%
+  filter(vaNewCases > 0, ftest > 0)
+t <- seq_along(pltdata$date) - 1  # start at zero
+pltdata$t <- t
+
+## Compute the testing fraction correction.
+ftest_relative <- pltdata$ftest / pltdata$ftest[1]
+ntest_relative <- pltdata$ntest / pltdata$ntest[1]
+#fcorrect <- min(pltdata$ftest) / pltdata$ftest
+pltdata$correctedNewCases <- pltdata$vaNewCases / ftest_relative / pltdata$vaNewCases[1]
+pltdata$correctedCumCases <- cumsum(pltdata$correctedNewCases)
+
+## Label positioning
+lastidx <- length(t)
+lastdate <- pltdata$date[lastidx]
+
+## Create the benchmark data
+tds <- c(3,4,5,6,7)
+tdlabs <- paste('td=',tds)
+tdlabstex <- sprintf('$t_d = %d$', tds)
+gr <- lapply(tds, 
+             function(td) {
+               r <- log(2)/td
+               exp(r*t)
+             })
+benchmarks <- as.data.frame(gr)
+names(benchmarks) <- tdlabs
+benchmarks$date <- t + pltdata$date[1]
+benchmarks <- pivot_longer(benchmarks, -date, names_to = 'doubling time')
+benchplt <- 
+  ggplot(data=pltdata, aes(x=date)) + 
+  geom_line(data=pltdata, mapping=aes(y=correctedCumCases), size=1.2) +
+  geom_line(data=benchmarks, mapping=aes(y=value, group=`doubling time`), color='lightgrey') +
+  scale_color_solarized() +
+  scale_y_log10() +
+  theme_bw()
+for(i in seq_along(gr)) {
+  benchplt <- benchplt + geom_label(x=lastdate, y=log10(gr[[i]][lastidx]), label=TeX(tdlabstex[i]))
+}
+suppressWarnings(print(benchplt))
+```

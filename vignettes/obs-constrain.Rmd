@@ -1,0 +1,35 @@
+---
+title: "Constraining model output with observational data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Constraining model output with observational data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(CovMitigation)
+library(dplyr)
+
+covid19 <- filter(uvads_covid19, !is.na(date), vaCumCases > 0)
+```
+
+## Theory
+
+The number of observed cases will be substantially lower than the number of cases
+circulating in the community because of the limited testing available.  For a 
+population testing fraction of $f_t$ and a positive test fraction of $f_p$, the 
+relationship between number of observed cases $N_o$ and total number of infected
+$N_I$ is
+$$
+N_o = N_I f_t f_p,
+$$
+Further complicating this is that tests are not performed randomly; they are more
+often performed 

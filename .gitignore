@@ -1,4 +1,4 @@
-# History files
+# History files
 .Rhistory
 .Rapp.history
 
@@ -41,3 +41,6 @@ vignettes/*.pdf
 
 # Temporary data files
 data-raw/*.rds
+inst/doc
+doc
+Meta
