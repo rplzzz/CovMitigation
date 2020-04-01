@@ -60,3 +60,28 @@
 #' @source Virginia Department of Health:\cr
 #' \code{http://www.vdh.virginia.gov/content/uploads/sites/182/2020/03/VDH-COVID-19-PublicUseDataset-Cases.csv}
 "vdh_covid19"
+
+#' Reprocessed data from VA Department of Health
+#' 
+#' This dataset contains the VDH COVID-19 data manually collected by the UVAHS 
+#' data science team.  It contains some data not present in the VDH daily download,
+#' such as the number of tests performed; however, data is only presented at the 
+#' commonwealth and TJ health district aggregate levels.
+#' 
+#' @format Data frame with 10 columns:
+#' \describe{
+#' \item{date}{Report date}
+#' \item{vaNewCases}{New cases reported across the commonwealth on that date.}
+#' \item{vaCumCases}{Cumuative cases reported across the commonwealth.  This is 
+#' every instance of infection ever reported, irrespective of whether the patient is 
+#' still infected.}
+#' \item{tjNewCases}{New cases reported in the Thomas Jefferson health district.}
+#' \item{tjCumCases}{Cumulative cases reported in the Thomas Jefferson health district.}
+#' \item{nhosp}{Number of COVID-19 cases admitted to hospitals (commonwealth total).}
+#' \item{ntest}{Number of COVID-19 tests performed (commonwealth total).}
+#' \item{ftest}{Fraction of total population tested.}
+#' \item{posTestFrac}{Fraction of tests with positive results (=vaNewCases/ntest).}
+#' \item{vapop}{Total population of Virginia}
+#' }
+#' @source Virginia Department of Health:  \code{http://www.vdh.virginia.gov/coronavirus/}
+"uvads_covid19"
