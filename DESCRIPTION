@@ -19,6 +19,7 @@ Imports:
 Suggests:
   here (>= 0.1),
   ggplot2 (>= 3.3),
+  latex2exp (>= 0.4),
   tidyr (>= 1.0)
 License: TBD
 Encoding: UTF-8
