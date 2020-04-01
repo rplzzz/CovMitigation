@@ -86,3 +86,17 @@
 #' }
 #' @source Virginia Department of Health:  \code{http://www.vdh.virginia.gov/coronavirus/}
 "uvads_covid19"
+
+#' Date of first report for VA counties
+#' 
+#' Date of the first reported COVID-19 case for each Virginia county.  Counties
+#' that have not yet had a reported case have a date of \code{NA}.
+#' 
+#' @format Data frame with 4 columns
+#' \describe{
+#' \item{FIPS}{FIPS code for the county.}
+#' \item{firstReport}{Date of the first reported COVID-19 case in the county.}
+#' \item{firstDay}{Number of days since 1Jan2020 for the firstReport}
+#' }
+#' @source New York Times COVID-19 dataset \code{https://github.com/nytimes/covid-19-data}
+"va_county_first_case"

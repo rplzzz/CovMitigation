@@ -16,7 +16,8 @@ still infected.}
 \item{tjCumCases}{Cumulative cases reported in the Thomas Jefferson health district.}
 \item{nhosp}{Number of COVID-19 cases admitted to hospitals (commonwealth total).}
 \item{ntest}{Number of COVID-19 tests performed (commonwealth total).}
-\item{ftest}{Fraction of total population tested.}
+\item{ftest}{Fraction of total population tested on this date.}
+\item{ntest_cum}{Cumulative number of tests performed.}
 \item{posTestFrac}{Fraction of tests with positive results (=vaNewCases/ntest).}
 \item{vapop}{Total population of Virginia}
 }
