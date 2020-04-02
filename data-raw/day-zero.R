@@ -19,4 +19,7 @@ county_first_case <-
 va_county_first_case <- left_join(vacounties, county_first_case, by='FIPS')
 va_county_first_case$firstDay <- as.numeric(va_county_first_case$firstReport - as.Date('2020-01-01'))
 
+## For some reason, Bristol is in the list twice.  Fix the dupe.
+va_county_first_case <- unique(va_county_first_case)
+
 usethis::use_data(va_county_first_case, overwrite=TRUE)

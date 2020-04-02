@@ -218,6 +218,20 @@ run_single_county <- function(locality, mktshare, tmax, params)
     stop('Cannot find locality:  ',locality)
   }
   
+  if(is.null(params[['day_zero']])) {
+    dzlookup <- va_county_first_case
+  }
+  else {
+    dzlookup <- params[['day_zero']]
+  }
+
+  dayzero <- dzlookup$firstDay[dzlookup$Locality == locality]
+  if(is.na(dayzero)) {
+    dayzero <- 1 + max(dzlookup$firstDay, na.rm=TRUE)  # crude approx for regions where it hasn't started yet
+  }
+  dayzero <- dayzero - min(dzlookup$firstDay, na.rm=TRUE)  # Adjust to be relative to first county infected
+  
+  
   ## Calculate derived parameters
   N <- (pop-params$I0) * params$S0
   
@@ -247,6 +261,11 @@ run_single_county <- function(locality, mktshare, tmax, params)
   
   timevals <- seq(0, tmax)
   rslt <- as.data.frame(deSolve::ode(initvals, timevals, seir_equations, ode_params))
+  
+  ## Adjust for day zero.  Remove any times past tmax
+  rslt$time <- rslt$time + dayzero
+  #message('dayzero= ', dayzero)
+  rslt <- rslt[rslt$time <= tmax,]
   
   ## Add some identifiers for the locality
   rslt$locality <- locality
