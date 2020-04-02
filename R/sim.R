@@ -94,23 +94,11 @@ param_defaults <-
     E0                = 0,    # Initial number of exposed (number, not fraction)
     I0                = 1,    # Initial number of infected (a number, not a fraction)
     
-    ## Disease progression parameters
-    symptoFraction = 0.43,   
-    hospFraction  = 0.03,   # MMWR(20.7-31.4%)  range I think likely is half that 10.4 - 15.7% with a mean of 13%
-                            # but even this is likely an overestimate so I'll start with half of that 6.5%
-                            # It looks like we halved this again.  Consult JV.  -rpl
-    ratioICUtoAcute = 0.238,          # from the same MMWR 121/508 cases admitted went to the ICU- that is 23.8%  of all admissions
-                                      # 26.4% from the 201 person case series Risk Factors Associated with ARDS, C Wu, JAMA 3/13/20
-    fractionMV      = 0.328,          # from the 201 person case series Risk Factors Associated with ARDS, C Wu, JAMA 3/13/20
-    hospFractionNIPPV   = 0.2605,         # from the 201 person case series Risk Factors Associated with ARDS, C Wu, JAMA 3/13/20
-    hospFractionIMV     = 0.0675,         # from the 201 person case series Risk Factors Associated with ARDS, C Wu, JAMA 3/13/20
+    ## day-zero parameter
+    day_zero = NULL,
     
     ## Selection and filtering parameters
-    selectMarketShare = 0.2,  # Minimum market share for localities to be in the UVA catchment
     typeAMCDRG = "fractionAllUVA"   # other valid values are "fractionAllVCU"  "fractionRespUVA" "fractionRespVCU" "fractionAllUVA"
-
-
-    ## time lags (all times in days)
   )
 
 #' Add default parameters for parameters not overridden in the input
@@ -185,15 +173,14 @@ validate_params <- function(params)
 #' @return Data frame with results (see details) over time
 #' @importFrom dplyr %>%
 #' @export
-run_scenario <- function(tmax, params=list(), scenarioName = 'HospCensus') {
+run_scenario <- function(tmax, params=list(), scenarioName = 'communityInfection') {
   ## Check the parameters and supply defaults as required.
   validate_params(params)
   params <- complete_params(params)
   
   ## Filter the counties to just the ones that meet the market share requirement
   countySelection <- dplyr::filter(marketFractionFinal, 
-                                   TypeAMCDRG == params[['typeAMCDRG']],
-                                   marketShare >= params[['selectMarketShare']])
+                                   TypeAMCDRG == params[['typeAMCDRG']])
   countySelection$Locality <- as.character(countySelection$Locality)
   
   ## Map the single-county function onto our list of counties
@@ -203,20 +190,13 @@ run_scenario <- function(tmax, params=list(), scenarioName = 'HospCensus') {
              MoreArgs = list(tmax=tmax, params=params), SIMPLIFY=FALSE)
     )
   
-  ## return value:  sum up over the counties
-  dplyr::group_by(inpatientEstimates, time) %>%
-    dplyr::summarise(newCases = sum(newCases),
-                     newSympto = sum(newSympto),
-                     PopInfection = sum(PopInfection),
-                     MktSympto = sum(PopSympto * marketFraction),
-                     PopSympto = sum(PopSympto),
-                     PopCumulInfection = sum(PopCumulInfection),
-                     PopCumulFrac = sum(PopCumulInfection) / sum(population),
-                     PopRecovered = sum(PopRecovered),
-                     PopSuscept = sum(PopSuscept)
-                     ) %>%
     ## Add some identifiers for the scenario
-    dplyr::mutate(scenario=scenarioName, doublingTime=params$T0,
+    dplyr::mutate(inpatientEstimates,
+                  scenario=scenarioName, 
+                  doublingTime=params$T0,
+                  recoveryTime=params$D0,
+                  incubationTime=params$A0,
+                  symptomTime=params$Ts,
                   typeAMCDRG=params$typeAMCDRG) %>%
     dplyr::ungroup()
 }
@@ -230,8 +210,13 @@ run_scenario <- function(tmax, params=list(), scenarioName = 'HospCensus') {
 #' @keywords internal
 run_single_county <- function(locality, mktshare, tmax, params)
 {
+  ##msg <- paste(c('loc:', 'mktshare:'), c(locality, mktshare))
+  ##message(paste(msg, collapse='  '))
   ## Need to get the total population from the vaMyAgeBands dataset
   pop <- vaMyAgeBands$Total[vaMyAgeBands$Locality == locality]
+  if(length(pop) == 0) {
+    stop('Cannot find locality:  ',locality)
+  }
   
   ## Calculate derived parameters
   N <- (pop-params$I0) * params$S0
@@ -285,7 +270,7 @@ run_single_county <- function(locality, mktshare, tmax, params)
   ## newSympto = deltaIs + deltaRs
   ras <- rslt$I / rslt$Is
   deltaIs <- c(0, diff(rslt$Is))
-  deltaR <- c(0, -diff(rslt$R))
+  deltaR <- c(0, diff(rslt$R))
   deltaRs <- deltaR/(1+ras)
   rslt$newSympto <- deltaIs + deltaRs
   

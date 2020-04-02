@@ -27,4 +27,16 @@ vaMyAgeBands
 Dataset with total population and age breakdown for Virginia localities (counties,
 county-equivalents, and the entire commonwealth).
 }
+\details{
+There were no entries for Suffolk City, Virginia Beach City, or Williamsburg City in the dataset, 
+so we looked up the total
+population and estimated the age and sex breakdowns by applying the category
+ratios for Norfolk, a nearby city that did have data.
+
+Winchester City also did not have data, so we used the ratios for surrounding 
+Frederick County.
+
+Obviously
+it would be better to get the real data.
+}
 \keyword{datasets}

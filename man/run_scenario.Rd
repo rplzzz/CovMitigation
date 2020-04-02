@@ -4,7 +4,7 @@
 \alias{run_scenario}
 \title{Run a single hospital census scenario}
 \usage{
-run_scenario(tmax, params = list(), scenarioName = "HospCensus")
+run_scenario(tmax, params = list(), scenarioName = "communityInfection")
 }
 \arguments{
 \item{tmax}{Maximum time (days) to run to}
