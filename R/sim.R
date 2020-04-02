@@ -167,16 +167,22 @@ validate_params <- function(params)
 #' 
 #' }
 #' 
-#' @param tmax Maximum time (days) to run to
+#' @param timevals  Times to output values for.  If only a single value is provided, 
+#' it is assumed to be a maximum time (days) to run to, and values will be output
+#' in one day steps from 0 to tmax.
 #' @param params List of parameter values, see details
 #' @param scenarioName Name for the scenario; this will be copied into results
 #' @return Data frame with results (see details) over time
 #' @importFrom dplyr %>%
 #' @export
-run_scenario <- function(tmax, params=list(), scenarioName = 'communityInfection') {
+run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfection') {
   ## Check the parameters and supply defaults as required.
   validate_params(params)
   params <- complete_params(params)
+  
+  if(length(timevals) == 1) {
+    timevals <- seq(0, timevals)
+  }
   
   ## Filter the counties to just the ones that meet the market share requirement
   countySelection <- dplyr::filter(marketFractionFinal, 
@@ -187,7 +193,7 @@ run_scenario <- function(tmax, params=list(), scenarioName = 'communityInfection
   inpatientEstimates <- 
     dplyr::bind_rows(
       mapply(run_single_county, countySelection$Locality, countySelection$marketShare, 
-             MoreArgs = list(tmax=tmax, params=params), SIMPLIFY=FALSE)
+             MoreArgs = list(timevals=timevals, params=params), SIMPLIFY=FALSE)
     )
   
     ## Add some identifiers for the scenario
@@ -205,10 +211,10 @@ run_scenario <- function(tmax, params=list(), scenarioName = 'communityInfection
 #' 
 #' @param locality Name of the locality
 #' @param mktshare Market share for the locality
-#' @param tmax End time for the simulation
+#' @param timevals Vector of output times for the simulation
 #' @param params Model parameter list
 #' @keywords internal
-run_single_county <- function(locality, mktshare, tmax, params)
+run_single_county <- function(locality, mktshare, timevals, params)
 {
   ##msg <- paste(c('loc:', 'mktshare:'), c(locality, mktshare))
   ##message(paste(msg, collapse='  '))
@@ -259,13 +265,12 @@ run_single_county <- function(locality, mktshare, tmax, params)
                 Is=0,
                 R=(pop-params$I0-params$E0)*(1-params$S0))
   
-  timevals <- seq(0, tmax)
   rslt <- as.data.frame(deSolve::ode(initvals, timevals, seir_equations, ode_params))
   
   ## Adjust for day zero.  Remove any times past tmax
   rslt$time <- rslt$time + dayzero
   #message('dayzero= ', dayzero)
-  rslt <- rslt[rslt$time <= tmax,]
+  rslt <- rslt[rslt$time <= max(timevals),]
   
   ## Add some identifiers for the locality
   rslt$locality <- locality

@@ -15,13 +15,13 @@ Imports:
   lubridate (>= 1.7),
   foreach (>= 1.4),
   doParallel (>= 1.0),
+  NYTimesCOVID19,
   dplyr (>= 0.7)
 Suggests:
     here (>= 0.1),
     ggplot2 (>= 3.3),
     latex2exp (>= 0.4),
     tidyr (>= 1.0),
-    NYTimesCOVID19,
     knitr,
     rmarkdown
 License: TBD

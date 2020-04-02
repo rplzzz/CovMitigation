@@ -4,10 +4,12 @@
 \alias{run_scenario}
 \title{Run a single hospital census scenario}
 \usage{
-run_scenario(tmax, params = list(), scenarioName = "communityInfection")
+run_scenario(timevals, params = list(), scenarioName = "communityInfection")
 }
 \arguments{
-\item{tmax}{Maximum time (days) to run to}
+\item{timevals}{Times to output values for.  If only a single value is provided, 
+it is assumed to be a maximum time (days) to run to, and values will be output
+in one day steps from 0 to tmax.}
 
 \item{params}{List of parameter values, see details}
 
