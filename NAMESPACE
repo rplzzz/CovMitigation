@@ -2,6 +2,7 @@
 
 export(fetch_vdh_cov19)
 export(gen_likelihood)
+export(gen_prior)
 export(genbeta)
 export(gengamma)
 export(gennorm)

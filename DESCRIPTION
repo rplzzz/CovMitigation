@@ -16,6 +16,7 @@ Imports:
   foreach (>= 1.4),
   doParallel (>= 1.0),
   NYTimesCOVID19,
+  metrosamp (>= 0.7),
   dplyr (>= 0.7)
 Suggests:
     here (>= 0.1),
@@ -30,5 +31,6 @@ LazyData: true
 RoxygenNote: 7.1.0
 VignetteBuilder: knitr
 Remotes:
-  rplzzz/covid-19-data@pkg
+  rplzzz/covid-19-data
+  rplzzz/metrosamp
   

@@ -16,7 +16,8 @@
 #' \item{T0}{(real > 0) The initial doubling time for the number of infected people}
 #' \item{D0}{(real > 0) The initial average infection duration}
 #' \item{A0}{(real > 0) The average incubation time}
-#' \item{Ts}{(real > 0) The average time from infection to symptom onset}
+#' \item{Ts}{(real > 0) The average time from infection to symptom onset.  Note that
+#' this parameter is probably not identifiable with our current data.}
 #' \item{day_zero}{(real > 0) The day on which the infection started in Fairfax County (not
 #' necessarily when it was first observed), given in days since 1Jan2020.
 #' This will be used to line up the observed dataset with model results.}
@@ -77,7 +78,7 @@ gen_likelihood <- function()
   function(parms) {
     ## The day-zero parameter is being handled in a simplified way compared to
     ## how it is handled in the model, so pull it out of the parameter list.
-    modparms <- parms[names(parms) != 'day_zero']
+    modparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
     day0 <- parms[['day_zero']]
     
     ## model time corresponding to the observations.  Note these might not be integers.
@@ -90,6 +91,8 @@ gen_likelihood <- function()
       dplyr::select(time, locality, newCases) %>%
       dplyr::rename(Locality = locality, model.newcases = newCases) %>%
       dplyr::left_join(fips_codes, by='Locality')
+    
+    ## XXX need to adjust model outputs for testing fraction and testing bias!
     
     cmp <- dplyr::full_join(obsdata, modout, by=c('time', 'fips'))
     

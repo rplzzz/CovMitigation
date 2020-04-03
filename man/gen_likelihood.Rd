@@ -27,7 +27,8 @@ The model parameters currently recognized are:
 \item{T0}{(real > 0) The initial doubling time for the number of infected people}
 \item{D0}{(real > 0) The initial average infection duration}
 \item{A0}{(real > 0) The average incubation time}
-\item{Ts}{(real > 0) The average time from infection to symptom onset}
+\item{Ts}{(real > 0) The average time from infection to symptom onset.  Note that
+this parameter is probably not identifiable with our current data.}
 \item{day_zero}{(real > 0) The day on which the infection started in Fairfax County (not
 necessarily when it was first observed), given in days since 1Jan2020.
 This will be used to line up the observed dataset with model results.}
