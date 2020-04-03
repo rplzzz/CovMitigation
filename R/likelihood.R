@@ -21,9 +21,10 @@
 #' \item{day_zero}{(real > 0) The day on which the infection started in Fairfax County (not
 #' necessarily when it was first observed), given in days since 1Jan2020.
 #' This will be used to line up the observed dataset with model results.}
-#' \item{b}{(real in (0,1)) The testing bias factor.  That is, 1/f, where f is the
-#' factor by which testing results overestimate the infection fraction in the general
-#' population.}
+#' \item{b}{(real > 0) The testing bias factor.  That is, the positive test rate
+#' divided by the true infection rate.  b can be different from 1 because of false positives
+#' or because testing is targeted to people suspected of having the disease.  (Generally,
+#' we expect b>1, but we don't require this.)}
 #' }
 #' For the time being, we only accept a single \code{day_zero} parameter, and 
 #' all of the counties are delayed relative to Fairfax by a number of days equal
@@ -64,7 +65,8 @@ gen_likelihood <- function()
     ## sometimes you get a decrease due to transfers or data corrections.  Treat
     ## these as zero
     dplyr::mutate(newcases = pmax(0, newcases)) %>%
-    dplyr::select(date, fips, newcases, day)
+    dplyr::left_join(teststats, by='date') %>%
+    dplyr::select(date, fips, newcases, ftest, day)
     
   ## Our locality names are not the same as NYT, but we have a table of FIPS codes
   fips_codes <- dplyr::select(va_county_first_case, FIPS, Locality) %>%
@@ -75,11 +77,24 @@ gen_likelihood <- function()
   ## obs for every county at every model time, so we're just going to have to 
   ## do a join after each model run.
   
+  ## Default values for likelihood parameters.  Ideally we should collect all of
+  ## the parameter defaults together somewhere.
+  
+  default_parm_vals <- c(
+    day_zero = 60,
+    b = 0.5
+  )
+  
   function(parms) {
     ## The day-zero parameter is being handled in a simplified way compared to
     ## how it is handled in the model, so pull it out of the parameter list.
     modparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
-    day0 <- parms[['day_zero']]
+    if('day_zero' %in% names(parms)) {
+      day0 <- parms[['day_zero']]
+    }
+    else {
+      day0 <- default_parm_vals[['day_zero']]
+    }
     
     ## model time corresponding to the observations.  Note these might not be integers.
     obsdata[['time']] <- obsdata[['day']] - day0
@@ -92,9 +107,11 @@ gen_likelihood <- function()
       dplyr::rename(Locality = locality, model.newcases = newCases) %>%
       dplyr::left_join(fips_codes, by='Locality')
     
-    ## XXX need to adjust model outputs for testing fraction and testing bias!
+
     
-    cmp <- dplyr::full_join(obsdata, modout, by=c('time', 'fips'))
+    
+    cmp <- dplyr::full_join(obsdata, modout, by=c('time', 'fips')) %>%
+      dplyr::filter(!is.na(ftest))
     
     ## If any rows have model.cases missing, it means that our day-zero put the start
     ## of the outbreak after the first observed case in that county.  Such parameter
@@ -103,12 +120,22 @@ gen_likelihood <- function()
     ## from the model on a day before we had any observed cases, which is perfectly
     ## fine, so fill in those cases with zeros.
     
-    if(any(is.na(cmp[['model.cases']]))) {
+    if(any(is.na(cmp$model.newcases))) {
       -Inf
     }
     else {
       miss <- is.na(cmp$newcases)
       cmp$newcases[miss] <- 0
+      
+      ## adjust model outputs for testing fraction and testing bias!
+      if('b' %in% names(parms)) {
+        b <- parms[['b']]
+      }
+      else {
+        b <- default_parm_vals[['b']]
+      }
+      cmp$model.newcases <- cmp$model.newcases * cmp$ftest * b
+      
       logl <- dpois(cmp$newcases, cmp$model.newcases, log=TRUE)
       
       sum(logl)

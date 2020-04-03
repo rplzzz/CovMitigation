@@ -32,9 +32,10 @@ this parameter is probably not identifiable with our current data.}
 \item{day_zero}{(real > 0) The day on which the infection started in Fairfax County (not
 necessarily when it was first observed), given in days since 1Jan2020.
 This will be used to line up the observed dataset with model results.}
-\item{b}{(real in (0,1)) The testing bias factor.  That is, 1/f, where f is the
-factor by which testing results overestimate the infection fraction in the general
-population.}
+\item{b}{(real > 0) The testing bias factor.  That is, the positive test rate
+divided by the true infection rate.  b can be different from 1 because of false positives
+or because testing is targeted to people suspected of having the disease.  (Generally,
+we expect b>1, but we don't require this.)}
 }
 For the time being, we only accept a single \code{day_zero} parameter, and 
 all of the counties are delayed relative to Fairfax by a number of days equal

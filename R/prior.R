@@ -25,13 +25,13 @@ gen_prior <- function()
     ## All of our parameters have to be > 0, and b has to be < 1
     ## TODO make the sampler guarantee this.  How have we not included this in 
     ## the sampler already?
-    if(any (parms <= 0 || parms[['b']] >= 1)) {
+    if(any(parms <= 0)) {
       -Inf
     } else {
       logps <- c(
         dgamma(parms[c('T0', 'D0', 'A0', 'Ts')], 2, 0.5, log=TRUE),
         dnorm(parms['day_zero'], 60, 15, log=TRUE),
-        dbeta(parms['b'], 1.5, 1.5, log=TRUE)
+        dlnorm(parms['b'], 3, 2, log=TRUE)
       )
       sum(logps)
     }
