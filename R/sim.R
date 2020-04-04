@@ -174,6 +174,7 @@ validate_params <- function(params)
 #' @param scenarioName Name for the scenario; this will be copied into results
 #' @return Data frame with results (see details) over time
 #' @importFrom dplyr %>%
+#' @importFrom foreach %do% %dopar%
 #' @export
 run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfection') {
   ## Check the parameters and supply defaults as required.
@@ -191,10 +192,11 @@ run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfec
   
   ## Map the single-county function onto our list of counties
   inpatientEstimates <- 
-    dplyr::bind_rows(
-      mapply(run_single_county, countySelection$Locality, countySelection$marketShare, 
-             MoreArgs = list(timevals=timevals, params=params), SIMPLIFY=FALSE)
-    )
+  foreach::foreach(icounty=seq_along(countySelection$Locality), .combine=dplyr::bind_rows) %dopar% {
+      run_single_county(countySelection$Locality[icounty], countySelection$marketShare[icounty],
+                        timevals, params)
+  }
+
   
     ## Add some identifiers for the scenario
     dplyr::mutate(inpatientEstimates,
