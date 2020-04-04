@@ -4,11 +4,10 @@
 ## collecting manually from the VDH website
 library(readr)
 library(dplyr)
-library(lubridate)
 library(here)
 
 
-vdh_new <- read_csv(here::here('data-raw', 'Virginia_Dept_Health_COVID_Data.csv'),
+vdh_new <- read_csv(here('data-raw', 'Virginia_Dept_Health_COVID_Data.csv'),
                     col_types = 'ciiiiinniinnn')
 uvads_covid19 <-
   filter(vdh_new, !is.na(Date)) %>%
@@ -21,7 +20,7 @@ uvads_covid19 <-
 ## Add a new tests column
 uvads_covid19$ntest <- c(NA, diff(uvads_covid19$ntest_cum))
 uvads_covid19 <-
-  mutate(uvads_covid19, date=mdy(date), ftest=ntest/vapop) %>%
+  mutate(uvads_covid19, date=lubridate::mdy(date), ftest=ntest/vapop) %>%
   select(date, vaNewCases, vaCumCases, tjNewCases, tjCumCases, nhosp, 
          ntest, ntest_cum, ftest, posTestFrac, vapop)
 

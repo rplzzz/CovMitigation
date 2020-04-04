@@ -167,16 +167,23 @@ validate_params <- function(params)
 #' 
 #' }
 #' 
-#' @param tmax Maximum time (days) to run to
+#' @param timevals  Times to output values for.  If only a single value is provided, 
+#' it is assumed to be a maximum time (days) to run to, and values will be output
+#' in one day steps from 0 to tmax.
 #' @param params List of parameter values, see details
 #' @param scenarioName Name for the scenario; this will be copied into results
 #' @return Data frame with results (see details) over time
 #' @importFrom dplyr %>%
+#' @importFrom foreach %do% %dopar%
 #' @export
-run_scenario <- function(tmax, params=list(), scenarioName = 'communityInfection') {
+run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfection') {
   ## Check the parameters and supply defaults as required.
   validate_params(params)
   params <- complete_params(params)
+  
+  if(length(timevals) == 1) {
+    timevals <- seq(0, timevals)
+  }
   
   ## Filter the counties to just the ones that meet the market share requirement
   countySelection <- dplyr::filter(marketFractionFinal, 
@@ -185,10 +192,12 @@ run_scenario <- function(tmax, params=list(), scenarioName = 'communityInfection
   
   ## Map the single-county function onto our list of counties
   inpatientEstimates <- 
-    dplyr::bind_rows(
-      mapply(run_single_county, countySelection$Locality, countySelection$marketShare, 
-             MoreArgs = list(tmax=tmax, params=params), SIMPLIFY=FALSE)
-    )
+  foreach::foreach(icounty=seq_along(countySelection$Locality), .combine=dplyr::bind_rows,
+                   .inorder=FALSE) %dopar% {
+      run_single_county(countySelection$Locality[icounty], countySelection$marketShare[icounty],
+                        timevals, params)
+  }
+
   
     ## Add some identifiers for the scenario
     dplyr::mutate(inpatientEstimates,
@@ -205,10 +214,10 @@ run_scenario <- function(tmax, params=list(), scenarioName = 'communityInfection
 #' 
 #' @param locality Name of the locality
 #' @param mktshare Market share for the locality
-#' @param tmax End time for the simulation
+#' @param timevals Vector of output times for the simulation
 #' @param params Model parameter list
 #' @keywords internal
-run_single_county <- function(locality, mktshare, tmax, params)
+run_single_county <- function(locality, mktshare, timevals, params)
 {
   ##msg <- paste(c('loc:', 'mktshare:'), c(locality, mktshare))
   ##message(paste(msg, collapse='  '))
@@ -237,16 +246,27 @@ run_single_county <- function(locality, mktshare, tmax, params)
   
   gamma_schedule <- params$duration_schedule
   gamma_schedule$value <- 1/(gamma_schedule$value * params$D0)
-  gamma0 <- getparam(0, gamma_schedule)
+  ## the table lookups for these can be expensive, so bypass them if we're not
+  ## really using the table
+  if(nrow(gamma_schedule) == 1) {
+    gamma0 <- getparam(0, gamma_schedule)
+    gamma_schedule <- gamma0
+  }
   
   alpha_schedule <- params$prog_schedule
   alpha_schedule$value <- 1/(alpha_schedule$value * params$A0)
-  alpha0 <- getparam(0, alpha_schedule)
+  if(nrow(alpha_schedule) == 1) {
+    alpha0 <- getparam(0, alpha_schedule)
+    alpha_schedule <- alpha0
+  }
   
-  beta0 <- (1 + (log(2) * params$D0/params$T0) * (alpha0+gamma0)/alpha0) / (params$D0)
+  beta0 <- calcbeta(params)
   
   beta_schedule <- params$beta_schedule
   beta_schedule$value <- beta_schedule$value * beta0
+  if(nrow(beta_schedule) == 1) {
+    beta_schedule <- beta0
+  }
   
   epsilon <- 1/params$Ts
   
@@ -259,13 +279,12 @@ run_single_county <- function(locality, mktshare, tmax, params)
                 Is=0,
                 R=(pop-params$I0-params$E0)*(1-params$S0))
   
-  timevals <- seq(0, tmax)
   rslt <- as.data.frame(deSolve::ode(initvals, timevals, seir_equations, ode_params))
   
   ## Adjust for day zero.  Remove any times past tmax
   rslt$time <- rslt$time + dayzero
   #message('dayzero= ', dayzero)
-  rslt <- rslt[rslt$time <= tmax,]
+  rslt <- rslt[rslt$time <= max(timevals),]
   
   ## Add some identifiers for the locality
   rslt$locality <- locality

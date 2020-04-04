@@ -4,14 +4,14 @@
 \alias{run_single_county}
 \title{Run the hospital census model for a single locality}
 \usage{
-run_single_county(locality, mktshare, tmax, params)
+run_single_county(locality, mktshare, timevals, params)
 }
 \arguments{
 \item{locality}{Name of the locality}
 
 \item{mktshare}{Market share for the locality}
 
-\item{tmax}{End time for the simulation}
+\item{timevals}{Vector of output times for the simulation}
 
 \item{params}{Model parameter list}
 }
