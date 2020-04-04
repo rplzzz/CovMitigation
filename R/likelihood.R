@@ -69,17 +69,9 @@ gen_likelihood <- function()
     tmax <- max(obsdata[['time']])
     tvals <- c(0, seq(to = tmax, length.out = floor(tmax)))
     
-    modout <- run_scenario(tvals, modparms) %>%
-      dplyr::select(time, locality, newCases) %>%
-      dplyr::rename(Locality = locality, model.newcases = newCases) %>%
-      dplyr::left_join(fips_codes, by='Locality')
-    
+    modout <- run_scenario(tvals, modparms)
+    cmp <- align_modout(modout, obs)
 
-    
-    
-    cmp <- dplyr::full_join(obsdata, modout, by=c('time', 'fips')) %>%
-      dplyr::filter(!is.na(ftest))
-    
     ## If any rows have model.cases missing, it means that our day-zero put the start
     ## of the outbreak after the first observed case in that county.  Such parameter
     ## values have likelihood == 0.
@@ -104,8 +96,16 @@ gen_likelihood <- function()
       cmp$model.newcases <- cmp$model.newcases * cmp$ftest * b
       
       logl <- dpois(cmp$newcases, cmp$model.newcases, log=TRUE)
-      
-      sum(logl)
+      if(any(is.na(logl))) {
+        ## This seems to be happening occasionally.  Not sure why
+        bad <- cmp[is.na(logl),]
+        warning('Bad values in likelihood function.')
+        for (i in seq(1,nrow(bad))) {
+          warning(paste(colnames(bad), collapse='\t'), '\n', 
+                  paste(bad[i,], collapse='\t'))
+        }
+      }
+      sum(logl, na.rm=TRUE)
     }
   }
 }
@@ -124,6 +124,22 @@ gen_post <- function()
     }
     logp
   }
+}
+
+#' Align model output to observed data for comparison
+#' 
+#' @param modout Raw model output
+#' @param obs Observed data, as returned by \code{\link{get_obsdata}}
+#' @keywords internal
+align_modout <- function(modout, obs)
+{
+  mdata <- modout[c('time','locality','newCases')]
+  names(mdata) <- c('time','Locality','model.newcases')
+  mdata <- dplyr::left_join(mdata, obs$fips_codes, by='Locality')
+    
+  cmp <- dplyr::full_join(obs$obsdata, modout, by=c('time', 'fips')) 
+  
+  cmp[!is.na(cmp$ftest),]
 }
 
 #' Prepare the observed data for use in the likelihood function

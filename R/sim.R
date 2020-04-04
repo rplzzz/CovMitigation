@@ -192,7 +192,8 @@ run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfec
   
   ## Map the single-county function onto our list of counties
   inpatientEstimates <- 
-  foreach::foreach(icounty=seq_along(countySelection$Locality), .combine=dplyr::bind_rows) %dopar% {
+  foreach::foreach(icounty=seq_along(countySelection$Locality), .combine=dplyr::bind_rows,
+                   .inorder=FALSE) %dopar% {
       run_single_county(countySelection$Locality[icounty], countySelection$marketShare[icounty],
                         timevals, params)
   }
