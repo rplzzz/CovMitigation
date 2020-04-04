@@ -27,9 +27,7 @@ gen_prior <- function()
       parms['Ts'] <- param_defaults[['Ts']]
     }
     
-    ## All of our parameters have to be > 0, and b has to be < 1
-    ## TODO make the sampler guarantee this.  How have we not included this in 
-    ## the sampler already?
+    ## All of our parameters have to be > 0
     if(any(parms <= 0)) {
       -Inf
     } else {
@@ -38,7 +36,7 @@ gen_prior <- function()
         dnorm(parms['day_zero'], 60, 15, log=TRUE),
         dlnorm(parms['b'], 3, 2, log=TRUE)
       )
-      sum(logps)
+      sum(logps, na.rm = TRUE)
     }
   }
 }

@@ -44,9 +44,6 @@
 #' @export
 gen_likelihood <- function()
 {
-  ## silence warnings
-  locality <- newCases <- ftest <- NULL
-  
   obs <- get_obsdata()
   obsdata <- obs$obsdata
   fips_codes <- obs$fips_codes
@@ -70,7 +67,8 @@ gen_likelihood <- function()
     tvals <- c(0, seq(to = tmax, length.out = floor(tmax)))
     
     modout <- run_scenario(tvals, modparms)
-    cmp <- align_modout(modout, obs)
+    cmp <- align_modout(modout, list(obsdata=obsdata, fips_codes=fips_codes, 
+                                     default_parm_vals=default_parm_vals))
 
     ## If any rows have model.cases missing, it means that our day-zero put the start
     ## of the outbreak after the first observed case in that county.  Such parameter
@@ -129,7 +127,8 @@ gen_post <- function()
 #' Align model output to observed data for comparison
 #' 
 #' @param modout Raw model output
-#' @param obs Observed data, as returned by \code{\link{get_obsdata}}
+#' @param obs Observed data, as returned by \code{\link{get_obsdata}}.  The time
+#' column (= day - day0) must already have been added.
 #' @keywords internal
 align_modout <- function(modout, obs)
 {
@@ -137,7 +136,7 @@ align_modout <- function(modout, obs)
   names(mdata) <- c('time','Locality','model.newcases')
   mdata <- dplyr::left_join(mdata, obs$fips_codes, by='Locality')
     
-  cmp <- dplyr::full_join(obs$obsdata, modout, by=c('time', 'fips')) 
+  cmp <- dplyr::full_join(obs$obsdata, mdata, by=c('time', 'fips')) 
   
   cmp[!is.na(cmp$ftest),]
 }
