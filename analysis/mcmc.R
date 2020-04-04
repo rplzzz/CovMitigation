@@ -34,4 +34,4 @@ ms6 <- metrosamp(lpost, ms5, 100, 1, scl0/4)
 
 ms7 <- metrosamp(lpost, ms6, 1000, 1)
 ms8 <- metrosamp(lpost, ms7, 1000, 1)
-ms9 <- metrosamp(lpost, ms8, 1000, 1)
+ms9 <- metrosamp(lpost, ms8, 1000, 1, scl0/2)
