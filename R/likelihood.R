@@ -142,3 +142,19 @@ gen_likelihood <- function()
     }
   }
 }
+
+#' Prepare a posterior log-pdf function for use in Bayesian calibratin
+#' 
+#' @export
+gen_post <- function()
+{
+  lprior <- gen_prior()
+  llik <- gen_likelihood()
+  function(parms) {
+    logp <- lprior(parms)
+    if(is.finite(logp)) {
+      logp <- logp + llik(parms)
+    }
+    logp
+  }
+}

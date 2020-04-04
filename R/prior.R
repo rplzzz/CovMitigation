@@ -21,6 +21,11 @@ gen_prior <- function()
       badparms <- names(parms)[!names(parms) %in% parm_names]
       stop('unrecognized parameters: ', paste(badparms, collapse=', '))
     }
+    ## For the time being we will want to run without Ts, so if it is missing,
+    ## replace with the default value
+    if(!'Ts' %in% names(parms)) {
+      parms['Ts'] <- param_defaults[['Ts']]
+    }
     
     ## All of our parameters have to be > 0, and b has to be < 1
     ## TODO make the sampler guarantee this.  How have we not included this in 
