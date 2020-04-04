@@ -245,21 +245,21 @@ run_single_county <- function(locality, mktshare, timevals, params)
   
   gamma_schedule <- params$duration_schedule
   gamma_schedule$value <- 1/(gamma_schedule$value * params$D0)
-  gamma0 <- getparam(0, gamma_schedule)
   ## the table lookups for these can be expensive, so bypass them if we're not
   ## really using the table
   if(nrow(gamma_schedule) == 1) {
+    gamma0 <- getparam(0, gamma_schedule)
     gamma_schedule <- gamma0
   }
   
   alpha_schedule <- params$prog_schedule
   alpha_schedule$value <- 1/(alpha_schedule$value * params$A0)
-  alpha0 <- getparam(0, alpha_schedule)
   if(nrow(alpha_schedule) == 1) {
+    alpha0 <- getparam(0, alpha_schedule)
     alpha_schedule <- alpha0
   }
   
-  beta0 <- (1 + (log(2) * params$D0/params$T0) * (alpha0+gamma0)/alpha0) / (params$D0)
+  beta0 <- calcbeta(params)
   
   beta_schedule <- params$beta_schedule
   beta_schedule$value <- beta_schedule$value * beta0
