@@ -1,6 +1,7 @@
 #!/bin/zsh
 #SBATCH -t 1000
-#Sbatch -n 1
+#SBATCH -n 1
+#SBATCH -c 40
 #SBATCH -A clinical_analytics_lab
 
 module load gcc/7.1.0
