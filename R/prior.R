@@ -32,9 +32,9 @@ gen_prior <- function()
       -Inf
     } else {
       logps <- c(
-        dgamma(parms[c('T0', 'D0', 'A0', 'Ts')], 2, 0.5, log=TRUE),
-        dnorm(parms['day_zero'], 60, 15, log=TRUE),
-        dlnorm(parms['b'], 3, 2, log=TRUE)
+        dgamma(parms[c('T0', 'D0', 'A0', 'Ts')], c(2, 8,8,8), c(0.5, 2,2,2), log=TRUE),
+        dnorm(parms['day_zero'], 50, 15, log=TRUE),
+        dlnorm(parms['b'], 2.5, 1.5, log=TRUE)
       )
       sum(logps, na.rm = TRUE)
     }

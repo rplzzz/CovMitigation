@@ -17,7 +17,7 @@ fill_defaults <- function(parms, defaults)
 plt_modobs <- function(parms, ncounty=4)
 {
   ## silence warnings
-  fips <- newcases <- predicted <- mtype <- otype <- NULL
+  fips <- newcases <- predicted <- NULL
   
   obs <- get_obsdata()
   obsdata <- obs[['obsdata']]
@@ -58,12 +58,10 @@ plt_modobs <- function(parms, ncounty=4)
   pltdata <- cmp[cmp[['fips']] %in% use_fips,]
   
   pltdata[['predicted']] <- pltdata[['model.newcases']] * pltdata[['ftest']] * b
-  pltdata[['otype']] <- "observed"
-  pltdata[['mtype']] <- "predicted"
   
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) + 
-    ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype=mtype), size=1.2) + 
-    ggplot2::geom_point(mapping=ggplot2::aes(y=newcases, shape=otype)) + 
+    ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted'), size=1.2) + 
+    ggplot2::geom_point(mapping=ggplot2::aes(y=newcases, shape='observed')) + 
     ggplot2::facet_wrap(~Locality) +
     ggplot2::guides(shape=ggplot2::guide_legend(''), linetype=ggplot2::guide_legend('')) +
     ggplot2::ylab('New Cases') +
