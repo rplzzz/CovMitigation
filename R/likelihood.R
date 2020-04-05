@@ -92,6 +92,10 @@ gen_likelihood <- function()
         b <- default_parm_vals[['b']]
       }
       cmp$model.newcases <- cmp$model.newcases * cmp$ftest * b
+      ## Occasionally the model will produce very small predictions that can
+      ## cause problems in dpois.  Set a floor under the model output that is
+      ## small enough that essentially any observations will be a no-go
+      cmp$model.newcases <- max(cmp$model.newcases, 1e-8)
       
       logl <- dpois(cmp$newcases, cmp$model.newcases, log=TRUE)
       if(any(is.na(logl))) {
