@@ -10,9 +10,9 @@ echo "start:  " `date`
 
 program=`Rscript -e 'system.file("scripts/run-mcmc.R", package="CovMitigation")'`
 
-tid=$SLURM_ARRAY_TID
+tid=$SLURM_ARRAY_TASKID
 nsamp=100000
-outfile="$1-$tid.rds"
+outfile="mcmc-warmup-$tid.rds"
 
 echo "Run command:"
 echo "source('$program'); run_mcmc($tid, $nsamp, '$outfile', NULL)"
