@@ -47,3 +47,10 @@ data-raw/*.rds
 inst/doc
 doc
 Meta
+
+# Results
+analysis/mcmc-rslts
+analysis/old-istreams
+analysis/*.html
+analysis/*.pdf
+

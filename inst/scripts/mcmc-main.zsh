@@ -1,18 +1,24 @@
 #!/bin/zsh
-#SBATCH -t 5
-#Sbatch -n 1
+#SBATCH -t 1500
+#SBATCH -n 1
+#SBATCH -c 20
 #SBATCH -A clinical_analytics_lab
 
 module load gcc/7.1.0
 module load R/3.6.1
 
-date
+echo "start:  " `date`
 
-scriptfile=`Rscript -e 'system.file("scripts/run-mcmc.R", package="CovMitigation")'`
+#program=`Rscript -e 'system.file("scripts/run-mcmc.R", package="CovMitigation")'`
+program="$PWD/run-mcmc.R"
 
-tid=$SLURM_ARRAY_TID
-outfile="$1-$tid.rds"
+tid=$SLURM_ARRAY_TASK_ID
+nsamp=100000
+outfile="mcmc-warmup-$tid.rds"
 
-echo "Rscript -e "
+echo "Run command:"
+echo "source('$program'); run_mcmc($tid, $nsamp, '$outfile', NULL)"
 
-date
+Rscript -e "source('$program'); run_mcmc($tid, $nsamp, '$outfile', NULL)"
+
+echo "end:  " `date`
