@@ -95,7 +95,7 @@ gen_likelihood <- function()
       ## Occasionally the model will produce very small predictions that can
       ## cause problems in dpois.  Set a floor under the model output that is
       ## small enough that essentially any observations will be a no-go
-      cmp$model.newcases <- max(cmp$model.newcases, 1e-8)
+      cmp$model.newcases <- pmax(cmp$model.newcases, 1e-8)
       
       logl <- dpois(cmp$newcases, cmp$model.newcases, log=TRUE)
       if(any(is.na(logl))) {
@@ -173,6 +173,7 @@ get_obsdata <- function()
   obsdata <- 
     dplyr::filter(NYTimesCOVID19::cov19county, 
                   state=='Virginia',
+                  !is.na(fips),
                   date >= min(teststats[['date']])) %>%
     dplyr::mutate(day = as.numeric(date - as.Date('2020-01-01')),
                   fips = as.integer(fips)) %>%
