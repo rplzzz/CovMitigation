@@ -22,7 +22,7 @@ set.seed(867-5309)
 
 ## Based on results of opt, above (caching these values to prevent having to 
 ## rerun it, since it takes about 45 minutes)
-p1 <- c(T0=2.938418, D0=4, A0=3, day_zero=49.015829, b=10.304016)
+p1 <- c(T0=2.7, D0=4, A0=3, day_zero=29, b=14)
 
 ms1 <- metrosamp(lpost, p1, 100, 1, scl0)
 ms2 <- metrosamp(lpost, ms1, 100,1, scl0/5)
