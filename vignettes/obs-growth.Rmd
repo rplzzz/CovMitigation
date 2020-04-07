@@ -39,12 +39,11 @@ t <- seq_along(pltdata$date) - 1  # start at zero
 pltdata$t <- t
 
 ## Compute the testing fraction correction.
-idx <- 5
-ftest_relative <- pltdata$ftest / pltdata$ftest[idx]
-ntest_relative <- pltdata$ntest / pltdata$ntest[idx]
+idx <- 3
+ftest_relative <- pltdata$ftest / pltdata$ftest[1]
 #fcorrect <- min(pltdata$ftest) / pltdata$ftest
 
-pltdata$correctedNewCases <- pltdata$vaNewCases / ftest_relative #/ pltdata$vaNewCases[1]
+pltdata$correctedNewCases <- pltdata$vaNewCases / ftest_relative 
 pltdata$correctedCumCases <- cumsum(pltdata$correctedNewCases)
 pltdata$correctedCumCases <- pltdata$correctedCumCases / pltdata$correctedCumCases[idx]
 
@@ -59,7 +58,7 @@ tdlabstex <- sprintf('$t_d = %d$', tds)
 gr <- lapply(tds, 
              function(td) {
                r <- log(2)/td
-               exp(r*t) / exp(r*t[5])
+               exp(r*t) / exp(r*t[idx])
              })
 benchmarks <- as.data.frame(gr)
 names(benchmarks) <- tdlabs
@@ -68,6 +67,57 @@ benchmarks <- pivot_longer(benchmarks, -date, names_to = 'doubling time')
 benchplt <- 
   ggplot(data=pltdata, aes(x=date)) + 
   geom_line(data=pltdata, mapping=aes(y=correctedCumCases), size=1.2) +
+  geom_line(data=benchmarks, mapping=aes(y=value, group=`doubling time`), color='lightgrey') +
+  scale_color_solarized() +
+  scale_y_log10() +
+  theme_bw()
+for(i in seq_along(gr)) {
+  benchplt <- benchplt + geom_label(x=lastdate, y=log10(gr[[i]][lastidx]), label=TeX(tdlabstex[i]))
+}
+suppressWarnings(print(benchplt))
+```
+
+```{r ffxgrowth}
+basedate <- as.Date('2020-03-16')
+ffxdata <- filter(NYTimesCOVID19::cov19county, fips==51059,)
+ffxdata$newCases <- c(0, diff(ffxdata$cases))
+ffxdata <- 
+  left_join(ffxdata, select(uvads_covid19, date, ftest), by='date') %>%
+  select(date, newCases, ftest) %>%
+  filter(ftest > 0, date >= basedate)
+
+t <- seq_along(ffxdata$date) - 1  # start at zero
+ffxdata$t <- t
+
+## Compute the testing fraction correction.
+idx <- 3
+ftest_relative <- ffxdata$ftest / ffxdata$ftest[1]
+#fcorrect <- min(ffxdata$ftest) / ffxdata$ftest
+
+ffxdata$correctedNewCases <- ffxdata$newCases / ftest_relative 
+ffxdata$correctedCumCases <- cumsum(ffxdata$correctedNewCases)
+ffxdata$correctedCumCases <- ffxdata$correctedCumCases / ffxdata$correctedCumCases[idx]
+
+## Label positioning
+lastidx <- length(t)
+lastdate <- ffxdata$date[lastidx]
+
+## Create the benchmark data
+tds <- c(3,4,5,6,7)
+tdlabs <- paste('td=',tds)
+tdlabstex <- sprintf('$t_d = %d$', tds)
+gr <- lapply(tds, 
+             function(td) {
+               r <- log(2)/td
+               exp(r*t) / exp(r*t[idx])
+             })
+benchmarks <- as.data.frame(gr)
+names(benchmarks) <- tdlabs
+benchmarks$date <- t + ffxdata$date[1]
+benchmarks <- pivot_longer(benchmarks, -date, names_to = 'doubling time')
+benchplt <- 
+  ggplot(data=ffxdata, aes(x=date)) + 
+  geom_line(data=ffxdata, mapping=aes(y=correctedCumCases), size=1.2) +
   geom_line(data=benchmarks, mapping=aes(y=value, group=`doubling time`), color='lightgrey') +
   scale_color_solarized() +
   scale_y_log10() +
