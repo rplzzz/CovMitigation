@@ -19,6 +19,9 @@
 #' \deqn{R_0 = \frac{\beta}{\gamma}}
 #' 
 #' @param parms Named vector of model parameters
+#' @param alpha SEIR alpha parameter
+#' @param beta SEIR beta parameter
+#' @param gamma SEIR gamma parameter
 #' @name coefs
 NULL
 
@@ -33,8 +36,10 @@ calcalpha <- function(parms)
 
 #' @describeIn coefs Calculate transmissibility \eqn{\beta} from model parameters.
 #' 
+#' This is the approximate version, using the Taylor series expansion.
+#' 
 #' @export
-calcbeta <- function(parms)
+calcbeta_approx <- function(parms)
 {
   alpha <- calcalpha(parms)
   gamma <- calcgamma(parms)
@@ -50,10 +55,47 @@ calcgamma <- function(parms)
   1/parms[['D0']]
 }
 
+#' @describeIn coefs Calculate beta, given model input parameters
+#' 
+#' This is the exact version, solving the nonlinear equation for beta.
+#' 
+#' @export
+calcbeta <- function(parms)
+{
+  beta_guess <- calcbeta_approx(parms)
+  alpha <- calcalpha(parms)
+  gamma <- calcgamma(parms)
+  targfun <- function(beta) {
+    parms[['T0']] - calct0(alpha, beta, gamma)
+  }
+  solv <- nleqslv::nleqslv(beta_guess, targfun)
+  if(solv$termcd != 1) {
+    warning('calcbeta: failed to achieve convergence: msg= ', solv$message)
+  }
+  solv$x
+}
+
 #' @describeIn coefs Calculate basic reproduction number \eqn{R_0} from model parameters.
 #' 
 #' @export
 calcr0 <- function(parms)
 {
   calcbeta(parms)/calcgamma(parms)
+}
+
+#' @describeIn coefs Calculate the growth rate (lplus) given alpha, beta, gamma coefficients
+#' 
+#' @export
+calclplus <- function(alpha, beta, gamma)
+{
+  apg <- alpha+gamma
+  0.5*(-apg + sqrt(apg^2 + 4*alpha*(beta-gamma)))
+}
+
+#' @describeIn coefs Calculate the doubling time (t0), given alpha, beta, gamma coefficients
+#' 
+#' @export
+calct0 <- function(alpha, beta, gamma)
+{
+  log(2) / calclplus(alpha, beta, gamma)
 }

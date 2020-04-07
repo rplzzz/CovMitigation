@@ -2,8 +2,11 @@
 
 export(calcalpha)
 export(calcbeta)
+export(calcbeta_approx)
 export(calcgamma)
+export(calclplus)
 export(calcr0)
+export(calct0)
 export(fetch_vdh_cov19)
 export(gen_likelihood)
 export(gen_post)

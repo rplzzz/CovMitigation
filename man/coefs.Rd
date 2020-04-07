@@ -3,21 +3,36 @@
 \name{coefs}
 \alias{coefs}
 \alias{calcalpha}
-\alias{calcbeta}
+\alias{calcbeta_approx}
 \alias{calcgamma}
+\alias{calcbeta}
 \alias{calcr0}
+\alias{calclplus}
+\alias{calct0}
 \title{Caclulate model coefficients from parameters}
 \usage{
 calcalpha(parms)
 
-calcbeta(parms)
+calcbeta_approx(parms)
 
 calcgamma(parms)
 
+calcbeta(parms)
+
 calcr0(parms)
+
+calclplus(alpha, beta, gamma)
+
+calct0(alpha, beta, gamma)
 }
 \arguments{
 \item{parms}{Named vector of model parameters}
+
+\item{alpha}{SEIR alpha parameter}
+
+\item{beta}{SEIR beta parameter}
+
+\item{gamma}{SEIR gamma parameter}
 }
 \description{
 We parameterize the model SEIR in terms of initial doubling time, incubation period, 
@@ -43,10 +58,20 @@ absence of mortality during the exposed period, \eqn{R_0} is independent of
 \itemize{
 \item \code{calcalpha}: Calculate progression rate \eqn{\alpha} from model parameters
 
-\item \code{calcbeta}: Calculate transmissibility \eqn{\beta} from model parameters.
+\item \code{calcbeta_approx}: Calculate transmissibility \eqn{\beta} from model parameters.
+
+This is the approximate version, using the Taylor series expansion.
 
 \item \code{calcgamma}: Calculate recovery rate \eqn{\gamma} from model parameters.
 
+\item \code{calcbeta}: Calculate beta, given model input parameters
+
+This is the exact version, solving the nonlinear equation for beta.
+
 \item \code{calcr0}: Calculate basic reproduction number \eqn{R_0} from model parameters.
+
+\item \code{calclplus}: Calculate the growth rate (lplus) given alpha, beta, gamma coefficients
+
+\item \code{calct0}: Calculate the doubling time (t0), given alpha, beta, gamma coefficients
 }}
 

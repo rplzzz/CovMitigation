@@ -1,6 +1,6 @@
 Package: CovMitigation
 Title: Demand estimates for medical centers in Virginia
-Version: 0.5.1.9000
+Version: 0.6.0.9000
 Authors@R:
     person(given = "First",
            family = "Last",
@@ -15,6 +15,7 @@ Imports:
   lubridate (>= 1.7),
   foreach (>= 1.4),
   doParallel (>= 1.0),
+  nleqslv (>= 3.3),
   NYTimesCOVID19,
   dplyr (>= 0.7)
 Suggests:
