@@ -139,7 +139,9 @@ align_modout <- function(modout, obs)
   mdata <- modout[c('time','locality','newCases')]
   names(mdata) <- c('time','Locality','model.newcases')
   mdata <- dplyr::left_join(mdata, obs$fips_codes, by='Locality')
+  mdata$time <- round(mdata$time, 2)  ## fix roundoff error
     
+  obs$obsdata$time <- round(obs$obsdata$time, 2)
   cmp <- dplyr::full_join(obs$obsdata, mdata, by=c('time', 'fips')) 
   
   cmp[!is.na(cmp$ftest),]
