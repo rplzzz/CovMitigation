@@ -4,7 +4,13 @@
 \alias{plt_projections}
 \title{Plot model projections for comparison}
 \usage{
-plt_projections(parms, scenarios, tmax = 270, what = "newSympto")
+plt_projections(
+  parms,
+  scenarios,
+  tmax = 270,
+  what = "newSympto",
+  usedate = FALSE
+)
 }
 \arguments{
 \item{parms}{Matrix of combinations of parameters.}
@@ -15,6 +21,8 @@ plt_projections(parms, scenarios, tmax = 270, what = "newSympto")
 
 \item{what}{What output to plot.  Options are 
 newCases, newSympto, PopSympto, PopInfection, PopCumulInfection, PopCumulFrac, popTotal}
+
+\item{usedate}{If TRUE, reference model time to 1-Jan}
 }
 \description{
 All of the results we plot here are adjusted for the UVA market fraction.

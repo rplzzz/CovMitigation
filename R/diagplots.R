@@ -85,8 +85,9 @@ plt_modobs <- function(parms, counties=NULL)
 #' @param tmax Maximum time to run to
 #' @param what What output to plot.  Options are 
 #' newCases, newSympto, PopSympto, PopInfection, PopCumulInfection, PopCumulFrac, popTotal
+#' @param usedate If TRUE, reference model time to 1-Jan
 #' @export
-plt_projections <- function(parms, scenarios, tmax=270, what='newSympto')
+plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedate=FALSE)
 {
   ## silence warnings
   newCases <- marketFraction <- PopSympto <- PopInfection <- PopCumulInfection <-
@@ -127,9 +128,18 @@ plt_projections <- function(parms, scenarios, tmax=270, what='newSympto')
     )
   
   pltdata[['value']] <- pltdata[[what]]
+  pltdata[['date']] <- pltdata[['time']] + as.Date('2020-01-01')
   
-  ggplot2::ggplot(data=pltdata, ggplot2::aes(x=time, y=value, color=scenario)) +
-    ggplot2::geom_line(size=1.2) +
-    ggplot2::xlab(what) +
-    ggplot2::theme_bw()
+  if(usedate) {
+    ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date, y=value, color=scenario)) +
+      ggplot2::geom_line(size=1.2) +
+      ggplot2::ylab(what) +
+      ggplot2::theme_bw()
+  }
+  else {
+    ggplot2::ggplot(data=pltdata, ggplot2::aes(x=time, y=value, color=scenario)) +
+      ggplot2::geom_line(size=1.2) +
+      ggplot2::ylab(what) +
+      ggplot2::theme_bw()
+    }
 }
