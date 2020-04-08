@@ -128,10 +128,12 @@ chopltdata$ftest_relative <- chopltdata$ftest / chopltdata$ftest[normidx]
 relidx <- 1
 chopltdata$correctedNewCases <- chopltdata$newCases / chopltdata$ftest_relative 
 chopltdata$correctedCumCases <- cumsum(chopltdata$correctedNewCases)
+chopltdata$rawCumCases <- cumsum(chopltdata$newCases)
 
 chopltdata <- filter(chopltdata, date >= strtdate)
 chopltdata$correctedNewCasesRel <- chopltdata$correctedNewCases / chopltdata$correctedNewCases[relidx]
 chopltdata$correctedCumCasesRel <- chopltdata$correctedCumCases / chopltdata$correctedCumCases[relidx]
+chopltdata$rawCumCasesRel <- chopltdata$rawCumCases / chopltdata$rawCumCases[relidx]
 
 t <- seq_along(chopltdata$date) - 1  # start at zero
 chopltdata$t <- t
@@ -165,4 +167,19 @@ for(i in seq_along(gr)) {
   benchplt <- benchplt + geom_label(x=lastdate, y=log10(gr[[i]][lastidx]), label=TeX(tdlabstex[i]))
 }
 suppressWarnings(print(benchplt))
+```
+
+```{r uncorchoplt,  fig.width=7, fig.height=4}
+benchpltcho2 <- 
+  ggplot(data=chopltdata, aes(x=date)) + 
+  geom_line(data=chopltdata, mapping=aes(y=rawCumCasesRel), size=1.2) +
+  geom_line(data=benchmarks, mapping=aes(y=value, group=`doubling time`), color='lightgrey') +
+  scale_color_solarized() +
+  scale_y_log10() +
+  ylab('Uncorrected cumulative cases (relative)') +
+  theme_bw()
+for(i in seq_along(gr)) {
+  benchpltcho2 <- benchpltcho2 + geom_label(x=lastdate, y=log10(gr[[i]][lastidx]), label=TeX(tdlabstex[i]))
+}
+suppressWarnings(print(benchpltcho2))
 ```
