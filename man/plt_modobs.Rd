@@ -4,12 +4,13 @@
 \alias{plt_modobs}
 \title{Plot model predictions against data observations}
 \usage{
-plt_modobs(parms, ncounty = 4)
+plt_modobs(parms, counties = NULL)
 }
 \arguments{
 \item{parms}{Parameters to run model for}
 
-\item{ncounty}{Number of counties to include in the plot}
+\item{counties}{Counties to include in the plot; if not specified, the top 4
+by number of infections will be plotted.}
 
 \item{obs}{Observed data as returned by \code{\link{get_obsdata}}}
 }

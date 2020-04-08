@@ -11,10 +11,11 @@ fill_defaults <- function(parms, defaults)
 #' 
 #' @param parms Parameters to run model for
 #' @param obs Observed data as returned by \code{\link{get_obsdata}}
-#' @param ncounty Number of counties to include in the plot
+#' @param counties Counties to include in the plot; if not specified, the top 4
+#' by number of infections will be plotted.
 #' @importFrom dplyr %>%
 #' @export
-plt_modobs <- function(parms, ncounty=4)
+plt_modobs <- function(parms, counties=NULL)
 {
   ## silence warnings
   fips <- newcases <- predicted <- NULL
@@ -48,12 +49,19 @@ plt_modobs <- function(parms, ncounty=4)
   
   cmp <- align_modout(modout, obs)
 
-  ncases <- dplyr::group_by(cmp, fips) %>%
-    dplyr::summarise(ncases = sum(newcases)) %>%
-    dplyr::ungroup() %>%
-    dplyr::arrange(dplyr::desc(ncases))
-  
-  use_fips <- ncases[['fips']][seq(1,ncounty)]
+  if (is.null(counties)){
+    ncounty <- 4
+    ncases <- dplyr::group_by(cmp, fips) %>%
+      dplyr::summarise(ncases = sum(newcases)) %>%
+      dplyr::ungroup() %>%
+      dplyr::arrange(dplyr::desc(ncases))
+    
+    use_fips <- ncases[['fips']][seq(1,ncounty)]
+  } 
+  else {
+    use_fips <- 
+      va_county_first_case$FIPS[va_county_first_case$Locality %in% counties]
+  }
   
   pltdata <- cmp[cmp[['fips']] %in% use_fips,]
   
