@@ -1,7 +1,9 @@
 library(magrittr)
 library(CovMitigation)
+library(doParallel)
 
 T0vals <- seq(4.5,7.5)
+registerDoParallel(8)
 baseparms <- list()
 
 basescens <- 

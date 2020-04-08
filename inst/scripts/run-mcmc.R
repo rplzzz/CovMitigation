@@ -2,15 +2,13 @@ library(metrosamp)
 library(CovMitigation)
 library(doParallel)
 
-registerDoParallel(20)
+registerDoParallel(16)
 
 pstrt <-
 c(T0 = 3.10253101176298, D0 = 8.09589183577002, A0 = 4.39695340708852, 
 day_zero = 53.5297768069546, b = 75.1143457008878)
 
-scl <- structure(c(0.25, 0, 0, -0.75, 0.75, 0, 0.25, 0, 0, 0, 0, 0, 
-0.25, 0, 0, -0.75, 0, 0, 6.25, 0, 0.75, 0, 0, 0, 6.25), .Dim = c(5L, 
-5L))
+scl <- c(0.025, 0.025, 0.025, 0.25, 0.25)
 
 lpost <- gen_post()
 
