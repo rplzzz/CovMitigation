@@ -4,7 +4,12 @@
 \alias{gen_likelihood}
 \title{Prepare a likelihood function for use in Bayesian calibration}
 \usage{
-gen_likelihood()
+gen_likelihood(fixed_parms = NULL)
+}
+\arguments{
+\item{fixed_parms}{A named vector of parameters to use as fixed values for parameters
+not passed to the likelihood function.  Note these "fixed" parameters can still
+be overridden by passing an explicit value.}
 }
 \value{
 A function that takes a named list of model parameters and returns

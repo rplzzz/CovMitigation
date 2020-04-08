@@ -2,10 +2,15 @@
 % Please edit documentation in R/likelihood.R
 \name{gen_post}
 \alias{gen_post}
-\title{Prepare a posterior log-pdf function for use in Bayesian calibratin}
+\title{Prepare a posterior log-pdf function for use in Bayesian calibration}
 \usage{
-gen_post()
+gen_post(fixed_parms = NULL)
+}
+\arguments{
+\item{fixed_parms}{A named vector of parameters to use as fixed values for parameters
+not passed to the likelihood function.  Note these "fixed" parameters can still
+be overridden by passing an explicit value.}
 }
 \description{
-Prepare a posterior log-pdf function for use in Bayesian calibratin
+Prepare a posterior log-pdf function for use in Bayesian calibration
 }

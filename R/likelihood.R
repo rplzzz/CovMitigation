@@ -37,21 +37,34 @@
 #' population tested.  We then assume that the actual observations are distributed
 #' as \deqn{N_o \sim Pois(\bar{N}_o).}
 #' 
-#' 
+#' @param fixed_parms A named vector of parameters to use as fixed values for parameters
+#' not passed to the likelihood function.  Note these "fixed" parameters can still
+#' be overridden by passing an explicit value.
 #' @return A function that takes a named list of model parameters and returns
 #' a log-likelihood value.  See details for the parameters recognized.
 #' @importFrom dplyr %>%
 #' @export
-gen_likelihood <- function()
+gen_likelihood <- function(fixed_parms=NULL)
 {
   obs <- get_obsdata()
   obsdata <- obs$obsdata
   fips_codes <- obs$fips_codes
   default_parm_vals <- obs$default_parm_vals
+  if(!is.null(fixed_parms)) {
+    for(p in names(fixed_parms)) {
+      default_parm_vals[[p]] <- fixed_parms[[p]]
+    }
+  }
   
   function(parms) {
-    ## The day-zero parameter is being handled in a simplified way compared to
-    ## how it is handled in the model, so pull it out of the parameter list.
+   ## complete the parameters from the defaults
+    pnames <- names(default_parm_vals)
+    use_defaults <- pnames[!pnames %in% names(parms)]
+    for(n in use_defaults) {
+      parms[[n]] <- default_parm_vals[[n]]      
+    }
+    
+    ## Separate out the parameters that get passed to the SEIR model.
     modparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
     if('day_zero' %in% names(parms)) {
       day0 <- parms[['day_zero']]
@@ -112,13 +125,17 @@ gen_likelihood <- function()
   }
 }
 
-#' Prepare a posterior log-pdf function for use in Bayesian calibratin
+#' Prepare a posterior log-pdf function for use in Bayesian calibration
 #' 
+#' 
+#' @param fixed_parms A named vector of parameters to use as fixed values for parameters
+#' not passed to the likelihood function.  Note these "fixed" parameters can still
+#' be overridden by passing an explicit value.
 #' @export
-gen_post <- function()
+gen_post <- function(fixed_parms=NULL)
 {
   lprior <- gen_prior()
-  llik <- gen_likelihood()
+  llik <- gen_likelihood(fixed_parms)
   function(parms) {
     logp <- lprior(parms)
     if(is.finite(logp)) {
