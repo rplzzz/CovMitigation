@@ -3,10 +3,10 @@ title: "COVID-19 Growth in Virginia"
 author: "Robert Link"
 date: "4/1/2020"
 output:
+  rmarkdown::html_vignette: default
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
-  rmarkdown::html_vignette: default
 vignette: |
   %\VignetteIndexEntry{COVID-19 Growth in Virginia} %\VignetteEncoding{UTF-8} %\VignetteEngine{knitr::rmarkdown}
 ---
@@ -24,41 +24,48 @@ library(latex2exp)
 
 We have to make a slight approximation here.  The growth rate we are interested
 in is the growth in active cases, which is affected by both the infection rate and
-the recovery rate.  The data from the department of health only has new cases (which
-grow a little more slowly) and cumulative cases (which grow a little faster).  For
-this analysis we went with new cases.
+the recovery rate.  The data from the department of health only has new cases and 
+cumulative cases (which grow a little faster).  For this analysis we went with 
+cumulative cases because the new case data is rather noisy.  
 
 ## Growth observations
 
 ```{r growthrate, fig.width=7, fig.height=4}
-basedate <- as.Date('2020-03-16')
+strtdate <- as.Date('2020-03-18')
 pltdata <- 
   select(uvads_covid19, date, vaNewCases, ftest, ntest) %>%
-  filter(vaNewCases > 0, ftest > 0, date >= basedate)
-t <- seq_along(pltdata$date) - 1  # start at zero
-pltdata$t <- t
+  filter(vaNewCases > 0, ftest > 0)
 
 ## Compute the testing fraction correction.
-idx <- 3
-ftest_relative <- pltdata$ftest / pltdata$ftest[1]
+normidx <- 1
+pltdata$ftest_relative <- pltdata$ftest / pltdata$ftest[normidx]
 #fcorrect <- min(pltdata$ftest) / pltdata$ftest
 
-pltdata$correctedNewCases <- pltdata$vaNewCases / ftest_relative 
+relidx <- 1
+pltdata$correctedNewCases <- pltdata$vaNewCases / pltdata$ftest_relative 
 pltdata$correctedCumCases <- cumsum(pltdata$correctedNewCases)
-pltdata$correctedCumCases <- pltdata$correctedCumCases / pltdata$correctedCumCases[idx]
+pltdata$rawCumCases <- cumsum(pltdata$vaNewCases)
+
+pltdata <- filter(pltdata, date >= strtdate)
+pltdata$correctedNewCasesRel <- pltdata$correctedNewCases / pltdata$correctedNewCases[relidx]
+pltdata$correctedCumCasesRel <- pltdata$correctedCumCases / pltdata$correctedCumCases[relidx]
+pltdata$rawCumCasesRel <- pltdata$rawCumCases / pltdata$rawCumCases[relidx]
+
+t <- seq_along(pltdata$date) - 1  # start at zero
+pltdata$t <- t
 
 ## Label positioning
 lastidx <- length(t)
 lastdate <- pltdata$date[lastidx]
 
 ## Create the benchmark data
-tds <- c(3,4,5,6,7)
+tds <- c(3,4,5,6,7,8)
 tdlabs <- paste('td=',tds)
 tdlabstex <- sprintf('$t_d = %d$', tds)
 gr <- lapply(tds, 
              function(td) {
                r <- log(2)/td
-               exp(r*t) / exp(r*t[idx])
+               exp(r*t) / exp(r*t[relidx])
              })
 benchmarks <- as.data.frame(gr)
 names(benchmarks) <- tdlabs
@@ -66,10 +73,11 @@ benchmarks$date <- t + pltdata$date[1]
 benchmarks <- pivot_longer(benchmarks, -date, names_to = 'doubling time')
 benchplt <- 
   ggplot(data=pltdata, aes(x=date)) + 
-  geom_line(data=pltdata, mapping=aes(y=correctedCumCases), size=1.2) +
+  geom_line(data=pltdata, mapping=aes(y=correctedCumCasesRel), size=1.2) +
   geom_line(data=benchmarks, mapping=aes(y=value, group=`doubling time`), color='lightgrey') +
   scale_color_solarized() +
   scale_y_log10() +
+  ylab('Corrected cumulative cases (relative)') +
   theme_bw()
 for(i in seq_along(gr)) {
   benchplt <- benchplt + geom_label(x=lastdate, y=log10(gr[[i]][lastidx]), label=TeX(tdlabstex[i]))
@@ -77,50 +85,81 @@ for(i in seq_along(gr)) {
 suppressWarnings(print(benchplt))
 ```
 
-```{r ffxgrowth}
-basedate <- as.Date('2020-03-16')
-ffxdata <- filter(NYTimesCOVID19::cov19county, fips==51059,)
-ffxdata$newCases <- c(0, diff(ffxdata$cases))
-ffxdata <- 
-  left_join(ffxdata, select(uvads_covid19, date, ftest), by='date') %>%
-  select(date, newCases, ftest) %>%
-  filter(ftest > 0, date >= basedate)
+The rate of testing has been growing rapidly.  If you leave out the correction for
+the number of tests performed, you get this:
 
-t <- seq_along(ffxdata$date) - 1  # start at zero
-ffxdata$t <- t
+```{r uncorplt,  fig.width=7, fig.height=4}
+benchplt2 <- 
+  ggplot(data=pltdata, aes(x=date)) + 
+  geom_line(data=pltdata, mapping=aes(y=rawCumCasesRel), size=1.2) +
+  geom_line(data=benchmarks, mapping=aes(y=value, group=`doubling time`), color='lightgrey') +
+  scale_color_solarized() +
+  scale_y_log10() +
+  ylab('Uncorrected cumulative cases (relative)') +
+  theme_bw()
+for(i in seq_along(gr)) {
+  benchplt2 <- benchplt2 + geom_label(x=lastdate, y=log10(gr[[i]][lastidx]), label=TeX(tdlabstex[i]))
+}
+suppressWarnings(print(benchplt2))
+```
+
+Finally, here is the growth for Charlottesville and Albemarle County.  Note, however,
+that we are getting the testing rate correction from statewide data, since we don't
+have that at the county level, so there might be some bias in this one.
+
+```{r chogrowth,  fig.width=7, fig.height=4}
+strtdate <- as.Date('2020-03-28')
+
+chopltdata <-
+  filter(NYTimesCOVID19::cov19county, fips==51540 | fips==51003) %>%
+  group_by(date) %>%
+  summarise(cases = sum(cases))
+chopltdata$newCases <- c(0, diff(chopltdata$cases))
+chopltdata <-
+  left_join(chopltdata, select(uvads_covid19, date, ftest), by='date') %>%
+  select(date, newCases, ftest) %>%
+  filter(ftest > 0, newCases >0)
 
 ## Compute the testing fraction correction.
-idx <- 3
-ftest_relative <- ffxdata$ftest / ffxdata$ftest[1]
-#fcorrect <- min(ffxdata$ftest) / ffxdata$ftest
+normidx <- 1
+chopltdata$ftest_relative <- chopltdata$ftest / chopltdata$ftest[normidx]
+#fcorrect <- min(chopltdata$ftest) / chopltdata$ftest
 
-ffxdata$correctedNewCases <- ffxdata$newCases / ftest_relative 
-ffxdata$correctedCumCases <- cumsum(ffxdata$correctedNewCases)
-ffxdata$correctedCumCases <- ffxdata$correctedCumCases / ffxdata$correctedCumCases[idx]
+relidx <- 1
+chopltdata$correctedNewCases <- chopltdata$newCases / chopltdata$ftest_relative 
+chopltdata$correctedCumCases <- cumsum(chopltdata$correctedNewCases)
+
+chopltdata <- filter(chopltdata, date >= strtdate)
+chopltdata$correctedNewCasesRel <- chopltdata$correctedNewCases / chopltdata$correctedNewCases[relidx]
+chopltdata$correctedCumCasesRel <- chopltdata$correctedCumCases / chopltdata$correctedCumCases[relidx]
+
+t <- seq_along(chopltdata$date) - 1  # start at zero
+chopltdata$t <- t
 
 ## Label positioning
 lastidx <- length(t)
-lastdate <- ffxdata$date[lastidx]
+lastdate <- chopltdata$date[lastidx]
 
 ## Create the benchmark data
-tds <- c(3,4,5,6,7)
+tds <- c(5,6,7,8,9)
 tdlabs <- paste('td=',tds)
 tdlabstex <- sprintf('$t_d = %d$', tds)
 gr <- lapply(tds, 
              function(td) {
                r <- log(2)/td
-               exp(r*t) / exp(r*t[idx])
+               exp(r*t) / exp(r*t[relidx])
              })
 benchmarks <- as.data.frame(gr)
 names(benchmarks) <- tdlabs
-benchmarks$date <- t + ffxdata$date[1]
+benchmarks$date <- t + chopltdata$date[1]
 benchmarks <- pivot_longer(benchmarks, -date, names_to = 'doubling time')
 benchplt <- 
-  ggplot(data=ffxdata, aes(x=date)) + 
-  geom_line(data=ffxdata, mapping=aes(y=correctedCumCases), size=1.2) +
+  ggplot(data=chopltdata, aes(x=date)) + 
+  geom_line(data=chopltdata, mapping=aes(y=correctedCumCasesRel), size=1.2) +
   geom_line(data=benchmarks, mapping=aes(y=value, group=`doubling time`), color='lightgrey') +
   scale_color_solarized() +
   scale_y_log10() +
+  ylab('Corrected cumulative cases (relative)') +
   theme_bw()
 for(i in seq_along(gr)) {
   benchplt <- benchplt + geom_label(x=lastdate, y=log10(gr[[i]][lastidx]), label=TeX(tdlabstex[i]))
