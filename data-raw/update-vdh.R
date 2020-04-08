@@ -15,7 +15,7 @@ if (nrow(vdh_nodup) == 0) {
   vdh_covid19 <- dplyr::bind_rows(vdh_old, vdh_nodup)
   ## We may not necessarily want to update the package data every time we get new data
   ## (especially if we are running on a cron job), so just save the results 
-  #usethis::use_data(vdh_covid19, overwrite = TRUE)
+  usethis::use_data(vdh_covid19, overwrite = TRUE)
   filename <- paste0('vdh-data-',as.Date(lubridate::now()), '.rds')
   saveRDS(vdh_covid19, here::here('data-raw', filename))
   message('Added data from new dates: ', newdates)
