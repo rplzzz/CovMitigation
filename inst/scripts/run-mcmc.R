@@ -2,7 +2,6 @@ library(metrosamp)
 library(CovMitigation)
 library(doParallel)
 
-registerDoParallel(16)
 
 pstrt <-
 c(T0 = 3.10253101176298, D0 = 8.09589183577002, A0 = 4.39695340708852, 
@@ -12,8 +11,14 @@ scl <- c(0.025, 0.025, 0.025, 0.25, 0.25)
 
 lpost <- gen_post()
 
-run_mcmc <- function(tid, nsamp, outfilename, restartfile)
+run_mcmc <- function(tid, nsamp, outfilename, restartfile, nproc=8)
 {
+  if(is.na(nproc) || nproc==1) {
+    foreach::registerDoSEQ()
+  } else {
+    registerDoParallel(cores=nproc)
+  }
+  
   set.seed(867-5309 + tid)
   if(is.null(restartfile)) {
     mcs <- metrosamp(lpost, pstrt, nsamp, 1, scl)
