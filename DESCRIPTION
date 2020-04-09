@@ -32,6 +32,6 @@ LazyData: true
 RoxygenNote: 7.1.0
 VignetteBuilder: knitr
 Remotes:
-  rplzzz/covid-19-data
+  rplzzz/covid-19-data,
   rplzzz/metrosamp
   
