@@ -28,6 +28,7 @@ set.seed(867-5309)
 popt <- c(T0=7.5, D0=4.5, A0=5, day_zero=3.9, b=8.7, Ts=4, I0=24.8)
 
 pmat <- matrix(c(p0,popt), nrow=2, byrow = TRUE)
+colnames(pmat) <- names(p0)
 plt_projections(pmat, c('Base Scenario', 'Opt Scenario'), usedate=TRUE)
 
 p1 <- c(T0=7.5, D0=4.5, A0=5, day_zero=3.9, b=8.7, I0=24.8)

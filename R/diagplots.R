@@ -1,9 +1,5 @@
 ## Diagnostic plots for model runs
 
-fill_defaults <- function(parms, defaults)
-{
-  
-}
 
 #' Plot model predictions against data observations
 #' 
@@ -11,33 +7,39 @@ fill_defaults <- function(parms, defaults)
 #' 
 #' @param parms Parameters to run model for
 #' @param obs Observed data as returned by \code{\link{get_obsdata}}
+#' @param scenarios Names of scenarios
 #' @param counties Counties to include in the plot; if not specified, the top 4
 #' by number of infections will be plotted.
+#' @param default_parms Default values to use for parameters not specified in parms
 #' @importFrom dplyr %>%
 #' @export
-plt_modobs <- function(parms, counties=NULL)
+plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
 {
   ## silence warnings
   fips <- newcases <- predicted <- NULL
   
   obs <- get_obsdata()
+  if(!is.null(default_parms)) {
+    obs$default_parm_vals <- fill_defaults(obs$default_parm_vals, default_parms)
+  }
+#  if(!is.matrix(parms)) {
+#    parms <- t(as.matrix(parms))
+#  }
+#  if(is.null(scenarios)) {
+#    scenarios <- paste0('s', seq(1,nrow(parms)))
+#  }
+  
+  
   obsdata <- obs[['obsdata']]
+  
+  
+  parms <- fill_defaults(parms, obs[['default_parm_vals']])
   modparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
   
-  if('day_zero' %in% names(parms)) {
-    day0 <- parms[['day_zero']]
-  }  
-  else {
-    day0 <- obs[['default_parm_vals']][['day_zero']]
-  }
+  day0 <- parms[['day_zero']]
   obsdata[['time']] <- obsdata[['day']] - day0
   
-  if('b' %in% names(parms)) {
-    b <- parms[['b']]
-  }
-  else {
-    b <- obs[['default_parm_vals']][['b']]
-  }
+  b <- parms[['b']]
   
   ## get output for every day up to the last in the dataset.
   tmax <- max(obsdata[['time']])
@@ -94,7 +96,7 @@ plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedat
     population <- scenario <- value <- NULL
   
   if(!is.matrix(parms)) {
-    parms <- matrix(parms, nrow=1)
+    parms <- t(as.matrix(parms))
   }
   
   stopifnot(nrow(parms) == length(scenarios))

@@ -1,3 +1,20 @@
+#' Fill in default parameter values
+#' 
+#' Works on vectors and lists.  Returns a structure of the same type as its first input.
+#' 
+#' @param parms Named vector of parameters
+#' @param defaults Named vector of default parameters
+#' @export
+fill_defaults <- function(parms, defaults)
+{
+  for(n in names(defaults)) {
+    if(! n %in% names(parms)) {
+      parms[[n]] <- defaults[[n]]
+    }
+  }
+  parms
+}
+
 #' Caclulate model coefficients from parameters
 #' 
 #' We parameterize the model SEIR in terms of initial doubling time, incubation period, 

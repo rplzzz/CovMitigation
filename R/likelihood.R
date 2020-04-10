@@ -51,20 +51,17 @@ gen_likelihood <- function(fixed_parms=NULL)
   obs <- get_obsdata()
   obsdata <- obs$obsdata
   fips_codes <- obs$fips_codes
-  default_parm_vals <- obs$default_parm_vals
+
   if(!is.null(fixed_parms)) {
     for(p in names(fixed_parms)) {
-      default_parm_vals[[p]] <- fixed_parms[[p]]
+      obs$default_parm_vals[[p]] <- fixed_parms[[p]]
     }
   }
+  default_parm_vals <- obs$default_parm_vals
   
   function(parms) {
    ## complete the parameters from the defaults
-    pnames <- names(default_parm_vals)
-    use_defaults <- pnames[!pnames %in% names(parms)]
-    for(n in use_defaults) {
-      parms[[n]] <- default_parm_vals[[n]]      
-    }
+    parms <- fill_defaults(parms, default_parm_vals)
     
     ## Separate out the parameters that get passed to the SEIR model.
     modparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
