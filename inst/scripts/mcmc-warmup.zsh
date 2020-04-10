@@ -1,11 +1,12 @@
 #!/bin/zsh
-#SBATCH -t 2500
+#SBATCH -t 1000
 #SBATCH -n 1
-#SBATCH -c 2
+#SBATCH -c 10
 #SBATCH -A clinical_analytics_lab
 
-module load gcc/7.1.0
-module load R/3.6.1
+module load intel/18.0
+module load intelmpi/18.0
+module load R/3.6.0
 
 echo "start:  " `date`
 
