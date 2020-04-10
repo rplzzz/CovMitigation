@@ -41,6 +41,8 @@ This will be used to line up the observed dataset with model results.}
 divided by the true infection rate.  b can be different from 1 because of false positives
 or because testing is targeted to people suspected of having the disease.  (Generally,
 we expect b>1, but we don't require this.)}
+\item{I0}{(real > 0) The initial number of infected people, once the infection starts.
+This is taken to be the same in all counties.}
 }
 For the time being, we only accept a single \code{day_zero} parameter, and 
 all of the counties are delayed relative to Fairfax by a number of days equal

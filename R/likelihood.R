@@ -25,6 +25,8 @@
 #' divided by the true infection rate.  b can be different from 1 because of false positives
 #' or because testing is targeted to people suspected of having the disease.  (Generally,
 #' we expect b>1, but we don't require this.)}
+#' \item{I0}{(real > 0) The initial number of infected people, once the infection starts.
+#' This is taken to be the same in all counties.}
 #' }
 #' For the time being, we only accept a single \code{day_zero} parameter, and 
 #' all of the counties are delayed relative to Fairfax by a number of days equal
@@ -128,16 +130,23 @@ gen_likelihood <- function(fixed_parms=NULL)
 #' Prepare a posterior log-pdf function for use in Bayesian calibration
 #' 
 #' 
+#' @param prior_weight Factor to multiply the prior by.  Default is to make it equal
+#' to the number of counties for which we have confirmed COVID-19 cases.
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
 #' @export
-gen_post <- function(fixed_parms=NULL)
+gen_post <- function(prior_weight=NULL, fixed_parms=NULL)
 {
   lprior <- gen_prior()
   llik <- gen_likelihood(fixed_parms)
+  
+  if(is.null(prior_weight)) {
+    prior_weight <- sum(!is.na(va_county_first_case$firstDay))
+  }
+  
   function(parms) {
-    logp <- lprior(parms)
+    logp <- prior_weight * lprior(parms)
     if(is.finite(logp)) {
       logp <- logp + llik(parms)
     }
