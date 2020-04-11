@@ -10,7 +10,8 @@ module load R/3.6.0
 
 echo "start:  " `date`
 
-program=`Rscript -e 'system.file("scripts/run-mcmc.R", package="CovMitigation")'`
+#program=`Rscript -e 'system.file("scripts/run-mcmc.R", package="CovMitigation")'`
+program="./run-mcmc.R"
 
 tid=$SLURM_ARRAY_TASK_ID
 nsamp=100000
