@@ -72,24 +72,30 @@ gen_likelihood <- function(fixed_parms=NULL)
       day0 <- default_parm_vals[['day_zero']]
     }
     
-    ## model time corresponding to the observations.  Note these might not be integers.
-    obsdata[['time']] <- obsdata[['day']] - day0
     ## get output for every day up to the last in the dataset.
     tmax <- max(obsdata[['time']])
-    tvals <- c(0, seq(to = tmax, length.out = floor(tmax)))
     
+    tvals <- c(day0, seq(ceiling(day0), tmax))
+    
+    ## Run the model and do a little post-processing
     modout <- run_scenario(tvals, modparms)
-    cmp <- align_modout(modout, list(obsdata=obsdata, fips_codes=fips_codes, 
-                                     default_parm_vals=default_parm_vals))
+    mdata <- modout[c('time', 'locality','I','Is','population')]
+    mdata$Itot <- mdata$I + mdata$Is
+    mdata$fi <- mdata$Itot / mdata$population
+    mdata <- dplyr::left_join(mdata, obs$fips_codes, by=c(locality='Locality'))
+    
+    cmp <- dplyr::full_join(obs$obsdata, mdata, by=c('time', 'fips'))
+    cmp <- cmp[!(is.na(cmp$fi) | is.na(cmp$ntest)),]
+    cmp <- cmp[(cmp$fi > 0) & (cmp$ntest > 0),]
 
-    ## If any rows have model.cases missing, it means that our day-zero put the start
+    ## If any rows have Itot missing, it means that our day-zero put the start
     ## of the outbreak after the first observed case in that county.  Such parameter
     ## values have likelihood == 0.
     ## Conversely, if cases is missing, it means that we had a nonzero projection
     ## from the model on a day before we had any observed cases, which is perfectly
     ## fine, so fill in those cases with zeros.
     
-    if(any(is.na(cmp$model.newcases))) {
+    if(any(is.na(cmp$Itot))) {
       -Inf
     }
     else {
@@ -97,19 +103,36 @@ gen_likelihood <- function(fixed_parms=NULL)
       cmp$newcases[miss] <- 0
       
       ## adjust model outputs for testing fraction and testing bias!
-      if('b' %in% names(parms)) {
-        b <- parms[['b']]
-      }
-      else {
-        b <- default_parm_vals[['b']]
-      }
-      cmp$model.newcases <- cmp$model.newcases * cmp$ftest * b
-      ## Occasionally the model will produce very small predictions that can
-      ## cause problems in dpois.  Set a floor under the model output that is
-      ## small enough that essentially any observations will be a no-go
-      cmp$model.newcases <- pmax(cmp$model.newcases, 1e-8)
+      b <- parms[['b']]
+
+      ## The model forecast for the number of new cases is the current infection
+      ## fraction (fi) times the number of tests performed.  However, we think that
+      ## testing is biased toward people who are infected, so we multiply the odds
+      ## ratio by a bias factor b
+      biased_odds <- cmp$fi/(1-cmp$fi) * b
+      cmp$biased_fi <- biased_odds / (1 + biased_odds)
+      total_pop_va <- vaMyAgeBands$Total[1]
+      popfac <- 1/total_pop_va
+      cmp$popfrac <- cmp$population * popfac
       
-      logl <- dpois(cmp$newcases, cmp$model.newcases, log=TRUE)
+      dhargs <- tibble::tibble(x=cmp$newcases,
+                               m=cmp$biased_fi * cmp$population,
+                               n=(1-cmp$biased_fi) * cmp$population,
+                               k=(cmp$ntest * cmp$popfrac))
+      
+      ## There are a few counties and times where the number of observed cases is greater than
+      ## the number of tests we're estimating.  In those cases, set the number of tests
+      ## to the number of cases.
+      dhargs$k <- pmax(dhargs$k, dhargs$x)
+      
+      ## Hypergeometric distribution.  Assume that tests performed in each county
+      ## are proportional to the county's share of the total population.
+      logl <- dhyper(dhargs$x,
+                     ceiling(dhargs$m),
+                     ceiling(dhargs$n),
+                     ceiling(dhargs$k),
+                     log=TRUE)
+      
       if(any(is.na(logl))) {
         ## This seems to be happening occasionally.  Not sure why
         bad <- cmp[is.na(logl),]
@@ -151,24 +174,6 @@ gen_post <- function(prior_weight=NULL, fixed_parms=NULL)
   }
 }
 
-#' Align model output to observed data for comparison
-#' 
-#' @param modout Raw model output
-#' @param obs Observed data, as returned by \code{\link{get_obsdata}}.  The time
-#' column (= day - day0) must already have been added.
-#' @keywords internal
-align_modout <- function(modout, obs)
-{
-  mdata <- modout[c('time','locality','newCases')]
-  names(mdata) <- c('time','Locality','model.newcases')
-  mdata <- dplyr::left_join(mdata, obs$fips_codes, by='Locality')
-  mdata$time <- round(mdata$time, 2)  ## fix roundoff error
-    
-  obs$obsdata$time <- round(obs$obsdata$time, 2)
-  cmp <- dplyr::full_join(obs$obsdata, mdata, by=c('time', 'fips')) 
-  
-  cmp[!is.na(cmp$ftest),]
-}
 
 #' Prepare the observed data for use in the likelihood function
 #' 
@@ -187,20 +192,20 @@ align_modout <- function(modout, obs)
 get_obsdata <- function()
 {
   ## silence warnings
-  ntest <- ftest <- state <- date <- FIPS <- fips <- 
-    cases <- day <- Locality <- newcases <- NULL
+  ntest <- ntest <- state <- date <- FIPS <- fips <- 
+    cases <- time <- Locality <- newcases <- NULL
   
   ## First get the datasets.  Filter and reformat as necessary.
   teststats <- 
     dplyr::filter(uvads_covid19, !is.na(ntest)) %>%
-    dplyr::select(date, ftest)
+    dplyr::select(date, ntest)
   
   obsdata <- 
     dplyr::filter(NYTimesCOVID19::cov19county, 
                   state=='Virginia',
                   !is.na(fips),
                   date >= min(teststats[['date']])) %>%
-    dplyr::mutate(day = as.numeric(date - as.Date('2020-01-01')),
+    dplyr::mutate(time = as.numeric(date - as.Date('2020-01-01')),
                   fips = as.integer(fips)) %>%
     dplyr::group_by(fips) %>%
     dplyr::mutate(newcases = c(0, diff(cases))) %>%    # add daily new cases
@@ -209,7 +214,7 @@ get_obsdata <- function()
     ## these as zero
     dplyr::mutate(newcases = pmax(0, newcases)) %>%
     dplyr::left_join(teststats, by='date') %>%
-    dplyr::select(date, fips, newcases, ftest, day)
+    dplyr::select(date, fips, newcases, ntest, time)
     
   ## Our locality names are not the same as NYT, but we have a table of FIPS codes
   fips_codes <- dplyr::select(va_county_first_case, FIPS, Locality) %>%
