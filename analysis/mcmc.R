@@ -17,7 +17,7 @@ print(lpost(p0))
 
 # Optimize with D0 and A0 fixed at their default values
 pstrt <- c(D0=7, day_zero=60, b=20, I0=10)
-opt <- optim(pstrt, lpost, control=list(fnscale=-1))
+opt <- optim(pstrt, lpost, control=list(fnscale=-1, maxit=1000))
 
 
 set.seed(867-5309)
@@ -25,7 +25,7 @@ set.seed(867-5309)
 
 ## Based on results of opt, above (caching these values to prevent having to 
 ## rerun it, since it takes about 45 minutes)
-popt <- c(T0=7.5, D0=4.5, A0=5, day_zero=3.9, b=8.7, Ts=4, I0=24.8)
+popt <- c(T0=7.5, D0=4, A0=5, day_zero=2.7, b=2.9, Ts=4, I0=26)
 
 pmat <- matrix(c(p0,popt), nrow=2, byrow = TRUE)
 colnames(pmat) <- names(p0)

@@ -6,7 +6,6 @@
 #' Plot model outputs and observed data.
 #' 
 #' @param parms Parameters to run model for
-#' @param obs Observed data as returned by \code{\link{get_obsdata}}
 #' @param scenarios Names of scenarios
 #' @param counties Counties to include in the plot; if not specified, the top 4
 #' by number of infections will be plotted.
@@ -22,38 +21,36 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
   if(!is.null(default_parms)) {
     obs$default_parm_vals <- fill_defaults(obs$default_parm_vals, default_parms)
   }
-#  if(!is.matrix(parms)) {
-#    parms <- t(as.matrix(parms))
-#  }
-#  if(is.null(scenarios)) {
-#    scenarios <- paste0('s', seq(1,nrow(parms)))
-#  }
+  if(!is.matrix(parms)) {
+    parms <- t(as.matrix(parms))
+  }
+  if(is.null(scenarios)) {
+    scenarios <- paste0('s', seq(1,nrow(parms)))
+  }
   
   
   obsdata <- obs[['obsdata']]
   
+  modrslts <- 
+    lapply(seq_along(scenarios),
+      function(i) {
+        pvals <- fill_defaults(parms[i,], obs[['default_parm_vals']])
+        modpvals <- as.list(pvals[! names(pvals) %in% c('day_zero', 'b')])
   
-  parms <- fill_defaults(parms, obs[['default_parm_vals']])
-  modparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
+        day0 <- pvals[['day_zero']]
+        b <- pvals[['b']]
+        ## get output for every day up to the last in the dataset.
+        tmax <- max(obsdata[['time']])
+        tvals <- c(day0, seq(ceiling(day0), tmax))
+        modout <- run_scenario(tvals, modpvals)
+        modout[['scenario']] <- scenarios[i]
+        modout[['bias']] <- pvals[['b']]
+        modout
+      })
   
-  day0 <- parms[['day_zero']]
-  obsdata[['time']] <- obsdata[['day']] - day0
-  
-  b <- parms[['b']]
-  
-  ## get output for every day up to the last in the dataset.
-  tmax <- max(obsdata[['time']])
-  tvals <- c(0, seq(to = tmax, length.out = floor(tmax)))
-  
-  modout <- run_scenario(tvals, modparms)
-  
-  obs[['obsdata']] <- obsdata
-  
-  cmp <- align_modout(modout, obs)
-
   if (is.null(counties)){
     ncounty <- 4
-    ncases <- dplyr::group_by(cmp, fips) %>%
+    ncases <- dplyr::group_by(obsdata, fips) %>%
       dplyr::summarise(ncases = sum(newcases)) %>%
       dplyr::ungroup() %>%
       dplyr::arrange(dplyr::desc(ncases))
@@ -65,15 +62,29 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
       va_county_first_case$FIPS[va_county_first_case$Locality %in% counties]
   }
   
-  pltdata <- cmp[cmp[['fips']] %in% use_fips,]
+  modrslts <- 
+    dplyr::bind_rows(modrslts) %>%
+    dplyr::left_join(obs[['fips_codes']], by=c(locality='Locality'))
+  modrslts[['Itot']] <- modrslts[['I']] + modrslts[['Is']]
+  modrslts[['fi']] <- modrslts[['Itot']] / modrslts[['population']]
   
-  pltdata[['predicted']] <- pltdata[['model.newcases']] * pltdata[['ftest']] * b
+  pltdata <- dplyr::left_join(modrslts, obsdata, by=c('fips','time'))
+  pltdata <- pltdata[pltdata[['fips']] %in% use_fips,]
+  pltdata <- pltdata[!is.na(pltdata[['newcases']]), ]
+  pltdata[['popfrac']] <- pltdata[['population']] / vaMyAgeBands$Total[1]
+  
+  pltdata[['predicted']] <- 
+    padjust(pltdata[['fi']], pltdata[['bias']]) * pltdata[['ntest']] * pltdata[['popfrac']]
   
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) + 
-    ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted'), size=1.2) + 
+    ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted', color=scenario), size=1.2) + 
     ggplot2::geom_point(mapping=ggplot2::aes(y=newcases, shape='observed')) + 
-    ggplot2::facet_wrap(~Locality) +
-    ggplot2::guides(shape=ggplot2::guide_legend(''), linetype=ggplot2::guide_legend('')) +
+    ggplot2::facet_wrap(~locality) +
+    #ggplot2::labs(color='Scenario', linetype='', shape='') +
+    ggplot2::guides(
+      color=ggplot2::guide_legend('Scenario', order=1),
+      shape=ggplot2::guide_legend('',order=3), 
+      linetype=ggplot2::guide_legend('',order=2)) +
     ggplot2::ylab('New Cases') +
     ggplot2::theme_bw()
 }

@@ -15,8 +15,6 @@ plt_modobs(parms, scenarios = NULL, counties = NULL, default_parms = NULL)
 by number of infections will be plotted.}
 
 \item{default_parms}{Default values to use for parameters not specified in parms}
-
-\item{obs}{Observed data as returned by \code{\link{get_obsdata}}}
 }
 \description{
 Plot model outputs and observed data.

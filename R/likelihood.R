@@ -109,8 +109,7 @@ gen_likelihood <- function(fixed_parms=NULL)
       ## fraction (fi) times the number of tests performed.  However, we think that
       ## testing is biased toward people who are infected, so we multiply the odds
       ## ratio by a bias factor b
-      biased_odds <- cmp$fi/(1-cmp$fi) * b
-      cmp$biased_fi <- biased_odds / (1 + biased_odds)
+      cmp$biased_fi <- padjust(cmp$fi, b)
       total_pop_va <- vaMyAgeBands$Total[1]
       popfac <- 1/total_pop_va
       cmp$popfrac <- cmp$population * popfac

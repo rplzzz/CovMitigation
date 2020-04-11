@@ -116,3 +116,22 @@ calct0 <- function(alpha, beta, gamma)
 {
   log(2) / calclplus(alpha, beta, gamma)
 }
+
+#' Adjust probabilities by a bias factor
+#' 
+#' Given a vector of probabilities and a bias factor (or vector of bias factors), 
+#' compute the new probabilities adjusted for the bias factor.  
+#' 
+#' The bias factor acts as a multiplier on the odds ratio, so 
+#' \deqn{\frac{p'}{1-p'} = b \frac{p}{1-p}.}  Thus, for example, if \eqn{p=0.1}, 
+#' the odds ratio is \eqn{r=1/9}.  A bias factor of 10 would produce \eqn{r'=10/9},
+#' for an ajusted probability of \eqn{p' \approx 0.53}.
+#' 
+#' @param p Vector of probability values
+#' @param b Bias factor
+#' @export
+padjust <- function(p, b)
+{
+  biased_odds <-  p/(1-p) * b
+  biased_odds / (1 + biased_odds)
+}
