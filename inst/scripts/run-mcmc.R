@@ -24,5 +24,9 @@ run_mcmc <- function(tid, nsamp, outfilename, restartfile, nproc=8)
     warmup <- readRDS(restartfile)
     mcs <- metrosamp(lpost, warmup, nsamp,1)
   }
+  
+  if(outfilename == restartfile) {
+    file.rename(restartfile, namebackup(restartfile))
+  }
   saveRDS(mcs, outfilename, compress='xz')
 }

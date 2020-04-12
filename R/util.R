@@ -135,3 +135,31 @@ padjust <- function(p, b)
   biased_odds <-  p/(1-p) * b
   biased_odds / (1 + biased_odds)
 }
+
+#' Find a name for a backup file
+#' 
+#' The backup name is formed by first cutting off the extension (everything after
+#' the final '.') and adding the tag ```_NNN_```, where N counts up from the 
+#' number of the last backup.  Then the extension is added back.
+#' 
+#' @param name Name(s) of the files to back up
+#' @export
+namebackup <- function(name) 
+{
+  extbrk <- regexpr('\\.[^.]*$', name)
+  namestem <- ifelse(extbrk > 1, substr(name, 1,extbrk-1), name)
+  nameext <- ifelse(extbrk > 1, substring(name, extbrk), '')
+  backupbrk <- regexpr('_[0-9]+_$', namestem)
+  backupindx <- ifelse(backupbrk > 1, 
+                       1 + as.integer(substr(namestem, 
+                                             backupbrk+1, 
+                                             backupbrk + attr(backupbrk, 'match.length')-2)),
+                       0)
+  backupstem <- ifelse(backupbrk > 1, 
+                       substr(namestem, 1, backupbrk-1),
+                       namestem
+                       )
+
+  ## paste the parts together for the return value  
+  paste0(backupstem, sprintf('_%03d_', backupindx), nameext)
+}
