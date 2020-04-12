@@ -39,6 +39,7 @@
 #' population tested.  We then assume that the actual observations are distributed
 #' as \deqn{N_o \sim Pois(\bar{N}_o).}
 #' 
+#' @param hparms Hyperparameters for the calculation, as described in \code{\link{gen_post}}
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
@@ -46,11 +47,10 @@
 #' a log-likelihood value.  See details for the parameters recognized.
 #' @importFrom dplyr %>%
 #' @export
-gen_likelihood <- function(fixed_parms=NULL)
+gen_likelihood <- function(hparms, fixed_parms=NULL)
 {
   obs <- get_obsdata()
   obsdata <- obs$obsdata
-  fips_codes <- obs$fips_codes
 
   if(!is.null(fixed_parms)) {
     for(p in names(fixed_parms)) {
@@ -74,11 +74,16 @@ gen_likelihood <- function(fixed_parms=NULL)
     
     ## get output for every day up to the last in the dataset.
     tmax <- max(obsdata[['time']])
+    t1 <- ceiling(day0)
+    if(t1-day0 < 1e-3) {
+      t1 <- t1 + 1
+    }
     
-    tvals <- c(day0, seq(ceiling(day0), tmax))
+    tvals <- c(day0, seq(t1, tmax))
     
     ## Run the model and do a little post-processing
     modout <- run_scenario(tvals, modparms)
+    fs <- fsympto(modout)
     mdata <- modout[c('time', 'locality','I','Is','population')]
     mdata$Itot <- mdata$I + mdata$Is
     mdata$fi <- mdata$Itot / mdata$population
@@ -141,24 +146,50 @@ gen_likelihood <- function(fixed_parms=NULL)
                   paste(bad[i,], collapse='\t'))
         }
       }
-      sum(logl, na.rm=TRUE)
+      
+      ## Compute a likelihood term for the statewide symptomatic fraction, which
+      ## should be somewhere near 0.5.  Since this is just one value for the whole 
+      ## dataset, we weight it by the number of times in the data.  Note this term
+      ## really only constrains Ts, and it is pretty much the only thing that constrains
+      ## that parameter.
+      fsadjust <- 
+        (max(obsdata$time) - min(obsdata$time)) * 
+        dbeta(fs, hparms[['fsalpha']], hparms[['fsbeta']], log=TRUE)
+      
+      sum(logl, na.rm=TRUE) + fsadjust
     }
   }
 }
 
 #' Prepare a posterior log-pdf function for use in Bayesian calibration
 #' 
+#' Create a function that computes and sums the log-prior and the log-posterior.
+#' 
+#' Recognized hyperparameters are
+#' \describe{
+#' \item{fsalpha}{Alpha parameter for the beta distribution of symptomatic fraction
+#' in the likelihood.}
+#' \item{fsbeta}{Beta parameter for the beta distribution of symptomatic fraction in the
+#' likelihood.  Note the most likely value of fs is \eqn{\frac{\alpha-1}{\alpha+\beta-2}}}
+#' }
 #' 
 #' @param prior_weight Factor to multiply the prior by.  Default is to make it equal
 #' to the number of counties for which we have confirmed COVID-19 cases.
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
+#' @param hparms Named vector of hyperparameters for the likelihood.  See details
+#' for supported hyperparameters.
 #' @export
-gen_post <- function(prior_weight=NULL, fixed_parms=NULL)
+gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=numeric(0))
 {
-  lprior <- gen_prior()
-  llik <- gen_likelihood(fixed_parms)
+  default_hparms <- c(fsalpha=100, fsbeta=100,
+                      t0shp=14, t0rate=2,
+                      bmulog=3, bmulog=1)
+  hparms <- fill_defaults(hparms, default_hparms)
+  
+  lprior <- gen_prior(hparms)
+  llik <- gen_likelihood(hparms, fixed_parms)
   
   if(is.null(prior_weight)) {
     prior_weight <- sum(!is.na(va_county_first_case$firstDay))
@@ -234,4 +265,36 @@ get_obsdata <- function()
   
   list(obsdata=obsdata, fips_codes=fips_codes, 
        default_parm_vals=default_parm_vals)
+}
+
+#' Find the symptomatic infection fraction
+#' 
+#' The fraction of infections that are symptomatic varies over the course of the
+#' scenario, so you must pick a range of values to average over.  If no range is
+#' specified, the default is days 80-93 (inclusive) from the start of the simulation.
+#' 
+#' @param modrun Model output from \code{\link{run_scenario}}
+#' @param trange Range of times to average symptomatic fraction over.  The endpoints
+#' are included.
+#' @export
+fsympto <- function(modrun, trange=c(80,93))
+{
+  ## silence warnings
+  I <- Is <- time <- NULL
+  
+  stopifnot(length(trange) == 2)
+  if(inherits(trange, 'Date')) {
+    trange <- as.integer(trange - as.Date('2020-01-01'))
+  }
+  
+  ## We have an fs column, but it's computed on a county-by county basis, and
+  ## we want the aggregate over the state, which is easiest to get by recomputing
+  ## fs from the aggregate data.
+  stateagg <-
+    dplyr::filter(modrun, time >= trange[1], time <= trange[2]) %>%
+    dplyr::group_by(time) %>%
+    dplyr::summarise(I=sum(I), Is=sum(Is)) %>%
+    dplyr::mutate(fs = Is/(I+Is))
+  
+  mean(stateagg$fs)
 }

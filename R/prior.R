@@ -9,10 +9,11 @@
 #' The parameters currently recognized are described in \code{\link{gen_likelihood}}.
 #' If there are any parameters not in that list present, an error will be raised.  
 #' 
+#' @param hparms Named vector of hyperparameters, described in \code{\link{gen_post}}
 #' @return A function that takes a named vector of parameters and returns the log-prior
 #' probability density
 #' @export
-gen_prior <- function()
+gen_prior <- function(hparms)
 {
   parm_names <- c('T0', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
   function(parms) {
@@ -32,10 +33,12 @@ gen_prior <- function()
       -Inf
     } else {
       logps <- c(
-        dgamma(parms[c('T0', 'A0', 'Ts')], c(3, 8,8), c(0.5, 2,2), log=TRUE),
+        dgamma(parms[c('T0', 'A0', 'Ts')], 
+               c(hparms[['t0shp']], 8,8), 
+               c(hparms[['t0rate']], 2,2), log=TRUE),
         dlnorm(parms['D0'], 2, 0.5, log=TRUE),
-        dnorm(parms['day_zero'], 50, 15, log=TRUE),
-        dlnorm(parms['b'], 2.5, 1, log=TRUE),
+        dnorm(parms['day_zero'], 30, 30, log=TRUE),
+        dlnorm(parms['b'], hparms['bmulog'], hparms['bsiglog'], log=TRUE),
         dlnorm(parms['I0'], 2, 1, log=TRUE)
       )
       sum(logps, na.rm = TRUE)

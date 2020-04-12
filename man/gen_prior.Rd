@@ -4,7 +4,10 @@
 \alias{gen_prior}
 \title{Generate a log prior function}
 \usage{
-gen_prior()
+gen_prior(hparms)
+}
+\arguments{
+\item{hparms}{Named vector of hyperparameters, described in \code{\link{gen_post}}}
 }
 \value{
 A function that takes a named vector of parameters and returns the log-prior

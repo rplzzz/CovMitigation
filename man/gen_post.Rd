@@ -4,7 +4,7 @@
 \alias{gen_post}
 \title{Prepare a posterior log-pdf function for use in Bayesian calibration}
 \usage{
-gen_post(prior_weight = NULL, fixed_parms = NULL)
+gen_post(prior_weight = NULL, fixed_parms = NULL, hparms = numeric(0))
 }
 \arguments{
 \item{prior_weight}{Factor to multiply the prior by.  Default is to make it equal
@@ -13,7 +13,19 @@ to the number of counties for which we have confirmed COVID-19 cases.}
 \item{fixed_parms}{A named vector of parameters to use as fixed values for parameters
 not passed to the likelihood function.  Note these "fixed" parameters can still
 be overridden by passing an explicit value.}
+
+\item{hparms}{Named vector of hyperparameters for the likelihood.  See details
+for supported hyperparameters.}
 }
 \description{
-Prepare a posterior log-pdf function for use in Bayesian calibration
+Create a function that computes and sums the log-prior and the log-posterior.
+}
+\details{
+Recognized hyperparameters are
+\describe{
+\item{fsalpha}{Alpha parameter for the beta distribution of symptomatic fraction
+in the likelihood.}
+\item{fsbeta}{Beta parameter for the beta distribution of symptomatic fraction in the
+likelihood.  Note the most likely value of fs is \eqn{\frac{\alpha-1}{\alpha+\beta-2}}}
+}
 }
