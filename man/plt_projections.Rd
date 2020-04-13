@@ -9,7 +9,9 @@ plt_projections(
   scenarios,
   tmax = 270,
   what = "newSympto",
-  usedate = FALSE
+  usedate = TRUE,
+  counties = NULL,
+  marketadjust = FALSE
 )
 }
 \arguments{
@@ -22,7 +24,14 @@ plt_projections(
 \item{what}{What output to plot.  Options are 
 newCases, newSympto, PopSympto, PopInfection, PopCumulInfection, PopCumulFrac, popTotal}
 
-\item{usedate}{If TRUE, reference model time to 1-Jan}
+\item{usedate}{If \code{TRUE}, display date on the x-axis; otherwise, display model
+time.}
+
+\item{counties}{If specified, filter to just the requested counties.  Otherwise,
+include the whole state.}
+
+\item{marketadjust}{If \code{TRUE}, adjust projections for UVAHS market share; 
+otherwise, show raw totals.}
 }
 \description{
 All of the results we plot here are adjusted for the UVA market fraction.

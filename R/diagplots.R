@@ -98,9 +98,15 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
 #' @param tmax Maximum time to run to
 #' @param what What output to plot.  Options are 
 #' newCases, newSympto, PopSympto, PopInfection, PopCumulInfection, PopCumulFrac, popTotal
-#' @param usedate If TRUE, reference model time to 1-Jan
+#' @param usedate If \code{TRUE}, display date on the x-axis; otherwise, display model
+#' time.
+#' @param counties If specified, filter to just the requested counties.  Otherwise,
+#' include the whole state.
+#' @param marketadjust If \code{TRUE}, adjust projections for UVAHS market share; 
+#' otherwise, show raw totals.
 #' @export
-plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedate=FALSE)
+plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedate=TRUE, 
+                            counties=NULL, marketadjust=FALSE)
 {
   ## silence warnings
   newCases <- marketFraction <- PopSympto <- PopInfection <- PopCumulInfection <-
@@ -124,20 +130,30 @@ plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedat
                if(!is.na(pset['day_zero'])) {
                  modout[['time']] <- modout[['time']] + pset['day_zero']
                }
+               if(!is.null(counties)) {
+                 modout <- modout[modout$locality %in% counties,]
+               }
                modout
              })  
     )
 
   modouts <- dplyr::group_by(modouts, time, scenario)
+  if(marketadjust) {
+    adjfactor <- modouts$marketFraction
+  }
+  else {
+    adjfactor <- 1
+  }
+    
   pltdata <-
     dplyr::summarise(modouts,
-                     newCases = sum(newCases*marketFraction),
-                     newSympto = sum(newSympto*marketFraction),
-                     PopSympto = sum(PopSympto*marketFraction),
-                     PopInfection = sum(PopInfection*marketFraction),
-                     PopCumulInfection = sum(PopCumulInfection*marketFraction),
-                     PopCumulFrac = sum(PopCumulInfection)/sum(population*marketFraction),
-                     popTotal = sum(population*marketFraction)
+                     newCases = sum(newCases*adjfactor),
+                     newSympto = sum(newSympto*adjfactor),
+                     PopSympto = sum(PopSympto*adjfactor),
+                     PopInfection = sum(PopInfection*adjfactor),
+                     PopCumulInfection = sum(PopCumulInfection*adjfactor),
+                     PopCumulFrac = sum(PopCumulInfection)/sum(population*adjfactor),
+                     popTotal = sum(population*adjfactor)
     )
   
   pltdata[['value']] <- pltdata[[what]]
