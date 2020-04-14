@@ -28,15 +28,23 @@ pstrtlongd <- opt_uncons$par[-which(names(opt_uncons$par) == 'D0')]
 lpost_longd <- gen_post(fixed_parms = fplongd)
 opt_longd <- optim(pstrtlongd, lpost_longd, control=list(fnscale=-1, maxit=1000))
 
+## run an optimization with b fixed at 100
+fphib <- p0
+fphib['b'] <- 100
+pstrthib <- opt_uncons$par[-which(names(opt_uncons$par) == 'b')]
+lpost_hib <- gen_post(fixed_parms = fphib)
+opt_hib <- optim(pstrthib, lpost_hib, control=list(fnscale=-1, maxit=1000))
+
 
 ## Based on results of opt, above (caching these values to prevent having to 
 ## rerun it, since it takes kind of a long time.)
 popt <- c(T0=7.5, D0=4.0, A0=3.0, I0=21.1, Ts=3.5, day_zero=0.0006, b=3.0 )
 popt_uncons <- c(T0=4.8, D0=4.8, A0=3.4, I0=3.3, Ts=3.4, day_zero=9.9, b=1.3)
 popt_longd <- c(T0=4.5, D0=10, A0=3.5, I0=3.3, Ts=4.5, day_zero=10.9, b=0.5)
+popt_hib <- c(T0=5.0, D0=6.3, A0=3.5, I0=2.1, Ts=3.0, day_zero=46, b=100)
 
-pmat <- rbind(popt, popt_longd, popt_uncons)
-plt_projections(pmat, c('Constrained td=7.5', 'Constrained D0=10', 'Unconstrained'), usedate=TRUE)
+pmat <- rbind(popt, popt_longd, popt_uncons, popt_hib)
+plt_projections(pmat, c('Constrained td=7.5', 'Constrained D0=10', 'Unconstrained', 'Constrained b=100'), usedate=TRUE)
 
 scl0 <- c(0.1, 0.1, 0.1, 1, 1, 1, 0.1)
 
