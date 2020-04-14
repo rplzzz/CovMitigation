@@ -18,7 +18,7 @@ scl <- structure(c(0.025, -0.0073, -0.00033, 0.012, 0.0016, -0.31, 0.0079,
 
 lpost <- gen_post()
 
-run_mcmc <- function(tid, nsamp, outfilename, restartfile, nproc=8)
+run_mcmc <- function(tid, nsamp, outfilename, restartfile, nproc=8, usescl=TRUE)
 {
   if(is.na(nproc) || nproc==1) {
     foreach::registerDoSEQ()
@@ -32,7 +32,11 @@ run_mcmc <- function(tid, nsamp, outfilename, restartfile, nproc=8)
   }
   else {
     warmup <- readRDS(restartfile)
-    mcs <- metrosamp(lpost, warmup, nsamp,1)
+    if(usescl) {
+      mcs <- metrosamp(lpost, warmup, nsamp, 1, scl)
+    } else {
+      mcs <- metrosamp(lpost, warmup, nsamp,1)
+    }
   }
   
   if(!is.null(restartfile) && outfilename == restartfile) {
