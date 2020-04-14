@@ -111,3 +111,20 @@
 #' }
 #' @source New York Times COVID-19 dataset \code{https://github.com/nytimes/covid-19-data}
 "va_county_first_case"
+
+#' Counts of various categories of COVID cases
+#' 
+#' @format Data frame with 10 columns
+#' \describe{
+#' \item{date}{Date of observation}
+#' \item{COVID}{Total number of COVID-19 cases}
+#' \item{Admits}{Number of COVID-19 cases admitted that day}
+#' \item{DCs}{Discharges}
+#' \item{ICU}{Number of COVID-19 cases in ICU}
+#' \item{ICU in}{Number of new ICU cases}
+#' \item{ICU out}{Number of cases leaving the ICU}
+#' \item{Vent}{Number of cases on IMV}
+#' \item{vent in}{Number of new IMV cases}
+#' \item{vent out}{Number of IMV cases leaving}
+#' }
+"uva_covid_count"
