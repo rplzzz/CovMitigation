@@ -8,15 +8,15 @@ library(here)
 
 
 vdh_new <- read_csv(here('data-raw', 'Virginia_Dept_Health_COVID_Data.csv'),
-                    col_types = 'ciiiiinnniii')
+                    col_types = 'ciiiiinnniin')
 
 uvads_covid19 <-
   filter(vdh_new, !is.na(Date)) %>%
   rename(posTestFrac=daily_pos_pct_of_tests, date=Date, vaNewCases=VA_New_Confirmed_Cases,
          vaCumCases=VA_Cumulative_Confirmed_Cases, tjNewCases=TJ_Confirmed_Cases,
          tjCumCases=TJ_Cumulative_Cases, nhosp=num_hospitalizations, ntest_cum=cum_num_tests,
-         ntest=daily_num_tests,
-         vapop=va_population)
+         ntest=daily_num_tests)
+uvads_covid19$vapop=8535519
 
 
 ## Add a new tests column
