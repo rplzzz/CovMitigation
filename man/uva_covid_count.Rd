@@ -8,6 +8,7 @@
 Data frame with 10 columns
 \describe{
 \item{date}{Date of observation}
+\item{time}{Days since 2020-01-01 for observation}
 \item{COVID}{Total number of COVID-19 cases}
 \item{Admits}{Number of COVID-19 cases admitted that day}
 \item{DCs}{Discharges}

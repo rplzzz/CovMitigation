@@ -156,7 +156,14 @@ gen_likelihood <- function(hparms, fixed_parms=NULL)
         (max(obsdata$time) - min(obsdata$time)) * 
         dbeta(fs, hparms[['fsalpha']], hparms[['fsbeta']], log=TRUE)
       
-      sum(logl, na.rm=TRUE) + fsadjust
+      ## Compute another adjustment for the hospitalization fraction.  Basically,
+      ## if the model says that a significant portion of the community is infected,
+      ## but we're only getting a trickle of hospital cases, then we don't believe
+      ## that.  
+      hospadjust <- hparms[['nhosp_weight']] * 
+        nhosp_likelihood(hparms[['nhosp_alpha']], hparms[['nhosp_beta']], modout)
+      
+      sum(logl, na.rm=TRUE) + fsadjust + hospadjust
     }
   }
 }
@@ -185,7 +192,10 @@ gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=numeric(0))
 {
   default_hparms <- c(fsalpha=100, fsbeta=100,
                       t0shp=14, t0rate=2,
-                      bmulog=3, bmulog=1)
+                      bmulog=3, bmulog=1,
+                      nhosp_weight = 100,
+                      nhosp_alpha = 4,
+                      nhosp_beta = 98)
   hparms <- fill_defaults(hparms, default_hparms)
   
   lprior <- gen_prior(hparms)
@@ -297,4 +307,60 @@ fsympto <- function(modrun, trange=c(80,93))
     dplyr::mutate(fs = Is/(I+Is))
   
   mean(stateagg$fs)
+}
+
+#' Calculate the expected number of hospitalizations for a model
+#' 
+#' Calculate the expected number of hospitalizations by day, based on an assumed
+#' fraction of symptomatic patients that eventually go to the hospital.
+#' 
+#' To make this calculation, we have to convert this probability to a rate.  If
+#' the recovery rate is \eqn{\gamma = 1/D0}, then the hospitalization rate \eqn{r_h} that gives
+#' the desired probability \eqn{P_h} is 
+#' \deqn{r_h = \gamma \frac{P_h}{1-P_h}}
+#' 
+#' @param ph Per-person hospitalization probability
+#' @param modout Model output from \code{\link{run_scenario}}
+#' @param mfadjust If \code{TRUE}, adjust for market fraction
+#' @return Data frame of time and expected hospitalizations
+#' @export
+calc_nhosp <- function(ph, modout, mfadjust=TRUE)
+{
+  rh <- ph/(1-ph) / modout$recoveryTime[1]
+  ## We're going to approximate the expected influx of hospital patients as 
+  ## rh * PopSympto.  Theoretically we should be integrating the hospital population
+  ## alongside the other population differential equations, but this approximation is 
+  ## close enough for our purposes.
+  sympt <- modout[c('time','PopSympto')]
+  if(mfadjust) {
+    sympt[['PopSympto']] <- sympt[['PopSympto']] * modout[['marketFraction']]
+  }
+
+  dplyr::group_by(sympt, time) %>%
+    dplyr::summarise(expectedHosp = sum(PopSympto * rh))
+}
+
+#' Calculate the likelihood adjustment for number of hospital observations
+#' 
+#' The adjustment is 
+#' \deqn{L_h = \log(\int dp_h Beta(\alpha_h, \beta_h) \prod Pois(N_h, \lambda(p_h)))}
+#' 
+#' @param alpha First shape parameter in the prior for hospitalization fraction
+#' @param beta Second shape parameter in the prior for hospitalization fraction
+#' @param modout Model output from \code{\link{run_scenario}}
+nhosp_likelihood <- function(alpha, beta, modout)
+{
+  obs <- uva_covid_count[c('time','Admits')]
+  modout <- dplyr::filter(modout, time %in% uva_covid_count$time)
+  
+  llsingle <- function(ph) {
+    expectHosp <- calc_nhosp(ph, modout)
+    cmpHosp <- dplyr::left_join(expectHosp, obs, by='time')
+    dbeta(ph, alpha, beta) * prod(dpois(cmpHosp$Admits, cmpHosp$expectedHosp))
+  }
+  llvector <- function(phvec) {
+    sapply(phvec, llsingle)
+  }
+  
+  log(integrate(llvector, 0,1)$value)
 }
