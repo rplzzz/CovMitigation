@@ -4,7 +4,7 @@
 \alias{gen_post}
 \title{Prepare a posterior log-pdf function for use in Bayesian calibration}
 \usage{
-gen_post(prior_weight = NULL, fixed_parms = NULL, hparms = numeric(0))
+gen_post(prior_weight = NULL, fixed_parms = NULL, hparms = list())
 }
 \arguments{
 \item{prior_weight}{Factor to multiply the prior by.  Default is to make it equal

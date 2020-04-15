@@ -188,15 +188,10 @@ gen_likelihood <- function(hparms, fixed_parms=NULL)
 #' @param hparms Named vector of hyperparameters for the likelihood.  See details
 #' for supported hyperparameters.
 #' @export
-gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=numeric(0))
+gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=list())
 {
-  default_hparms <- c(fsalpha=100, fsbeta=100,
-                      t0shp=14, t0rate=2,
-                      bmulog=3, bmulog=1,
-                      nhosp_weight = 100,
-                      nhosp_alpha = 4,
-                      nhosp_beta = 98)
-  hparms <- fill_defaults(hparms, default_hparms)
+ 
+  hparms <- fill_defaults(as.list(hparms), default_hparms)
   
   lprior <- gen_prior(hparms)
   llik <- gen_likelihood(hparms, fixed_parms)
@@ -348,6 +343,7 @@ calc_nhosp <- function(ph, modout, mfadjust=TRUE)
 #' @param alpha First shape parameter in the prior for hospitalization fraction
 #' @param beta Second shape parameter in the prior for hospitalization fraction
 #' @param modout Model output from \code{\link{run_scenario}}
+#' @keywords internal
 nhosp_likelihood <- function(alpha, beta, modout)
 {
   obs <- uva_covid_count[c('time','Admits')]

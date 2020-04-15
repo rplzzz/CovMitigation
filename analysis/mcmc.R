@@ -38,10 +38,10 @@ opt_hib <- optim(pstrthib, lpost_hib, control=list(fnscale=-1, maxit=1000))
 
 ## Based on results of opt, above (caching these values to prevent having to 
 ## rerun it, since it takes kind of a long time.)
-popt <- c(T0=7.5, D0=4.0, A0=3.0, I0=21.1, Ts=3.5, day_zero=0.0006, b=3.0 )
-popt_uncons <- c(T0=4.8, D0=4.8, A0=3.4, I0=3.3, Ts=3.4, day_zero=9.9, b=1.3)
-popt_longd <- c(T0=4.5, D0=10, A0=3.5, I0=3.3, Ts=4.5, day_zero=10.9, b=0.5)
-popt_hib <- c(T0=5.0, D0=6.3, A0=3.5, I0=2.1, Ts=3.0, day_zero=46, b=100)
+popt <- c(T0=7.5, D0=3.4, A0=2.9, I0=24.7, Ts=3.6, day_zero=2.9, b=3.8 )
+popt_uncons <- c(T0=6.8, D0=3.5, A0=2.7, I0=7.5, Ts=4.2, day_zero=0.2, b=3.3)
+popt_longd <- c(T0=5.7, D0=10, A0=3.1, I0=5.0, Ts=5.6, day_zero=7.3, b=1.1)
+popt_hib <- c(T0=11.4, D0=0.8, A0=0.9, I0=13.3, Ts=1.4, day_zero=0.008, b=100)
 
 pmat <- rbind(popt, popt_longd, popt_uncons, popt_hib)
 plt_projections(pmat, c('Constrained td=7.5', 'Constrained D0=10', 'Unconstrained', 'Constrained b=100'), usedate=TRUE)

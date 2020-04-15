@@ -22,12 +22,7 @@ gen_prior <- function(hparms)
       badparms <- names(parms)[!names(parms) %in% parm_names]
       stop('unrecognized parameters: ', paste(badparms, collapse=', '))
     }
-    ## For the time being we will want to run without Ts, so if it is missing,
-    ## replace with the default value
-    if(!'Ts' %in% names(parms)) {
-      parms['Ts'] <- param_defaults[['Ts']]
-    }
-    
+
     ## All of our parameters have to be > 0
     if(any(parms <= 0)) {
       -Inf
@@ -38,7 +33,7 @@ gen_prior <- function(hparms)
                c(hparms[['t0rate']], 2,2), log=TRUE),
         dlnorm(parms['D0'], 2, 0.5, log=TRUE),
         dnorm(parms['day_zero'], 30, 30, log=TRUE),
-        dlnorm(parms['b'], hparms['bmulog'], hparms['bsiglog'], log=TRUE),
+        dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
         dlnorm(parms['I0'], 2, 1, log=TRUE)
       )
       sum(logps, na.rm = TRUE)
