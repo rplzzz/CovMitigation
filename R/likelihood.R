@@ -64,7 +64,8 @@ gen_likelihood <- function(hparms, fixed_parms=NULL)
     parms <- fill_defaults(parms, default_parm_vals)
     
     ## Separate out the parameters that get passed to the SEIR model.
-    modparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
+    seirparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
+    seirparms <- c(seirparms, hparms['hg_counties'])
     if('day_zero' %in% names(parms)) {
       day0 <- parms[['day_zero']]
     }
@@ -82,7 +83,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL)
     tvals <- c(day0, seq(t1, tmax))
     
     ## Run the model and do a little post-processing
-    modout <- run_scenario(tvals, modparms)
+    modout <- run_scenario(tvals, seirparms)
     fs <- fsympto(modout)
     mdata <- modout[c('time', 'locality','I','Is','population')]
     mdata$Itot <- mdata$I + mdata$Is

@@ -82,6 +82,7 @@ param_defaults <-
   list(
     ## Epidemiological model parameters
     T0                = 7.4,     # initial doubling time - this will be turned into an infection rate
+    T0_hi             = 7.4,     # optional doubling time for counties with high growth rates
     D0                = 4,       # base infection duration - this will be turned into a recovery rate
     A0                = 3,       # base incubation time - this will be turned into a progression rate
     Ts                = 3,       # average time to symptom onset, once progressed to infectious state
@@ -96,6 +97,9 @@ param_defaults <-
     
     ## day-zero parameter
     day_zero = NULL,
+    
+    ## Counties subject to high growth rate (none by default)
+    hg_counties      = character(0),
     
     ## Selection and filtering parameters
     typeAMCDRG = "fractionAllUVA"   # other valid values are "fractionAllVCU"  "fractionRespUVA" "fractionRespVCU" "fractionAllUVA"
@@ -216,8 +220,9 @@ run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfec
 #' @param mktshare Market share for the locality
 #' @param timevals Vector of output times for the simulation
 #' @param params Model parameter list
+#' @param hicounties List of counties that should use the high growth rate.
 #' @keywords internal
-run_single_county <- function(locality, mktshare, timevals, params)
+run_single_county <- function(locality, mktshare, timevals, params, hicounties)
 {
   ##msg <- paste(c('loc:', 'mktshare:'), c(locality, mktshare))
   ##message(paste(msg, collapse='  '))
@@ -243,6 +248,10 @@ run_single_county <- function(locality, mktshare, timevals, params)
   
   ## Calculate derived parameters
   N <- (pop-params$I0) * params$S0
+  if(locality %in% params[['hg_counties']]) {
+    #message('Using growth rate ', params[['T0_hi']], ' for county ', locality)
+    params[['T0']] <- params[['T0_hi']]
+  }
   
   gamma_schedule <- params$duration_schedule
   gamma_schedule$value <- 1/(gamma_schedule$value * params$D0)

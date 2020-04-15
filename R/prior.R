@@ -15,7 +15,7 @@
 #' @export
 gen_prior <- function(hparms)
 {
-  parm_names <- c('T0', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
+  parm_names <- c('T0_hi', 'T0', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
   function(parms) {
     stopifnot(!is.null(names(parms)))
     if(any(!names(parms) %in% parm_names)) {
@@ -28,9 +28,9 @@ gen_prior <- function(hparms)
       -Inf
     } else {
       logps <- c(
-        dgamma(parms[c('T0', 'A0', 'Ts')], 
-               c(hparms[['t0shp']], 8,8), 
-               c(hparms[['t0rate']], 2,2), log=TRUE),
+        dgamma(parms[c('T0_hi', 'T0', 'A0', 'Ts')], 
+               c(rep(hparms[['t0shp']],2), 8,8), 
+               c(rep(hparms[['t0rate']],2), 2,2), log=TRUE),
         dlnorm(parms['D0'], 2, 0.5, log=TRUE),
         dnorm(parms['day_zero'], 30, 30, log=TRUE),
         dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
