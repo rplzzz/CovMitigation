@@ -202,15 +202,14 @@ run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfec
                         timevals, params)
   }
 
-  
-    ## Add some identifiers for the scenario
-    dplyr::mutate(inpatientEstimates,
-                  scenario=scenarioName, 
-                  doublingTime=params$T0,
-                  recoveryTime=params$D0,
-                  incubationTime=params$A0,
-                  symptomTime=params$Ts,
-                  typeAMCDRG=params$typeAMCDRG) %>%
+  ## Add some identifiers for the scenario
+  dplyr::mutate(inpatientEstimates,
+                scenario=scenarioName, 
+                doublingTime=params$T0,
+                recoveryTime=params$D0,
+                incubationTime=params$A0,
+                symptomTime=params$Ts,
+                typeAMCDRG=params$typeAMCDRG) %>%
     dplyr::ungroup()
 }
 
@@ -224,8 +223,6 @@ run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfec
 #' @keywords internal
 run_single_county <- function(locality, mktshare, timevals, params, hicounties)
 {
-  ##msg <- paste(c('loc:', 'mktshare:'), c(locality, mktshare))
-  ##message(paste(msg, collapse='  '))
   ## Need to get the total population from the vaMyAgeBands dataset
   pop <- vaMyAgeBands$Total[vaMyAgeBands$Locality == locality]
   if(length(pop) == 0) {
@@ -288,11 +285,16 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
                 Is=0,
                 R=(pop-params$I0-params$E0)*(1-params$S0))
   
+  if(min(timevals) + dayzero > max(timevals)) {
+    ## There won't be any output within the range of observed data for this county,
+    ## so skip.
+    return(NULL)
+  }
+  
   rslt <- as.data.frame(deSolve::ode(initvals, timevals, seir_equations, ode_params))
   
   ## Adjust for day zero.  Remove any times past tmax
   rslt$time <- rslt$time + dayzero
-  #message('dayzero= ', dayzero)
   rslt <- rslt[rslt$time <= max(timevals),]
   
   ## Add some identifiers for the locality

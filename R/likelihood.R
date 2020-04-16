@@ -84,6 +84,11 @@ gen_likelihood <- function(hparms, fixed_parms=NULL)
     
     ## Run the model and do a little post-processing
     modout <- run_scenario(tvals, seirparms)
+    if(nrow(modout)==0) {
+      ## All of the model outputs were after the the observation period.  Parameters
+      ## are clearly bogus.
+      return(-Inf)
+    }
     fs <- fsympto(modout)
     mdata <- modout[c('time', 'locality','I','Is','population')]
     mdata$Itot <- mdata$I + mdata$Is
