@@ -11,7 +11,7 @@ high_growth_counties <-
 #' @name parameters
 #' @export
 default_hparms <- list(fsalpha=100, fsbeta=100,
-                       t0shp=14, t0rate=2,
+                       t0mulog=4.5, t0siglog=2,
                        bmulog=4, bsiglog=0.5,
                        nhosp_weight = 100,
                        nhosp_alpha = 12,
