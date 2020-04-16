@@ -18,8 +18,8 @@ nsamp=10000
 outfile="mcmc-warmup-$tid.rds"
 
 echo "Run command:"
-echo "source('$program'); run_mcmc($tid, $nsamp, '$outfile', '$outfile', $SLURM_CPUS_PER_TASK)"
+echo "source('$program'); run_mcmc($tid, $nsamp, '$outfile', NULL, $SLURM_CPUS_PER_TASK)"
 
-Rscript -e "source('$program'); run_mcmc($tid, $nsamp, '$outfile', '$outfile', $SLURM_CPUS_PER_TASK)"
+Rscript -e "source('$program'); run_mcmc($tid, $nsamp, '$outfile', NULL, $SLURM_CPUS_PER_TASK)"
 
 echo "end:  " `date`
