@@ -305,7 +305,8 @@ fsympto <- function(modrun, trange=c(80,93))
     dplyr::filter(modrun, time >= trange[1], time <= trange[2]) %>%
     dplyr::group_by(time) %>%
     dplyr::summarise(I=sum(I), Is=sum(Is)) %>%
-    dplyr::mutate(fs = Is/(I+Is))
+    dplyr::mutate(fs = Is/(I+Is)) %>%
+    dplyr::filter(time == floor(time))         # drop fractional initial time values.
   
   mean(stateagg$fs)
 }

@@ -151,24 +151,32 @@ plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedat
              })  
     )
 
+
   modouts <- dplyr::group_by(modouts, time, scenario)
+    
   if(marketadjust) {
-    adjfactor <- modouts$marketFraction
+    pltdata <-
+      dplyr::summarise(modouts,
+                       newCases = sum(newCases*marketFraction),
+                       newSympto = sum(newSympto*marketFraction),
+                       PopSympto = sum(PopSympto*marketFraction),
+                       PopInfection = sum(PopInfection*marketFraction),
+                       PopCumulInfection = sum(PopCumulInfection*marketFraction),
+                       PopCumulFrac = sum(PopCumulInfection)/sum(population*marketFraction),
+                       popTotal = sum(population*marketFraction))
   }
   else {
-    adjfactor <- 1
-  }
+    pltdata <-
+      dplyr::summarise(modouts,
+                       newCases = sum(newCases),
+                       newSympto = sum(newSympto),
+                       PopSympto = sum(PopSympto),
+                       PopInfection = sum(PopInfection),
+                       PopCumulInfection = sum(PopCumulInfection),
+                       PopCumulFrac = sum(PopCumulInfection)/sum(population),
+                       popTotal = sum(population))
     
-  pltdata <-
-    dplyr::summarise(modouts,
-                     newCases = sum(newCases*adjfactor),
-                     newSympto = sum(newSympto*adjfactor),
-                     PopSympto = sum(PopSympto*adjfactor),
-                     PopInfection = sum(PopInfection*adjfactor),
-                     PopCumulInfection = sum(PopCumulInfection*adjfactor),
-                     PopCumulFrac = sum(PopCumulInfection)/sum(population*adjfactor),
-                     popTotal = sum(population*adjfactor)
-    )
+  }
   
   pltdata[['value']] <- pltdata[[what]]
   pltdata[['date']] <- pltdata[['time']] + as.Date('2020-01-01')
