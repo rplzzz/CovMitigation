@@ -75,10 +75,10 @@ calcbeta <- function(parms)
   solv$x
 }
 
-#' @describeIn coefs Calculate basic reproduction number \eqn{R_0} from model parameters.
+#' @describeIn coefs Calculate effective reproduction number \eqn{R_e} from model parameters.
 #' 
 #' @export
-calcr0 <- function(parms)
+calcreff <- function(parms)
 {
   calcbeta(parms)/calcgamma(parms)
 }

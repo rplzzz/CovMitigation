@@ -6,7 +6,7 @@
 \alias{calcbeta_approx}
 \alias{calcgamma}
 \alias{calcbeta}
-\alias{calcr0}
+\alias{calcreff}
 \alias{calclplus}
 \alias{calct0}
 \title{Caclulate model coefficients from parameters}
@@ -19,7 +19,7 @@ calcgamma(parms)
 
 calcbeta(parms)
 
-calcr0(parms)
+calcreff(parms)
 
 calclplus(alpha, beta, gamma)
 
@@ -68,7 +68,7 @@ This is the approximate version, using the Taylor series expansion.
 
 This is the exact version, solving the nonlinear equation for beta.
 
-\item \code{calcr0}: Calculate basic reproduction number \eqn{R_0} from model parameters.
+\item \code{calcreff}: Calculate effective reproduction number \eqn{R_e} from model parameters.
 
 \item \code{calclplus}: Calculate the growth rate (lplus) given alpha, beta, gamma coefficients
 
