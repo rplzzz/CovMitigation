@@ -331,3 +331,33 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
 
   rslt
 }
+
+#' Run the scenario for a vector of likelihood parameters
+#' 
+#' This function extracts the parameters that need to be passed to 
+#' \code{\link{run_scenario}}, figures out the time values to use,
+#' and filters out the fractional days from the output.
+#' 
+#' @param parms Vector of parameters used in the likelihood function (q.v.,
+#' \code{\link{gen_likelihood}}).  Unlike with the likelihood function, there
+#' is no provision for default parameters
+#' @param scenario_name Optional name for the scenario
+#' @param tmax Maximum time to run to (default is 273, which is 2020-09-30)
+#' @param aggregate If \code{TRUE}, aggregate across counties at each time.
+#' Otherwise, return the unaggregated data.
+#' @export
+run_parms <- function(parms, scenario_name='Scen', tmax=273, aggregate=FALSE)
+{
+  seirparms <- parms[c('T0_hi', 'T0', 'D0', 'A0', 'I0', 'Ts')]
+  tstrt <- parms['day_zero']
+  tnext <- ceiling(tstrt)
+  if(tnext - tstrt < 1e-3) {
+    tnext <- tnext + 1
+  }
+  
+  tvals <- c(tstrt, seq(tnext, tmax))
+  modout <- run_scenario(tvals, as.list(seirparms), scenario_name)
+  
+  modout <- modout[modout$time - floor(modout$time) < 1e-6,]
+  modout
+}
