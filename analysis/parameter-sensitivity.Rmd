@@ -1,0 +1,112 @@
+---
+title: "Sensitivity to Parameters"
+author: "Robert Link"
+date: "4/1/2020"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  rmarkdown::html_vignette: default
+vignette: |
+  %\VignetteIndexEntry{Sensitivity to Parameters} 
+  %\VignetteEncoding{UTF-8} 
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup}
+suppressPackageStartupMessages(library(dplyr))
+library(tidyr)
+library(ggplot2)
+library(CovMitigation)
+library(ggthemes)
+library(latex2exp)
+
+runparms <- function(parms, scenario, local=NULL) {
+  raw <- run_scenario(seq(0,180), parms, scenario)
+  if(!is.null(local)) {
+    raw <- raw[raw$locality %in% local,]
+  }
+  group_by(raw, time, doublingTime, scenario) %>%
+    summarise(newCases = sum(newCases),
+              infectedPop = sum(PopInfection),
+              newSympto = sum(newSympto),
+              symptoPop = sum(PopSympto),
+              cumulInfection = sum(PopInfection + PopRecovered),
+              totalPop = sum(population)
+              ) %>%
+    ungroup() %>%
+    mutate(fI = cumulInfection/totalPop,
+           fS = symptoPop/infectedPop)
+}
+
+
+benchmarkplot <- function(pltdata, pltcol, maxtime) {
+  pltdata$value <- pltdata[[pltcol]]
+  strtval <- group_by(pltdata, scenario) %>% summarise(y0 = value[1])
+  pltdata <- left_join(pltdata, strtval, by='scenario')
+  pltdata$value <- pltdata$value / pltdata$y0
+  
+  pltdata <- pltdata[pltdata$time <= maxtime,]
+  t <- pltdata$time
+  ## Label positioning
+  lastidx <- length(t)
+  lasttime <- t[lastidx]
+
+  ## Create the benchmark data
+  idx <- 1
+  tds <- c(3,4,5,6,7)
+  tdlabs <- paste('td=',tds)
+  tdlabstex <- sprintf('$t_d = %d$', tds)
+  gr <- lapply(tds, 
+               function(td) {
+                 r <- log(2)/td
+                 exp(r*t) / exp(r*t[idx])
+               })
+  names(gr) <- tdlabs
+  benchmarks <- as_tibble(gr)
+  benchmarks$time <- t
+  benchmarks <- pivot_longer(benchmarks, -time, names_to = 'doubling time')
+  benchplt <- 
+    ggplot(data=pltdata, aes(x=time, color=scenario)) + 
+    geom_line(data=pltdata, mapping=aes(y=value), size=1.2) +
+    geom_line(data=benchmarks, mapping=aes(y=value, group=`doubling time`), color='lightgrey') +
+    scale_color_solarized() +
+    scale_y_log10() +
+    theme_bw()
+  for(i in seq_along(gr)) {
+    #benchplt <- benchplt + geom_label(x=lasttime, y=log10(gr[[i]][lastidx]), label=TeX(tdlabstex[i]))
+    benchplt <- benchplt + geom_label(x=lasttime, y=log10(gr[[i]][lastidx]), label=tdlabs[i], color='black')
+  }
+  benchplt
+}
+
+```
+
+## Sensitivity to T0
+
+```{r t0runs}
+baseparms <- list(D0=14, A0=5, Ts=3)
+t0vals <- c(3, 5, 7)
+
+runt0 <- function(t0) {
+  scenario <- sprintf('tau_I = %d', t0)
+  parms <- c(list(T0=t0), baseparms)
+  #runparms(parms, scenario, c('Charlottesvillecity', 'AlbemarleCounty'))
+  #runparms(parms, scenario, c('Charlottesvillecity'))
+  #runparms(parms, scenario, c('FairfaxCounty'))
+  runparms(parms, scenario, NULL)
+}
+
+t0runs <- bind_rows(lapply(t0vals, runt0))
+```
+
+The first thing we would definitely like to know is, how accurate is our doubling
+time calculation?  We can assess this using a log plot of the relative values.
+```{r grateplots}
+pltruns <- t0runs[t0runs$time > 25,]
+benchmarkplot(pltruns,'infectedPop', 50)
+#benchmarkplot(pltruns,'newCases', 25)
+
+```
+
+

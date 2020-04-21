@@ -1,0 +1,141 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+library(doParallel)
+library(dplyr)
+library(here)
+library(metrosamp)
+library(ggplot2)
+library(tidyr)
+library(CovMitigation)
+
+registerDoParallel(8)
+
+set.seed(867-5309)
+```
+
+```{r loaddata}
+datadir <- here('analysis', 'mcmc-rslts', 'warmup-5')
+warmup_files <- list.files(path=datadir, pattern='mcmc-warmup.*\\.rds', full.names=TRUE)
+
+warmups <- lapply(warmup_files, readRDS)
+
+allsamps <- do.call(rbind, lapply(warmups, function(run){run$samples}))
+
+cwarmups <- metrosamp2coda(warmups, 2500)
+```
+
+## Expectation value and credible intervals
+```{r basicanalysis}
+cat('Expectation values:\n')
+print(signif(EV(warmups), 2))
+cat('\nCredible intervals:\n')
+print(signif(CI(warmups), 2))
+cat('\nEffective samples:\n')
+print(neff(cwarmups))
+cat('\nRhat statistic:\n')
+coda::gelman.diag(cwarmups)
+```
+
+## Effective Reproduction Number
+
+```{r reff}
+samps <- rsample(warmups, 1000)
+reffvals <- apply(samps, 1, calcreff)
+cat('EV(R_e):\n', signif(mean(reffvals), 2), '\n')
+cat('\nCI(R_e):\n')
+signif(quantile(reffvals, c(0.025, 0.975)), 2)
+```
+
+## Density plots
+
+```{r densplots}
+pltdata <- pivot_longer(as.data.frame(allsamps), everything(), names_to = 'parameter')
+ggplot(data=pltdata, aes(x=value)) + geom_density(fill='LightGrey', alpha=0.5) + facet_wrap(~parameter, scales='free') +
+  theme_bw()
+
+```
+
+```{r sampleruns}
+Nsamp <- 100
+parmsamps <- rsample(warmups, Nsamp)
+runparms <- function(parms, scenname) {
+  modparms <- parms[c('A0', 'D0', 'T0')]
+  raw <- run_scenario(270, as.list(modparms), scenname)
+  totalUVA <- 
+    group_by(raw, time, scenario) %>% 
+    summarise(newSymptoCases = sum(newSympto * marketFraction)) %>%
+    ungroup()
+  dt <- totalUVA$time + parms['day_zero']
+  ## align the results to integer days
+  dtout <- floor(dt)
+  interpcases <- approx(dt, totalUVA$newSymptoCases, dtout, rule=2)
+  dateout <- dtout + as.Date('2020-01-01')
+  tibble(scenario=totalUVA$scenario, date=dateout, newSymptoCases=interpcases$y)
+}
+
+sample_runs <- 
+  lapply(seq(1,Nsamp), 
+         function(i) {
+           parms <- parmsamps[i,]
+           runparms(parms, as.character(i))
+         }) %>%
+  bind_rows()
+
+ev_run <- runparms(EV(warmups), 'EV')
+```
+
+```{r ribbonplot}
+strtdate <- as.Date('2020-04-01')
+enddate <- as.Date('2020-09-01')
+ci_by_date <- 
+  filter(sample_runs, date >= strtdate, date < enddate) %>%
+  #mutate(time = as.numeric(date-strtdate)) %>%
+  group_by(date) %>%
+  summarise(nslo = quantile(newSymptoCases, 0.1), nshi = quantile(newSymptoCases, 0.9)) %>%
+  ungroup()
+
+pltev <- filter(ev_run, date >= strtdate, date < enddate)
+
+rplt <- 
+  ggplot(data=pltev, aes(x=date)) + 
+  geom_line(aes(y=newSymptoCases), size=1.2) +
+  geom_ribbon(data=ci_by_date, aes(ymin=nslo, ymax=nshi), alpha=0.5) +
+  theme_bw()
+print(rplt)
+```
+
+
+
+## Improving the sampling
+
+```{r cor}
+covm <- cov(allsamps)
+signif(covm,3)
+```
+Let's try sampling with this covariance matrix and see how we do.
+```{r samptest}
+
+lpost <- gen_post()
+
+p0 <- warmups[[1]]$plast
+ms1 <- metrosamp(lpost, p0, 100, 1, covm)
+ms1$accept
+neff(ms1$samples)
+```
+
+```{r samptest2}
+ms2 <- metrosamp(lpost, ms1, 100, 1, covm*2)
+ms2$accept
+neff(ms2$samples)
+ms3 <- metrosamp(lpost, ms2, 100, 1, covm*5)
+ms3$accept
+neff(ms3$samples)
+```
+
+It looks like a factor of 2-5 time covm is reasonably efficient.
+
+

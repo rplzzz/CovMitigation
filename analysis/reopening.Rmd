@@ -1,0 +1,157 @@
+---
+title: "Reopening Scenarios"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(nleqslv)
+library(ggplot2)
+library(doParallel)
+library(CovMitigation)
+registerDoParallel(8)
+
+agg_scen <- function(scendata) {
+  agg <- 
+    group_by(scendata, time, scenario) %>%
+    summarise(I=sum(I), Is=sum(Is), R=sum(R),
+              newCases=sum(newCases),
+              newSympto=sum(newSympto)) %>%
+    ungroup()
+  agg$totalpop <- 8517685
+  mutate(agg, date=as.Date('2020-01-01')+time, Itot=I+Is, 
+         cumInfect=Itot+R, cumIfrac=cumInfect/totalpop) %>%
+    filter(time-floor(time) < 1e-8)
+}
+```
+
+## Introduction
+
+We wish to explore the consequences of "reopening" the Commonwealth of Virginia.
+The governor has suggested that the COVID-19 mitigation policies might be lifted
+after two consecutive weeks of declines in new cases [1].  What are the likely
+consequences of such a policy?  Does it risk creating a resurgence in the infection?
+
+## Analysis
+Begin with the MAP parameter set.  Run it and aggregate to the state level.
+
+```{r base_scen}
+pmap <-
+  c(T0_hi = 5.69195605740336, T0 = 7.81804244536788, D0 = 6.73879591630125, 
+    A0 = 3.52224288149668, I0 = 2.56384762262623, Ts = 3.98902851913746, 
+    day_zero = 29.0878000968141, b = 59.7317732176905)
+map_scen <- run_parms(pmap, scenario_name = 'Base scenario')
+map_scen_agg <- agg_scen(map_scen)
+max_sympto_i <- which.max(map_scen_agg$newSympto)
+max_sympto_date <- map_scen_agg$date[max_sympto_i] 
+```
+
+This scenario reaches its maximum daily new symptomatic cases on
+`r max_sympto_date`.  We will take this as 
+indicative of the date at which the observed cases also peak.  One scenario for
+reopening the economy that has been discussed is to wait until two weeks of consistent
+decline in new case observations.  Because of the random factors that affect the number
+of cases actually measured, that could be quite a bit more than two weeks after the
+peak, but let's assume they do some kind of smoothing, and the reopening happens
+two weeks after the peak.
+
+To analyze this scenario, we first have to decide what reopening is likely to do
+to our model parameters.  We will assume that it returns the infection transmissibility
+to a value characteristic of a disease with $R_0= 2.5$ and solve for the 
+change in $\beta$ that makes that happen.  Since $R = \beta/\gamma$, and we aren't
+changing $\gamma$, it follows that $\frac{\beta_r}{\beta} = \frac{R_r}{R}$.  
+
+The implied $R$ for our MAP (maximum _a posteriori_) parameters is about 
+`r signif(calcr0(pmap), 2)`.  Since
+that isn't a huge reduction from our presumptive value of 2.5 for the unmitigated
+disease, we'll also run a $\beta$ for an $R_0$ of 5.  We don't really
+expect it to be that high, but that should allow us to bracket the possibilities.
+
+With that in mind, the two schedules for the model $\beta$ parmeter are:
+
+```{r reopenbeta}
+targr0 <- 2.5
+peaklag <- 14
+r0 <- calcr0(pmap)
+beta_fac <- targr0/r0
+beta_time <- map_scen_agg$time[max_sympto_i] + peaklag
+beta_sched <- data.frame(time=c(0,beta_time), value=c(1,beta_fac))
+beta_sched_hi <- data.frame(time=c(0, beta_time), value=c(1,2*beta_fac))
+beta_sched
+beta_sched_hi
+```
+Each of these tables shows the values of $\beta$ relative to its value at the 
+beginning of the simulation, as a function of time.  The value of $\beta$ is 
+constant in between entries in the table, so in these cases $\beta$ remains at
+its original value until $t = `r beta_time`$, when it gets multiplied by the
+factor shown in the second row of the table.  
+
+Now we can run this same scenario, but with the new values of $\beta$ starting on
+`r max_sympto_date + peaklag`.  Note that as currently implemented the model will
+increase the statewide transmissibility and the high-growth-rate transmissibility
+by the same factor.  We probably want to set them both to the same assumed reference
+level, but that involves adding an option to include a second beta factor specific
+to the high growth rate, which we don't have yet.  We're going to assume that by
+the time the state as a whole is two weeks past its peak, the high-growth regions
+are far enough past their peak that the inaccuracy is insignificant.
+
+```{r reopenscen}
+reopenparms <- c(as.list(pmap[1:6]), list(beta_schedule=beta_sched))
+tstrt <- pmap['day_zero']
+tnext <- ceiling(tstrt)
+tvals <- c(tstrt, seq(tnext, 273))
+reopen_scen <- run_scenario(tvals, reopenparms, 'Reopening')
+reopen_scen_agg <- agg_scen(reopen_scen)
+
+hireopenparms <- c(as.list(pmap[1:6]), list(beta_schedule=beta_sched_hi))
+hireopen_scen_agg <- agg_scen(run_scenario(tvals, hireopenparms, 'Reopening high-spread'))
+```
+
+
+```{r cmpplt}
+pltdata <- bind_rows(map_scen_agg, reopen_scen_agg, hireopen_scen_agg)
+strtdate <- max_sympto_date
+enddate <- max(pltdata$date)
+plt <- ggplot(pltdata, aes(x=date, y=newSympto, color=scenario)) + geom_line(size=1.2) +
+  scale_color_brewer(type='qual') +
+  xlim(c(strtdate,enddate)) +
+  theme_bw() 
+print(plt)
+```
+
+## Conclusion
+
+Even if we assume that the transmissibility of the disease increases dramatically
+when the mitigation policies are lifted, the rate of new infections continues to
+drop.  The reason for this, in this particular model, is that even with mitigation
+policies in place, the rate of new infections is large enough at the peak that even
+once new infections begin to decline, the overshoot is large enough the population
+reaches the herd immunity threshold even for pessimistic assumptions about the 
+unmitigated disease.
+
+It's worth keeping in mind some of the assumptions underlying these results.  The
+biggest is that people who recover from the disease acquire immunity to it, which 
+is currently a subject of vigorous investigation.  More generally, the model used
+here has a variety of assumptions including constancy of coefficients, persistence of
+the difference in growth patterns between the high and low growth regions, and 
+independence of growth in different counties.  This last assumption, in particular,
+might be expected to hold while mitigation policies are in effect and travel is
+limited, but it might not be valid for a scenario with more relaxed policies.
+
+Also assumed in these results is that authorities can reliably determine the peak
+of the infection from observed confirmed cases.  Observed data is noisy, and it 
+is entirely possible to be fooled by a false peak, though a two-week confirmation
+period makes this less likely.  More subtly, changes in testing procedures could 
+produce the appearance of a peak whilst the infection is still spreading.  This could
+happen, for example, if testing becomes less targeted, which could offset the 
+increase in infection prevalance and cause the fraction
+of observed positive tests to decline.  If no correction were made for the change
+in procedure, the decline in positive results could be misinterpreted as a peak
+in the infection.
+
+
+## References
+
+[1] https://www.richmond.com/news/virginia/not-there-yet-northam-outlines-future-plans-for-reopening-the-state/article_e76696ef-e361-5629-95d1-b6c35a91922c.html

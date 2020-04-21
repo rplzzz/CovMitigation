@@ -1,0 +1,99 @@
+---
+title: "Model Results Summary"
+author: "Robert Link"
+date: "4/17/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+library(CovMitigation)
+library(dplyr)
+library(ggplot2)
+library(doParallel)
+
+registerDoParallel(8)
+
+mparms <-
+  c(T0_hi = 6.23326057949715, T0 = 9.54243712017808, D0 = 6.73682352612848, 
+    A0 = 3.77160066817391, I0 = 11.3521753597075, Ts = 3.96825, day_zero = 43.0690562665808, 
+    b = 91.1258634441669)
+
+pltcounties <-
+  c("FairfaxCounty", "ArlingtonCounty", "PrinceWilliamCounty", 
+    "HenricoCounty", "Charlottesvillecity", "AlbemarleCounty")
+
+daterng <- as.Date(c('2020-04-01', '2020-09-01'))
+
+disp <- function(plt) {
+  suppressWarnings(print(plt))
+}
+```
+
+## Introduction
+
+These are the outputs of the results of the UVA infection model for the MAP 
+(maximum _a posteriori_) model parameters using calibration data through 2020-04-15.
+These results represent our best guess at the modal trajectory of the infection 
+in the Commonwealth of Virginia through the end of the summer; however, as yet
+there are a wide range of parameters that fit the data adequately, and so there
+is a great deal of uncertainty surrounding these projections.
+
+This analysis was generated with version `r packageVersion('CovMitigation')` of
+the model.
+
+## Comparison of model to data.
+
+This figure shows a comparison between the model projections and observed data
+for several representative localities.  Fairfax, Arlington, Prince William, and
+Henrico counties continue to show a higher growth rate than the rest of the 
+Commonwealth.  The doubling time fit by the model for these counties was 
+`r signif(mparms['T0_hi'], 2)` days, while the doubling time else where was fit
+at `r signif(mparms['T0'], 2)` days.
+
+```{r modobs, echo=FALSE, fig.width=8}
+moplt <- plt_modobs(mparms, 'MAP fit', pltcounties)
+disp(moplt + 
+        scale_color_manual(values = 'MidnightBlue') + 
+        facet_wrap(~locality, scales='free_y') +
+        guides(color=FALSE))
+```
+
+## Model projections
+
+These are the projections for daily new symptomatic cases over time, aggregated
+across the state.
+
+```{r prjstate, echo=FALSE, fig.width=8}
+pltprj_state <- plt_projections(mparms, 'MAP Scenario')
+disp(pltprj_state + 
+        scale_color_manual(values='MidnightBlue') +
+        guides(color=FALSE) +
+        ylab('Daily new symptomatic cases (total)') +
+        xlim(daterng))
+```
+
+Similar projections, adjusted for our historical market share by county
+
+```{r prjuva, echo=FALSE, fig.width=8}
+pltprj_state <- plt_projections(mparms, 'MAP Scenario', marketadjust = TRUE)
+disp(pltprj_state + 
+        scale_color_manual(values='MidnightBlue') +
+        guides(color=FALSE) +
+        ylab('Daily new symptomatic cases (market share adjusted)')+
+        xlim(daterng))
+```
+
+
+Finally, this plot shows the cumulative fraction of the population infected, 
+aggregated across the state, over time.  It represents the fraction over time of
+people who have or have had the disease.
+```{r prjcumul, echo=FALSE, fig.width=8}
+pltprj_cumulfrac <- plt_projections(mparms, 'MAP Scenario', what='PopCumulFrac')
+disp(pltprj_cumulfrac +
+        scale_color_manual(values='MidnightBlue') +
+        guides(color=FALSE) + 
+        xlim(daterng) +
+        ylab('Cumulative infection fraction'))
+```
