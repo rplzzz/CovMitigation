@@ -1,6 +1,6 @@
 Package: CovMitigation
 Title: Demand estimates for medical centers in Virginia
-Version: 1.0.2
+Version: 1.1.0
 Authors@R:
     person(given = "First",
            family = "Last",
@@ -17,6 +17,7 @@ Imports:
   doParallel (>= 1.0),
   nleqslv (>= 3.3),
   NYTimesCOVID19,
+  vacovdata,
   dplyr (>= 0.7)
 Suggests:
     here (>= 0.1),
@@ -33,4 +34,5 @@ RoxygenNote: 7.1.0
 VignetteBuilder: knitr
 Remotes:
   rplzzz/covid-19-data,
-  rplzzz/metrosamp
+  rplzzz/metrosamp,
+  rplzzz/vacovdata

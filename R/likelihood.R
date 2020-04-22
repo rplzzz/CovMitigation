@@ -8,8 +8,8 @@
 #' COVID-19 cases.  We are using the New York Times dataset
 #' (\code{https://github.com/nytimes/covid-19-data}), which is based on reports
 #' from state departments of health, including the VDH.  For statistics on COVID-19
-#' testing, we use the \code{\link{uvads_covid19}} dataset, which was collected
-#' directly from VDH by the UVA data science team.
+#' testing, we use the \code{\link[vacovdata]{vacovdata}} dataset, which was compiled
+#' by the COVID Tracking project (\code{https://covidtracking.com/}).
 #' 
 #' The model parameters currently recognized are:
 #' \describe{
@@ -238,8 +238,10 @@ get_obsdata <- function()
   
   ## First get the datasets.  Filter and reformat as necessary.
   teststats <- 
-    dplyr::filter(uvads_covid19, !is.na(ntest)) %>%
-    dplyr::select(date, ntest)
+    dplyr::select(vacovdata::vacovdata, 
+                  date, ntest=totalTestResultsIncrease) %>%
+    dplyr::filter(!is.na(ntest))
+
   
   obsdata <- 
     dplyr::filter(NYTimesCOVID19::cov19county, 
