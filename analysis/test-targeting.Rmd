@@ -1,0 +1,54 @@
+---
+title: "Effect of Targeted Testing on Inferred Growth Rates"
+author: "Robert Link"
+date: "4/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tibble)
+
+td <- 8
+b <- 60
+```
+
+Given an exponentially growing population (as, for example, in the early stages
+of an epidemic, when $S/N \approx 1$), and given a targeted testing regime, how
+does the growth rate of confirmed cases compare to the growth rate in the general
+population?  It turns out to be a lot lower.
+
+Consider an example, let the growth rate in the general population be 
+$r = `r signif(log(2)/td, 2)`$,
+for a doubling time of about $\tau_d = `r td`$.  Define the test targeting factor $b$ as a
+multiplier on the odds ratio of infected to not infected.  That is, if the fraction
+infected is $f$, then the odds ratio is $\frac{f}{(1-f)}$.  The odds ratio for positive
+to negative tests would then by assumption be $b \frac{f}{1-f}$.  We will take
+$b = `r signif(b,2)`$.  Both this and the value of $\tau_d$ are approximately the
+values recovered in our MAP parameter set.
+
+
+```{r makeplot}
+r <- log(2)/td
+f1 <- function(x) {0.01*exp(r*x)}
+f2 <- function(x) {b*f1(x)/(1+(b-1)*f1(x))}
+
+x <- seq(0,15, length.out=100)
+pd <- bind_rows(
+  tibble(t=x, y=f1(x)/f1(0), type='population'),
+  tibble(t=x, y=f2(x)/f2(0), type='confirmed')
+)
+ggplot(pd, aes(x=t, y=y, color=type)) + geom_line(size=1.2) + 
+  scale_y_log10() + 
+  theme_bw() + 
+  scale_color_brewer(type='qual') + ylab('y/y(0)')
+```
+
+This plot shows the growth of confirmed cases and population infection, relative
+to their initial values, over time.  The y-axis is a log scale, so a straight
+line indicates exponential growth.  By construction the population growth line
+crosses $y/y_0 = 2$ at $t = `r td`$.  The confirmed cases show a lower initial 
+growth rate, and the growth is sub-exponential.  Thus, in this case trying to infer
+the growth rate in the population by looking at the growth in confirmed cases
+would result in a significant underestimate of the true growth rate.
