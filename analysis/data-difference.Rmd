@@ -1,0 +1,160 @@
+---
+title: "Differences between old and new observations"
+author: "Robert Link"
+date: "4/21/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(CovMitigation)
+library(vacovdata)
+
+strtdate <- as.Date('2020-03-18')
+normdate <- as.Date('2020-03-18')
+normftest <- 1.94e-5
+
+addstats <- function(dat, version) 
+{
+  ## Compute the testing fraction correction.
+  normidx <- which(normdate == dat$date)
+  message(version, ': normidx: ', normidx, '    ftest[normidx]: ', dat$ftest[normidx])
+  #dat$ftest_relative <- dat$ftest / dat$ftest[normidx]
+  dat$ftest_relative <- dat$ftest / normftest
+  
+  dat$correctedNewCases <- dat$vaNewCases / dat$ftest_relative 
+  dat$correctedCumCases <- cumsum(dat$correctedNewCases)
+  dat$rawCumCases <- cumsum(dat$vaNewCases)
+  
+  #dat <- filter(dat, date >= strtdate)
+  relidx <- which(strtdate==dat$date)
+  dat$correctedNewCasesRel <- dat$correctedNewCases / dat$correctedNewCases[relidx]
+  dat$correctedCumCasesRel <- dat$correctedCumCases / dat$correctedCumCases[relidx]
+  dat$rawCumCasesRel <- dat$rawCumCases / dat$rawCumCases[relidx]
+  
+  dat$version <- version
+  
+  dat
+}
+
+ctpdata <- 
+  select(vacovdata, date, positiveIncrease, ftest, totalTestResultsIncrease) %>%
+  rename(vaNewCases=positiveIncrease, ntest=totalTestResultsIncrease) %>%
+  filter(ntest > 0) %>% 
+  arrange(date) %>%
+  addstats('CTP')
+
+olddata <-
+  select(uvads_covid19, date, vaNewCases, ftest, ntest) %>%
+  filter(ntest > 0) %>%
+  arrange(date) %>%
+  addstats('OLD')
+
+bothdata <- bind_rows(ctpdata, olddata)
+```
+
+## Summary
+
+**The data from the COVID Tracking Project (CTP) appears to produce a dramatically
+different testing-corrected growth rate than our home-grown dataset**.  These 
+differences appear to be due to errors in the home-grown
+dataset in the early part of the data (prior to about 
+15 March).  However, with the CTP data the growth rate, corrected for testing growth,
+is absurdly low (see below), suggesting that something is wrong with the correction
+methodology.  Until we get that sorted out, we should probably show raw growth
+without attempting to correct for testing growth.  Below we show that the daily
+testing rate seems to have stabilized, making correction for testing rate less
+important anyhow.
+
+
+## Raw new cases differ a bit early on, then converge
+```{r rawnewcases}
+ggplot(data=bothdata, aes(x=date, y=vaNewCases, color=version)) + geom_line(size=1.2) + 
+  scale_y_log10() +
+  theme_bw()
+```
+
+Note also that the CTP dataset has cases earlier than the old dataset did.  
+
+## This creates a small difference in raw cumulative cases
+```{r rawcumcases}
+ggplot(data=bothdata, aes(x=date, y=rawCumCases, color=version)) + geom_line(size=1.2) + 
+  scale_y_log10() +
+  theme_bw()
+```
+
+The slope in this log-scale plot is the growth rate uncorrected for growth in testing.  Note
+that the growth rates, as well as the actual values, converge as we go later in time.
+Note also that neither dataset is perfectly exponential; the slopes are decreasing
+over time.
+
+## The two datasets also have a different number of tests early on
+```{r ntest}
+orig_strt <- as.Date('2020-03-18')
+ggplot(data=bothdata, aes(x=date, y=ntest, color=version)) + geom_line(size=1.2) +
+  geom_vline(xintercept=orig_strt) +
+  geom_smooth(linetype=2, se=FALSE) +
+  geom_label(x=orig_strt, y=3000, label='Original normalization date', color='black') +
+  theme_bw()
+```
+
+The correction factor is computed by taking the number of tests relative to the
+number of tests on the normalization date.
+
+Note also that this is not a log-scale plot, so the growth over most of March
+is linear, not exponential.  Note also that the smoothed trend (dashed line)
+seems to have leveled off since the beginning of April, indicating that daily
+testing seems to have stabilized at about 2200 tests per day.
+
+## Thus, the relative ftest factor is also a bit different
+```{r ftest}
+ggplot(data=bothdata, aes(x=date, y=ftest_relative, color=version)) + geom_line(size=1.2) + 
+  theme_bw()
+```
+
+Corrected new cases are calculated by dividing raw new cases by this factor.
+
+## This amplifies the difference in the corrected new cases
+
+```{r cornewcases}
+ggplot(data=bothdata, aes(x=date, y=correctedNewCases, color=version)) + geom_line(size=1.2) + 
+  scale_y_log10() +
+  theme_bw()
+```
+
+## This discrepancy produces substantially different corrected cumulative cases
+```{r correctedcumcases}
+ggplot(data=bothdata, aes(x=date, y=correctedCumCases, color=version)) + geom_line(size=1.2) + 
+  scale_y_log10() +
+  theme_bw()
+```
+
+## When we plot growth rates starting on 18 March, they look very different
+
+```{r correctedcumcasesrel}
+ggplot(data=filter(bothdata, date >= strtdate),
+       aes(x=date, y=correctedCumCasesRel, color=version)) + geom_line(size=1.2) + 
+  scale_y_log10() +
+  theme_bw()
+```
+
+The CTP dataset looks like it shoots up dramatically in the first week, then
+moderates, while our old dataset has a less dramatic initial rise, but a higher
+long-term growth rate.
+
+```{r dbltimectp}
+gt2 <- filter(ctpdata, correctedCumCasesRel >= 2.0)
+dbldate <- min(gt2$date)
+dbltime <- dbldate - strtdate
+```
+
+So far, so good, but that line for the CTP data crosses 2 on `r dbldate`, a doubling
+time of `r as.numeric(dbltime)` days, which seems wholly unbelievable.  This makes me 
+think there is some kind of flaw in the way I'm computing the correction factor,
+but I can't put my finger on what it is.
+
+
+
