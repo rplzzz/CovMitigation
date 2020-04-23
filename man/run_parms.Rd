@@ -23,3 +23,6 @@ This function extracts the parameters that need to be passed to
 \code{\link{run_scenario}}, figures out the time values to use,
 and filters out the fractional days from the output.
 }
+\seealso{
+\code{\link{run_scenario}}
+}

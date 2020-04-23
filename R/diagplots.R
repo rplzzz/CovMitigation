@@ -112,7 +112,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL,
 #' @param marketadjust If \code{TRUE}, adjust projections for UVAHS market share; 
 #' otherwise, show raw totals.
 #' @param hg_counties Counties for which the high growth rate should be applied.  Default
-#' is the ones in \code{\link{default_hparams}}
+#' is the ones in \code{\link{default_hparms}}
 #' @export
 plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedate=TRUE, 
                             counties=NULL, marketadjust=FALSE, hgcounties=NULL)

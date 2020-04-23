@@ -53,25 +53,6 @@
 #' code and hs been filtered to just localities with UVA market shares >= 20%
 "sampleCounties"
 
-#' Virginia Department of Health COVID-19 surveillance data
-#' 
-#' Dataset with reported COVID-19 cases by date and locality.  It is not yet clear whether the
-#' "Total Cases" reported are cumulative or new on that day.
-#' 
-#' @format Data frame with 5 columns:
-#' \describe{
-#' \item{Report.Date}{Date of the report}
-#' \item{FIPS}{FIPS code for the locality}
-#' \item{Locality}{Name of the locality}
-#' \item{Health.District}{Health district the locality belongs to}
-#' \item{Total.Cases}{Number of COVID-19 cases reported.  It's not documented in
-#' the original source whether this is cumulative or for that day only, but the data
-#' matches the figures given on the agency's website, which appears to be cumulative.}
-#' }
-#' @source Virginia Department of Health:\cr
-#' \code{http://www.vdh.virginia.gov/content/uploads/sites/182/2020/03/VDH-COVID-19-PublicUseDataset-Cases.csv}
-"vdh_covid19"
-
 #' Date of first report for VA counties
 #' 
 #' Date of the first reported COVID-19 case for each Virginia county.  Counties
@@ -83,7 +64,7 @@
 #' \item{firstReport}{Date of the first reported COVID-19 case in the county.}
 #' \item{firstDay}{Number of days since 1Jan2020 for the firstReport}
 #' }
-#' @source New York Times COVID-19 dataset \code{https://github.com/nytimes/covid-19-data}
+#' @source New York Times COVID-19 dataset \url{https://github.com/nytimes/covid-19-data}
 "va_county_first_case"
 
 #' Counts of various categories of COVID cases

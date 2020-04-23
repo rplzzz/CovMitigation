@@ -13,7 +13,7 @@ Data frame with 4 columns
 }
 }
 \source{
-New York Times COVID-19 dataset \code{https://github.com/nytimes/covid-19-data}
+New York Times COVID-19 dataset \url{https://github.com/nytimes/covid-19-data}
 }
 \usage{
 va_county_first_case

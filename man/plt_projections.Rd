@@ -35,7 +35,7 @@ include the whole state.}
 otherwise, show raw totals.}
 
 \item{hg_counties}{Counties for which the high growth rate should be applied.  Default
-is the ones in \code{\link{default_hparams}}}
+is the ones in \code{\link{default_hparms}}}
 }
 \description{
 All of the results we plot here are adjusted for the UVA market fraction.

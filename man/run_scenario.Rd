@@ -48,3 +48,6 @@ become infected.}
 
 }
 }
+\seealso{
+\code{\link{run_parms}}
+}

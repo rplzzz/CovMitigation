@@ -177,6 +177,7 @@ validate_params <- function(params)
 #' @param params List of parameter values, see details
 #' @param scenarioName Name for the scenario; this will be copied into results
 #' @return Data frame with results (see details) over time
+#' @seealso \code{\link{run_parms}}
 #' @importFrom dplyr %>%
 #' @importFrom foreach %do% %dopar%
 #' @export
@@ -345,6 +346,7 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
 #' @param tmax Maximum time to run to (default is 273, which is 2020-09-30)
 #' @param aggregate If \code{TRUE}, aggregate across counties at each time.
 #' Otherwise, return the unaggregated data.
+#' @seealso \code{\link{run_scenario}}
 #' @export
 run_parms <- function(parms, scenario_name='Scen', tmax=273, aggregate=FALSE)
 {
