@@ -43,11 +43,12 @@
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
+#' @param verbose If \code{TRUE}, print additional diagnostic information.
 #' @return A function that takes a named list of model parameters and returns
 #' a log-likelihood value.  See details for the parameters recognized.
 #' @importFrom dplyr %>%
 #' @export
-gen_likelihood <- function(hparms, fixed_parms=NULL)
+gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE)
 {
   obs <- get_obsdata()
   obsdata <- obs$obsdata
@@ -169,6 +170,15 @@ gen_likelihood <- function(hparms, fixed_parms=NULL)
       hospadjust <- hparms[['nhosp_weight']] * 
         nhosp_likelihood(hparms[['nhosp_alpha']], hparms[['nhosp_beta']], modout)
       
+      if(verbose) {
+        suml <- signif(sum(logl), 5)
+        fsa <- signif(fsadjust, 5)
+        hsa <- signif(hospadjust, 5)
+        msg <- paste(c('logl:\t', 'fsadjust:\t', 'hospadjust:\t'), 
+                     c(suml, fsa, hsa), collapse='\n')
+        message('Likelihood contributions:\n', msg)
+      }
+      
       sum(logl, na.rm=TRUE) + fsadjust + hospadjust
     }
   }
@@ -193,14 +203,16 @@ gen_likelihood <- function(hparms, fixed_parms=NULL)
 #' be overridden by passing an explicit value.
 #' @param hparms Named vector of hyperparameters for the likelihood.  See details
 #' for supported hyperparameters.
+#' @param verbose If \code{TRUE}, have the prior and likelihood print additional
+#' diagnostic information.
 #' @export
-gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=list())
+gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=list(), verbose=FALSE)
 {
  
   hparms <- fill_defaults(as.list(hparms), default_hparms)
   
-  lprior <- gen_prior(hparms)
-  llik <- gen_likelihood(hparms, fixed_parms)
+  lprior <- gen_prior(hparms, verbose=verbose)
+  llik <- gen_likelihood(hparms, fixed_parms, verbose=verbose)
   
   if(is.null(prior_weight)) {
     prior_weight <- sum(!is.na(va_county_first_case$firstDay))
@@ -356,7 +368,7 @@ calc_nhosp <- function(ph, modout, mfadjust=TRUE)
 nhosp_likelihood <- function(alpha, beta, modout)
 {
   obs <- uva_covid_count[c('time','Admits')]
-  modout <- dplyr::filter(modout, time %in% uva_covid_count$time)
+  modout <- dplyr::filter(modout, time %in% obs$time)
   
   llsingle <- function(ph) {
     expectHosp <- calc_nhosp(ph, modout)
@@ -366,6 +378,7 @@ nhosp_likelihood <- function(alpha, beta, modout)
   llvector <- function(phvec) {
     sapply(phvec, llsingle)
   }
+  
   
   log(integrate(llvector, 0,1)$value)
 }

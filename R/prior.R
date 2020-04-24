@@ -10,10 +10,11 @@
 #' If there are any parameters not in that list present, an error will be raised.  
 #' 
 #' @param hparms Named vector of hyperparameters, described in \code{\link{gen_post}}
+#' @param verbose If \code{TRUE}, print out additional diagnostic information.
 #' @return A function that takes a named vector of parameters and returns the log-prior
 #' probability density
 #' @export
-gen_prior <- function(hparms)
+gen_prior <- function(hparms, verbose=FALSE)
 {
   parm_names <- c('T0_hi', 'T0', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
   function(parms) {
@@ -25,6 +26,9 @@ gen_prior <- function(hparms)
 
     ## All of our parameters have to be > 0
     if(any(parms <= 0)) {
+      if(verbose) {
+        message('Parms out of range: ', paste(names(parms)[parms<=0], collapse=', '))
+      }
       -Inf
     } else {
       logps <- c(
@@ -39,6 +43,13 @@ gen_prior <- function(hparms)
         dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
         dlnorm(parms['I0'], 2, 1, log=TRUE)
       )
+      if(verbose) {
+        pnames <- c('A0:\t', 'Ts:\t', 'T0_hi:\t', 'T0:\t', 'D0:\t', 'day_zero:\t', 'b:\t', 'I0:\t')
+        prvals <- signif(logps, 3)
+        msg <- paste(pnames, prvals, collapse='\n')
+        totmsg <- paste('total:\t', signif(sum(logps, na.rm=TRUE), 4))
+        message('Prior contributions:\n', msg, '\n----------------\n', totmsg)
+      }
       sum(logps, na.rm = TRUE)
     }
   }

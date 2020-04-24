@@ -4,10 +4,12 @@
 \alias{gen_prior}
 \title{Generate a log prior function}
 \usage{
-gen_prior(hparms)
+gen_prior(hparms, verbose = FALSE)
 }
 \arguments{
 \item{hparms}{Named vector of hyperparameters, described in \code{\link{gen_post}}}
+
+\item{verbose}{If \code{TRUE}, print out additional diagnostic information.}
 }
 \value{
 A function that takes a named vector of parameters and returns the log-prior

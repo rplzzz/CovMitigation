@@ -4,7 +4,7 @@
 \alias{gen_likelihood}
 \title{Prepare a likelihood function for use in Bayesian calibration}
 \usage{
-gen_likelihood(hparms, fixed_parms = NULL)
+gen_likelihood(hparms, fixed_parms = NULL, verbose = FALSE)
 }
 \arguments{
 \item{hparms}{Hyperparameters for the calculation, as described in \code{\link{gen_post}}}
@@ -12,6 +12,8 @@ gen_likelihood(hparms, fixed_parms = NULL)
 \item{fixed_parms}{A named vector of parameters to use as fixed values for parameters
 not passed to the likelihood function.  Note these "fixed" parameters can still
 be overridden by passing an explicit value.}
+
+\item{verbose}{If \code{TRUE}, print additional diagnostic information.}
 }
 \value{
 A function that takes a named list of model parameters and returns

@@ -1,0 +1,163 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+library(doParallel)
+library(dplyr)
+library(here)
+library(metrosamp)
+library(ggplot2)
+library(tidyr)
+library(CovMitigation)
+
+registerDoParallel(8)
+
+mkdensplt <- function(samps) {
+  varnames <- colnames(samps)
+  pltdata <- pivot_longer(as.data.frame(samps), everything(), names_to = 'parameter')
+  pltdata$parameter <- factor(pltdata$parameter, levels=varnames, ordered=TRUE)
+  ggplot(data=pltdata, aes(x=value)) + geom_density(fill='LightGrey', alpha=0.5) + facet_wrap(~parameter, scales='free') +
+    theme_bw()
+}
+
+set.seed(867-5309)
+```
+
+```{r loaddata}
+datadir <- here('analysis', 'mcmc-rslts', 'mcmc-2020-04-21')
+warmup_files <- list.files(path=datadir, pattern='mcmc-.*\\.rds', full.names=TRUE)
+
+mcmcruns <- lapply(warmup_files, readRDS)
+allsamps <- getsamples(mcmcruns, 10000)
+cruns <- metrosamp2coda(mcmcruns, 10000)
+```
+
+## Expectation value and credible intervals
+```{r basicanalysis}
+cat('Expectation values:\n')
+print(signif(EV(mcmcruns), 2))
+cat('\nCredible intervals:\n')
+print(signif(CI(mcmcruns), 2))
+cat('\nEffective samples:\n')
+print(neff(cruns))
+cat('\nRhat statistic:\n')
+coda::gelman.diag(cruns)
+```
+
+## Effective Reproduction Number
+
+```{r reff}
+samps <- rsample(mcmcruns, 1000)
+reffvals <- apply(samps, 1, calcreff)
+cat('EV(R_e):\n', signif(mean(reffvals), 2), '\n')
+cat('\nCI(R_e):\n')
+signif(quantile(reffvals, c(0.025, 0.975)), 2)
+```
+
+## Density plots
+
+```{r densplots}
+# pltdata <- pivot_longer(as.data.frame(allsamps), everything(), names_to = 'parameter')
+# ggplot(data=pltdata, aes(x=value)) + geom_density(fill='LightGrey', alpha=0.5) + facet_wrap(~parameter, scales='free') +
+#   theme_bw()
+mkdensplt(allsamps)
+```
+
+```{r sampleruns}
+Nsamp <- 100
+parmsamps <- rsample(mcmcruns, Nsamp)
+runparms <- function(parms, scenname) {
+  modparms <- parms[c('A0', 'D0', 'T0')]
+  raw <- run_scenario(270, as.list(modparms), scenname)
+  totalUVA <- 
+    group_by(raw, time, scenario) %>% 
+    summarise(newSymptoCases = sum(newSympto * marketFraction)) %>%
+    ungroup()
+  dt <- totalUVA$time + parms['day_zero']
+  ## align the results to integer days
+  dtout <- floor(dt)
+  interpcases <- approx(dt, totalUVA$newSymptoCases, dtout, rule=2)
+  dateout <- dtout + as.Date('2020-01-01')
+  tibble(scenario=totalUVA$scenario, date=dateout, newSymptoCases=interpcases$y)
+}
+
+sample_runs <- 
+  lapply(seq(1,Nsamp), 
+         function(i) {
+           parms <- parmsamps[i,]
+           runparms(parms, as.character(i))
+         }) %>%
+  bind_rows()
+
+ev_run <- runparms(EV(mcmcruns), 'EV')
+```
+
+```{r ribbonplot}
+strtdate <- as.Date('2020-04-01')
+enddate <- as.Date('2020-09-01')
+ci_by_date <- 
+  filter(sample_runs, date >= strtdate, date < enddate) %>%
+  #mutate(time = as.numeric(date-strtdate)) %>%
+  group_by(date) %>%
+  summarise(nslo = quantile(newSymptoCases, 0.1), nshi = quantile(newSymptoCases, 0.9)) %>%
+  ungroup()
+
+pltev <- filter(ev_run, date >= strtdate, date < enddate)
+
+rplt <- 
+  ggplot(data=pltev, aes(x=date)) + 
+  geom_line(aes(y=newSymptoCases), size=1.2) +
+  geom_ribbon(data=ci_by_date, aes(ymin=nslo, ymax=nshi), alpha=0.5) +
+  theme_bw()
+print(rplt)
+```
+
+## Investigating the bimodality
+
+```{r bimodality, fig.width=10}
+sampslp <- getsamples(mcmcruns, 10000, TRUE)
+sampslp <- cbind(sampslp$samples, sampslp$lp)
+colnames(sampslp)[ncol(sampslp)] <- 'Lpost'
+bvals <- sampslp[,'b']
+losamps <- sampslp[bvals < 65,]
+hisamps <- sampslp[bvals > 71,]
+
+mkdensplt(losamps)
+mkdensplt(hisamps)
+
+cat('losamps:\n')
+quantile(losamps[,'Lpost'], c(0.025, 0.5, 0.975))
+cat('hisamps:\n')
+quantile(hisamps[,'Lpost'], c(0.025, 0.5, 0.975))
+```
+
+Astonishingly, these two subsamples seem to be about equally good.  What's going
+on with the ones in the middle?
+
+```{r midvals}
+midsamps <- sampslp[bvals > 65 & bvals < 71,]
+mkdensplt(midsamps)
+cat('midsamps:\n')
+quantile(midsamps[,'Lpost'], c(0.025, 0.5, 0.975))
+```
+
+So, the best samples from that mid-range are about as good as the median sample
+from either the low samples or the high samples.  Why?  What's different about 
+these samples?
+
+```{r cicmp}
+cimat <- function(mat, p=c(0.025, 0.975)) {
+  apply(mat, 2, quantile, probs=p)
+}
+
+ml <- t(cimat(losamps))
+colnames(ml) <- paste(colnames(ml), '(lo)')
+mh <- t(cimat(hisamps))
+colnames(mh) <- paste(colnames(mh), '(hi)')
+mm <- t(cimat(midsamps))
+colnames(mm) <- paste(colnames(mm), '(mid)')
+signif(cbind(ml,mh,mm), 4)
+```
+

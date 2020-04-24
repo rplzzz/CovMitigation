@@ -4,7 +4,12 @@
 \alias{gen_post}
 \title{Prepare a posterior log-pdf function for use in Bayesian calibration}
 \usage{
-gen_post(prior_weight = NULL, fixed_parms = NULL, hparms = list())
+gen_post(
+  prior_weight = NULL,
+  fixed_parms = NULL,
+  hparms = list(),
+  verbose = FALSE
+)
 }
 \arguments{
 \item{prior_weight}{Factor to multiply the prior by.  Default is to make it equal
@@ -16,6 +21,9 @@ be overridden by passing an explicit value.}
 
 \item{hparms}{Named vector of hyperparameters for the likelihood.  See details
 for supported hyperparameters.}
+
+\item{verbose}{If \code{TRUE}, have the prior and likelihood print additional
+diagnostic information.}
 }
 \description{
 Create a function that computes and sums the log-prior and the log-posterior.
