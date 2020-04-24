@@ -16,11 +16,11 @@ program="./run-mcmc.R"
 tid=$SLURM_ARRAY_TASK_ID
 nsamp=100000
 outfile="mcmc-$tid.rds"
-infile="mcmc-warmup-$tid.rds"
+infile="mcmc-$tid.rds"
 
 echo "Run command:"
-echo "source('$program'); run_mcmc($tid, $nsamp, '$outfile', '$infile', usescl=FALSE, nproc=$SLURM_CPUS_PER_TASK)"
+echo "source('$program'); run_mcmc($tid, $nsamp, '$outfile', '$infile', usescl=TRUE, nproc=$SLURM_CPUS_PER_TASK)"
 
-Rscript -e "source('$program'); run_mcmc($tid, $nsamp, '$outfile', '$infile', usescl=FALSE, nproc=$SLURM_CPUS_PER_TASK)"
+Rscript -e "source('$program'); run_mcmc($tid, $nsamp, '$outfile', '$infile', usescl=TRUE, nproc=$SLURM_CPUS_PER_TASK)"
 
 echo "end:  " `date`
