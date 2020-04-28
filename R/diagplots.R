@@ -86,7 +86,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL,
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) + 
     ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted', color=scenario), size=1.2) + 
     ggplot2::geom_point(mapping=ggplot2::aes(y=newcases, shape='observed')) + 
-    ggplot2::facet_wrap(~locality) +
+    ggplot2::facet_wrap(~locality, scales='free_y') +
     #ggplot2::labs(color='Scenario', linetype='', shape='') +
     ggplot2::guides(
       color=ggplot2::guide_legend('Scenario', order=1),
