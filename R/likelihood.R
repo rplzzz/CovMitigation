@@ -39,17 +39,54 @@
 #' population tested.  We then assume that the actual observations are distributed
 #' as \deqn{N_o \sim Pois(\bar{N}_o).}
 #' 
+#' @section Likelihood function:
+#' 
+#' By default, the function produced will return a single value, which is the sum of
+#' \itemize{
+#' \item{The log-likelihood function, summed over all data points} 
+#' \item{A correction for the hospitalization fraction}
+#' \item{A correction for the symptomatic fraction}
+#' }
+#' Technically, the latter two are priors, since they don't depend on the observations,
+#' but the model must be run in order to compute them, so they are computed here.
+#' 
+#' If the \code{waicmode} flag is set, then the function will return detailed information
+#' on the contribution of each data point to the log-likelihood.  The result will be a
+#' data frame containing
+#' \itemize{
+#' \item{date}
+#' \item{locality}
+#' \item{expected counts}
+#' \item{observed counts}
+#' \item{Hypergeometric parameters x, m, n, and k}
+#' \item{log likelihood}
+#' }
+#' Additionally, the hospitalization fraction and symptomatic fraction corrections
+#' will be attached to the data frame as attributes (\code{hfadjust} and 
+#' \code{fsadjust}).
+#' 
+#' The default mode output can be used in optimizations or Markov chain Monte Carlo.
+#' The waicmode output is useful for computing the WAIC, or for diagnosing which
+#' counties and/or days are favoring one model over another.
+#' 
 #' @param hparms Hyperparameters for the calculation, as described in \code{\link{gen_post}}
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
 #' @param verbose If \code{TRUE}, print additional diagnostic information.
+#' @param waicmode If \code{TRUE}, generate a function that returns the likelihood 
+#' contributions from each data point.
 #' @return A function that takes a named list of model parameters and returns
-#' a log-likelihood value.  See details for the parameters recognized.
+#' a log-likelihood value.  See details for the parameters recognized and the 
+#' output of the function returned.
 #' @importFrom dplyr %>%
 #' @export
-gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE)
+gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FALSE)
 {
+  ## silence warnings
+  fips <- ntest <- biased_fi <- locality <- newcases <- expected <- 
+    x <- m <- n <- k <- NULL
+  
   obs <- get_obsdata()
   obsdata <- obs$obsdata
 
@@ -179,7 +216,18 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE)
         message('Likelihood contributions:\n', msg)
       }
       
-      sum(logl, na.rm=TRUE) + fsadjust + hospadjust
+      if(waicmode) {
+        rslt <- dplyr::bind_cols(cmp, dhargs) %>%
+          dplyr::mutate(expected=biased_fi*ntest, logl=logl) %>%
+          dplyr::select(date, fips, locality, newcases, ntest, expected,
+                        x, m, n, k, logl)
+        attr(rslt, 'fsadjust') <- fsadjust
+        attr(rslt, 'hfadjust') <- hospadjust
+        rslt          
+      }
+      else {
+        sum(logl, na.rm=TRUE) + fsadjust + hospadjust
+      }
     }
   }
 }
