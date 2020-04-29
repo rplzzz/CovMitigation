@@ -1,0 +1,136 @@
+fips,county,district,areaSqMile,population,locality
+51001,Accomack,Eastern Shore,449.5,33165,AccomackCounty
+51003,Albemarle,Thomas Jefferson,720.7,101883,AlbemarleCounty
+51510,Alexandria city,Alexandria,15.03,146422,Alexandriacity
+51005,Alleghany,Alleghany,445.46,16133,AlleghanyCounty
+51007,Amelia,Piedmont,355.27,12764,AmeliaCounty
+51009,Amherst,Central Virginia,473.93,32237,AmherstCounty
+51011,Appomattox,Central Virginia,333.49,15137,AppomattoxCounty
+51013,Arlington,Arlington,25.97,220173,ArlingtonCounty
+51015,Augusta,Central Shenandoah,967,73707,AugustaCounty
+51017,Bath,Central Shenandoah,529.16,4644,BathCounty
+51515,Bedford city,Central Virginia,8.74,6585,Bedfordcity
+51019,Bedford,Central Virginia,753.02,75607,BedfordCounty
+51021,Bland,Mount Rodgers,357.72,6727,BlandCounty
+51023,Botetourt,Alleghany,541.2,33105,BotetourtCounty
+51520,Bristol city,Mount Rodgers,13.01,17595,Bristolcity
+51025,Brunswick,Southside,566.17,16961,BrunswickCounty
+51027,Buchanan,Cumberland Plateau,502.76,23683,BuchananCounty
+51029,Buckingham,Piedmont,579.66,17072,BuckinghamCounty
+51530,Buena Vista city,Central Shenandoah,6.7,6683,BuenaVistacity
+51031,Campbell,Central Virginia,503.87,54833,CampbellCounty
+51033,Caroline,Rappahannock,527.51,29057,CarolineCounty
+51035,Carroll,Mount Rodgers,474.69,29881,CarrollCounty
+51036,Charles City,Chickahominy,182.82,7154,CharlesCityCounty
+51037,Charlotte,Piedmont,475.27,12399,CharlotteCounty
+51540,Charlottesville city,Thomas Jefferson,10.24,44505,Charlottesvillecity
+51550,Chesapeake city,Chesapeake,340.8,228168,Chesapeakecity
+51041,Chesterfield,Chesterfield,423.3,324337,ChesterfieldCounty
+51043,Clarke,Lord Fairfax,176.18,14273,ClarkeCounty
+51560,Clifton Forge city,Alleghany,3.08,3508,CliftonForgecity
+51570,Colonial Heights city,Chesterfield,7.52,17542,ColonialHeightscity
+51580,Covington city,Alleghany,5.47,5853,Covingtoncity
+51045,Craig,Alleghany,329.53,5206,CraigCounty
+51047,Culpeper,Rappahannock Rapidan,379.23,47910,CulpeperCounty
+51049,Cumberland,Piedmont,297.46,9916,CumberlandCounty
+51590,Danville city,Pittsylvania-Danville,42.93,42704,Danvillecity
+51051,Dickenson,Cumberland Plateau,330.53,15612,DickensonCounty
+51053,Dinwiddie,Crater,503.72,27993,DinwiddieCounty
+51595,Emporia city,Crater,6.97,5121,Emporiacity
+51057,Essex,Three Rivers,257.12,11166,EssexCounty
+51059,Fairfax,Fairfax,390.97,1117072,FairfaxCounty
+51600,Fairfax city,Fairfax,6.24,23507,Fairfaxcity
+51610,Falls Church city,Fairfax,2,13074,FallsChurchcity
+51061,Fauquier,Rappahannock Rapidan,647.45,66726,FauquierCounty
+51063,Floyd,New River,380.42,15452,FloydCounty
+51065,Fluvanna,Thomas Jefferson,286.01,25945,FluvannaCounty
+51067,Franklin,West Piedmont,690.43,56360,FranklinCounty
+51620,Franklin city,Western Tidewater,8.21,8534,Franklincity
+51069,Frederick,Lord Fairfax,413.5,80377,FrederickCounty
+51630,Fredericksburg city,Rappahannock,10.44,26632,Fredericksburgcity
+51640,Galax city,Mount Rodgers,8.24,6981,Galaxcity
+51071,Giles,New River,355.78,17025,GilesCounty
+51073,Gloucester,Three Rivers,217.81,36938,GloucesterCounty
+51075,Goochland,Chickahominy,281.41,21627,GoochlandCounty
+51077,Grayson,Mount Rodgers,442.17,15255,GraysonCounty
+51079,Greene,Thomas Jefferson,156.25,18766,GreeneCounty
+51081,Greensville,Crater,295.23,11911,GreensvilleCounty
+51083,Halifax,Southside,817.84,35704,HalifaxCounty
+51650,Hampton city,Hampton,51.41,136904,Hamptoncity
+51085,Hanover,Chickahominy,468.54,100689,HanoverCounty
+51660,Harrisonburg city,Central Shenandoah,17.42,50821,Harrisonburgcity
+51087,Henrico,Henrico,233.7,314878,HenricoCounty
+51089,Henry,West Piedmont,382.33,52960,HenryCounty
+51091,Highland,Cumberland Plateau,415.16,2258,HighlandCounty
+51670,Hopewell city,Crater,10.28,22375,Hopewellcity
+51093,Isle of Wight,Western Tidewater,315.61,35518,IsleofWightCounty
+51095,James City,Peninsula,142.44,69832,JamesCityCounty
+51097,King and Queen,Three Rivers,315.14,7073,KingandQueenCounty
+51099,King George,Rappahannock,273.94,16045,KingGeorgeCounty
+51101,King William,Three Rivers,179.64,24577,KingWilliamCounty
+51103,Lancaster,Three Rivers,133.25,11224,LancasterCounty
+51105,Lee,Lenowisco,435.52,25380,LeeCounty
+51678,Lexington city,Central Shenandoah,2.5,7114,Lexingtoncity
+51107,Loudoun,Loudoun,515.56,338916,LoudounCounty
+51109,Louisa,Thomas Jefferson,496.3,33743,LouisaCounty
+51111,Lunenburg,Piedmont,431.68,12667,LunenburgCounty
+51680,Lynchburg city,Central Virginia,49.13,77626,Lynchburgcity
+51113,Madison,Rappahannock Rapidan,320.68,13208,MadisonCounty
+51683,Manassas city,Prince William,9.88,40436,Manassascity
+51685,Manassas Park city,Prince William,2.53,14992,ManassasParkcity
+51690,Martinsville city,West Piedmont,10.96,13745,Martinsvillecity
+51115,Mathews,Three Rivers,85.93,8923,MathewsCounty
+51117,Mecklenburg,Southside,625.48,31913,MecklenburgCounty
+51119,Middlesex,Three Rivers,130.31,10817,MiddlesexCounty
+51121,Montgomery,New River,387.01,95808,MontgomeryCounty
+51125,Nelson,Thomas Jefferson,470.86,14892,NelsonCounty
+51127,New Kent,Chickahominy,209.73,19187,NewKentCounty
+51700,Newport News city,Peninsula,68.71,181362,NewportNewscity
+51710,Norfolk city,Norfolk,54.12,244745,Norfolkcity
+51131,Northampton,Eastern Shore,211.61,12254,NorthamptonCounty
+51133,Northumberland,Three Rivers,191.3,12320,NorthumberlandCounty
+51720,Norton,Lenowisco,7.48,4015,Nortoncity
+51135,Nottoway,Piedmont,314.39,15756,NottowayCounty
+51137,Orange,Rappahannock Rapidan,340.78,34239,OrangeCounty
+51139,Page,Lord Fairfax,310.86,23905,PageCounty
+51141,Patrick,West Piedmont,483.1,18365,PatrickCounty
+51730,Petersburg city,Crater,22.93,32439,Petersburgcity
+51143,Pittsylvania,Pittsylvania-Danville,968.94,62955,PittsylvaniaCounty
+51735,Poquoson city,Peninsula,15.32,12103,Poquosoncity
+51740,Portsmouth city,Portsmouth,33.65,96007,Portsmouthcity
+51145,Powhatan,Chesterfield,260.22,28193,PowhatanCounty
+51147,Prince Edward,Piedmont,349.96,23140,PrinceEdwardCounty
+51149,Prince George,Crater,336.4,38353,PrinceGeorgeCounty
+51153,Prince William,Prince William,265.16,470335,PrinceWilliamCounty
+51155,Pulaski,New River,319.86,34630,PulaskiCounty
+51750,Radford city,New River,9.87,16993,Radfordcity
+51157,Rappahannock,Rappahannock Rapidan,266.23,7446,RappahannockCounty
+51159,Richmond,Three Rivers,191.49,9072,RichmondCounty
+51760,Richmond city,Richmond,59.81,211063,Richmondcity
+51161,Roanoke,Alleghany,250.52,93194,RoanokeCounty
+51770,Roanoke city,Roanoke,42.56,97949,Roanokecity
+51163,Rockbridge,Central Shenandoah,597.56,22367,RockbridgeCounty
+51165,Rockingham,Central Shenandoah,849.08,77345,RockinghamCounty
+51167,Russell,Cumberland Plateau,473.82,28444,RussellCounty
+51775,Salem city,Alleghany,14.44,25120,Salemcity
+51169,Scott,Lenowisco,535.53,22781,ScottCounty
+51171,Shenandoah,Lord Fairfax,508.78,42545,ShenandoahCounty
+51173,Smyth,Mount Rodgers,450.93,31876,SmythCounty
+51175,Southampton,Western Tidewater,599.14,18364,SouthamptonCounty
+51177,Spotsylvania,Rappahannock,401.5,126200,SpotsylvaniaCounty
+51179,Stafford,Rappahannock,268.96,134672,StaffordCounty
+51790,Staunton city,Central Shenandoah,19.98,24132,Stauntoncity
+51800,Suffolk city,Western Tidewater,400.17,85477,Suffolkcity
+51181,Surry,Crater,278.95,6885,SurryCounty
+51183,Sussex,Crater,490.22,11923,SussexCounty
+51185,Tazewell,Cumberland Plateau,518.85,44331,TazewellCounty
+51810,Virginia Beach city,Virginia Beach,249.02,445623,VirginiaBeachcity
+51187,Warren,Lord Fairfax,213.47,38142,WarrenCounty
+51191,Washington,Mount Rodgers,560.97,54833,WashingtonCounty
+51820,Waynesboro city,Central Shenandoah,15.04,21177,Waynesborocity
+51193,Westmoreland,Three Rivers,229.37,17518,WestmorelandCounty
+51830,Williamsburg city,Peninsula,9.02,14401,Williamsburgcity
+51840,Winchester city,Lord Fairfax,9.23,27031,Winchestercity
+51195,Wise,Lenowisco,403.19,40872,WiseCounty
+51197,Wythe,Mount Rodgers,461.82,29259,WytheCounty
+51199,York,Peninsula,104.78,65808,YorkCounty
