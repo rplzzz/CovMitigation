@@ -1,13 +1,13 @@
 Package: CovMitigation
 Title: Demand estimates for medical centers in Virginia
-Version: 1.2.1
+Version: 1.3.0
 Authors@R:
-    person(given = "First",
-           family = "Last",
-           role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: The goal is to simulate the spread of the COVID infection in each virginia county and then
+    person(given = "Robert",
+           family = "Link",
+           role = c("aut", "cre", "ard"),
+           email = "rl8z@virginia.edu",
+           comment = c(ORCID = "0000-0002-7071-248X"))
+Description: The goal is to simulate the spread of the COVID infection in each Virginia county and then
   use that information plus other assummptions about health care utilization to estmate demand.
 Depends: R (>= 3.3.3)
 Imports:
