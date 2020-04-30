@@ -81,9 +81,12 @@ getparam <- function(t, param)
 param_defaults <- 
   list(
     ## Epidemiological model parameters
-    T0                = 7.4,     # initial doubling time - this will be turned into an infection rate
-    T0_hi             = 7.4,     # optional doubling time for counties with high growth rates
-    D0                = 4,       # base infection duration - this will be turned into a recovery rate
+    # initial doubling times will be turned into infection rates
+    T0_uhi            = 5,      # initial doubling time for ultra-high growth rate areas
+    T0_hi             = 7.5,    # initial doubling time for high growth rate areas
+    T0_lo             = 14,     # initial doubling time for low growth rate areas
+    T0_ulo            = 25,     # initial doubling time for ultra-low growth rate areas
+    D0                = 4,       # contagious period - this will be turned into a recovery rate
     A0                = 3,       # base incubation time - this will be turned into a progression rate
     Ts                = 3,       # average time to symptom onset, once progressed to infectious state
     beta_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection rate
@@ -176,12 +179,14 @@ validate_params <- function(params)
 #' in one day steps from 0 to tmax.
 #' @param params List of parameter values, see details
 #' @param scenarioName Name for the scenario; this will be copied into results
+#' @param counties If provided, run just these counties
 #' @return Data frame with results (see details) over time
 #' @seealso \code{\link{run_parms}}
 #' @importFrom dplyr %>%
 #' @importFrom foreach %do% %dopar%
 #' @export
-run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfection') {
+run_scenario <- function(timevals, params=list(), counties = NULL,
+                         scenarioName = 'communityInfection') {
   ## Check the parameters and supply defaults as required.
   validate_params(params)
   params <- complete_params(params)
@@ -194,12 +199,15 @@ run_scenario <- function(timevals, params=list(), scenarioName = 'communityInfec
   countySelection <- dplyr::filter(marketFractionFinal, 
                                    TypeAMCDRG == params[['typeAMCDRG']])
   countySelection$Locality <- as.character(countySelection$Locality)
+  if(is.null(counties)) {
+    counties <- countySelection$Locality
+  }
   
   ## Map the single-county function onto our list of counties
   inpatientEstimates <- 
-  foreach::foreach(icounty=seq_along(countySelection$Locality), .combine=dplyr::bind_rows,
+  foreach::foreach(icounty=seq_along(counties), .combine=dplyr::bind_rows,
                    .inorder=FALSE) %dopar% {
-      run_single_county(countySelection$Locality[icounty], countySelection$marketShare[icounty],
+      run_single_county(counties[icounty], countySelection$marketShare[icounty],
                         timevals, params)
   }
 
@@ -246,10 +254,8 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
   
   ## Calculate derived parameters
   N <- (pop-params$I0) * params$S0
-  if(locality %in% params[['hg_counties']]) {
-    #message('Using growth rate ', params[['T0_hi']], ' for county ', locality)
-    params[['T0']] <- params[['T0_hi']]
-  }
+  params[['T0']] <- select_T0(locality, params)
+  #message('Locality: ', locality, '  T0: ', params[['T0']])
   
   gamma_schedule <- params$duration_schedule
   gamma_schedule$value <- 1/(gamma_schedule$value * params$D0)
@@ -277,7 +283,7 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
   
   epsilon <- 1/params$Ts
   
-  
+  #message('\tbeta= ', beta_schedule)
   ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule,
                      epsilon=epsilon)
   initvals <- c(S=(N-params$E0-params$I0)*params$S0,
@@ -331,6 +337,27 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
   rslt$PopCumulInfection <- cumsum(rslt$newCases)
 
   rslt
+}
+
+#' Select the appropriate T0 parameter for a locality
+#' 
+#' See discussion in \code{\link{growth_categories}}
+#' 
+#' @param locality Name of the locality
+#' @param parms Named list of parameters.  It must have entries for 'T0_uhi',
+#' 'T0_hi', 'T0_lo', and 'T0_ulo'
+#' @keywords internal
+select_T0 <- function(locality, parms)
+{
+  if(locality %in% uhi_counties$locality) {
+    parms[['T0_uhi']]
+  } else if (locality %in% ulo_counties$locality) {
+    parms[['T0_ulo']]
+  } else if (locality %in% lo_counties$locality) {
+    parms[['T0_lo']]
+  } else {
+    parms[['T0_hi']]
+  }
 }
 
 #' Run the scenario for a vector of likelihood parameters

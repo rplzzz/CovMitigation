@@ -89,7 +89,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
   
   obs <- get_obsdata()
   obsdata <- obs$obsdata
-
+  
   if(!is.null(fixed_parms)) {
     for(p in names(fixed_parms)) {
       obs$default_parm_vals[[p]] <- fixed_parms[[p]]
@@ -98,12 +98,11 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
   default_parm_vals <- obs$default_parm_vals
   
   function(parms) {
-   ## complete the parameters from the defaults
+    ## complete the parameters from the defaults
     parms <- fill_defaults(parms, default_parm_vals)
     
     ## Separate out the parameters that get passed to the SEIR model.
     seirparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
-    seirparms <- c(seirparms, hparms['hg_counties'])
     if('day_zero' %in% names(parms)) {
       day0 <- parms[['day_zero']]
     }
@@ -136,7 +135,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
     cmp <- dplyr::full_join(obs$obsdata, mdata, by=c('time', 'fips'))
     cmp <- cmp[!(is.na(cmp$fi) | is.na(cmp$ntest)),]
     cmp <- cmp[(cmp$fi > 0) & (cmp$ntest > 0),]
-
+    
     ## If any rows have Itot missing, it means that our day-zero put the start
     ## of the outbreak after the first observed case in that county.  Such parameter
     ## values have likelihood == 0.
@@ -153,7 +152,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
       
       ## adjust model outputs for testing fraction and testing bias!
       b <- parms[['b']]
-
+      
       ## The model forecast for the number of new cases is the current infection
       ## fraction (fi) times the number of tests performed.  However, we think that
       ## testing is biased toward people who are infected, so we multiply the odds
@@ -256,7 +255,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
 #' @export
 gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=list(), verbose=FALSE)
 {
- 
+  
   hparms <- fill_defaults(as.list(hparms), default_hparms)
   
   lprior <- gen_prior(hparms, verbose=verbose)
@@ -335,7 +334,7 @@ calc_nhosp <- function(ph, modout, mfadjust=TRUE)
   if(mfadjust) {
     sympt[['PopSympto']] <- sympt[['PopSympto']] * modout[['marketFraction']]
   }
-
+  
   dplyr::group_by(sympt, time) %>%
     dplyr::summarise(expectedHosp = sum(PopSympto * rh))
 }

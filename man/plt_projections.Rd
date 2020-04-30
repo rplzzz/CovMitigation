@@ -11,8 +11,7 @@ plt_projections(
   what = "newSympto",
   usedate = TRUE,
   counties = NULL,
-  marketadjust = FALSE,
-  hgcounties = NULL
+  marketadjust = FALSE
 )
 }
 \arguments{
@@ -33,9 +32,6 @@ include the whole state.}
 
 \item{marketadjust}{If \code{TRUE}, adjust projections for UVAHS market share; 
 otherwise, show raw totals.}
-
-\item{hg_counties}{Counties for which the high growth rate should be applied.  Default
-is the ones in \code{\link{default_hparms}}}
 }
 \description{
 All of the results we plot here are adjusted for the UVA market fraction.

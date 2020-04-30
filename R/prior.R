@@ -16,7 +16,7 @@
 #' @export
 gen_prior <- function(hparms, verbose=FALSE)
 {
-  parm_names <- c('T0_hi', 'T0', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
+  parm_names <- c('T0_uhi', 'T0_hi', 'T0_lo', 'T0_ulo', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
   function(parms) {
     stopifnot(!is.null(names(parms)))
     if(any(!names(parms) %in% parm_names)) {
@@ -35,9 +35,8 @@ gen_prior <- function(hparms, verbose=FALSE)
         dgamma(parms[c('A0', 'Ts')], 
                c(8,8), 
                c(2,2), log=TRUE),
-        dlnorm(parms[c('T0_hi', 'T0')],
-               rep(hparms[['t0mulog']], 2),
-               rep(hparms[['t0siglog']], 2), log=TRUE),
+        dlnorm(parms[c('T0_uhi', 'T0_hi', 'T0_lo', 'T0_ulo')],
+               hparms[['t0mulog']], hparms[['t0siglog']], log=TRUE),
         dlnorm(parms['D0'], 2, 0.5, log=TRUE),
         dnorm(parms['day_zero'], 30, 30, log=TRUE),
         dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),

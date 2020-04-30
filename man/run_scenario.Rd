@@ -4,7 +4,12 @@
 \alias{run_scenario}
 \title{Run a single hospital census scenario}
 \usage{
-run_scenario(timevals, params = list(), scenarioName = "communityInfection")
+run_scenario(
+  timevals,
+  params = list(),
+  counties = NULL,
+  scenarioName = "communityInfection"
+)
 }
 \arguments{
 \item{timevals}{Times to output values for.  If only a single value is provided, 
@@ -12,6 +17,8 @@ it is assumed to be a maximum time (days) to run to, and values will be output
 in one day steps from 0 to tmax.}
 
 \item{params}{List of parameter values, see details}
+
+\item{counties}{If provided, run just these counties}
 
 \item{scenarioName}{Name for the scenario; this will be copied into results}
 }

@@ -10,12 +10,9 @@
 #' @param counties Counties to include in the plot; if not specified, the top 4
 #' by number of infections will be plotted.
 #' @param default_parms Default values to use for parameters not specified in parms
-#' @param hgcounties Counties to which to apply the higher growth rate.  Default is to
-#' use the ones from \code{\link{default_hparms}}.
 #' @importFrom dplyr %>%
 #' @export
-plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL,
-                       hgcounties=NULL)
+plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
 {
   ## silence warnings
   fips <- newcases <- predicted <- NULL
@@ -30,10 +27,8 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL,
   if(is.null(scenarios)) {
     scenarios <- paste0('s', seq(1,nrow(parms)))
   }
-  if(is.null(hgcounties)) {
-    hgcounties <- high_growth_counties
-  }
-  
+
+    
   
   obsdata <- obs[['obsdata']]
   
@@ -42,14 +37,13 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL,
       function(i) {
         pvals <- fill_defaults(parms[i,], obs[['default_parm_vals']])
         modpvals <- as.list(pvals[! names(pvals) %in% c('day_zero', 'b')])
-        modpvals <- c(modpvals, list(hg_counties=hgcounties))
         
         day0 <- pvals[['day_zero']]
         b <- pvals[['b']]
         ## get output for every day up to the last in the dataset.
         tmax <- max(obsdata[['time']])
         tvals <- c(day0, seq(ceiling(day0), tmax))
-        modout <- run_scenario(tvals, modpvals)
+        modout <- run_scenario(tvals, modpvals, counties=counties)
         modout[['scenario']] <- scenarios[i]
         modout[['bias']] <- pvals[['b']]
         modout
@@ -78,16 +72,14 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL,
   pltdata <- dplyr::left_join(modrslts, obsdata, by=c('fips','time'))
   pltdata <- pltdata[pltdata[['fips']] %in% use_fips,]
   pltdata <- pltdata[!is.na(pltdata[['newcases']]), ]
-  pltdata[['popfrac']] <- pltdata[['population']] / vaMyAgeBands$Total[1]
   
   pltdata[['predicted']] <- 
-    padjust(pltdata[['fi']], pltdata[['bias']]) * pltdata[['ntest']] * pltdata[['popfrac']]
+    padjust(pltdata[['fi']], pltdata[['bias']]) * pltdata[['ntest']]
   
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) + 
     ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted', color=scenario), size=1.2) + 
     ggplot2::geom_point(mapping=ggplot2::aes(y=newcases, shape='observed')) + 
     ggplot2::facet_wrap(~locality, scales='free_y') +
-    #ggplot2::labs(color='Scenario', linetype='', shape='') +
     ggplot2::guides(
       color=ggplot2::guide_legend('Scenario', order=1),
       shape=ggplot2::guide_legend('',order=3), 
@@ -111,22 +103,16 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL,
 #' include the whole state.
 #' @param marketadjust If \code{TRUE}, adjust projections for UVAHS market share; 
 #' otherwise, show raw totals.
-#' @param hg_counties Counties for which the high growth rate should be applied.  Default
-#' is the ones in \code{\link{default_hparms}}
 #' @export
 plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedate=TRUE, 
-                            counties=NULL, marketadjust=FALSE, hgcounties=NULL)
+                            counties=NULL, marketadjust=FALSE)
 {
   ## silence warnings
   newCases <- marketFraction <- PopSympto <- PopInfection <- PopCumulInfection <-
-    population <- scenario <- value <- NULL
+    newSympto <- population <- scenario <- value <- NULL
   
   if(!is.matrix(parms)) {
     parms <- t(as.matrix(parms))
-  }
-  
-  if(is.null(hgcounties)) {
-    hgcounties <- high_growth_counties
   }
   
   stopifnot(nrow(parms) == length(scenarios))
@@ -139,8 +125,7 @@ plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedat
              function(i) {
                pset <- parms[i,]
                modparms <- as.list(pset[! names(pset) %in% c('day_zero', 'b')])
-               modparms <- c(modparms, list(hg_counties=hgcounties))
-               modout <- run_scenario(tvals, modparms, scenarios[i])
+               modout <- run_scenario(tvals, modparms, scenarioName = scenarios[i])
                if(!is.na(pset['day_zero'])) {
                  modout[['time']] <- modout[['time']] + pset['day_zero']
                }

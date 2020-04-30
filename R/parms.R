@@ -1,8 +1,4 @@
 
-## Counties that seem to have a higher growth rate than the rest of the state
-high_growth_counties <- 
-  c('FairfaxCounty', 'ArlingtonCounty', 'PrinceWilliamCounty', 'HenricoCounty')
-
 #' Model parameters and hyperparameters
 #' 
 #' @format 
@@ -11,12 +7,11 @@ high_growth_counties <-
 #' @name parameters
 #' @export
 default_hparms <- list(fsalpha=100, fsbeta=100,
-                       t0mulog=4.5, t0siglog=2,
+                       t0mulog=log(c(5,10,15,40)), t0siglog=c(1, 1.5, 1.5, 2),
                        bmulog=4, bsiglog=0.5,
                        nhosp_weight = 100,
                        nhosp_alpha = 12,
-                       nhosp_beta = 190,
-                       hg_counties = high_growth_counties)
+                       nhosp_beta = 190)
 
 #' Fill a vector with default values.
 #' 

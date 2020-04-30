@@ -26,12 +26,14 @@ set.seed(867-5309)
 ```
 
 ```{r loaddata}
-datadir <- here('analysis', 'mcmc-rslts', 'mcmc-2020-04-21')
+datadir <- here('analysis', 'mcmc-rslts', 'mcmc-2020-04-27')
 warmup_files <- list.files(path=datadir, pattern='mcmc-.*\\.rds', full.names=TRUE)
 
 mcmcruns <- lapply(warmup_files, readRDS)
 allsamps <- getsamples(mcmcruns, 10000)
 cruns <- metrosamp2coda(mcmcruns, 10000)
+coda::effectiveSize(cruns)
+accrate(mcmcruns)
 ```
 
 ## Expectation value and credible intervals
@@ -121,8 +123,10 @@ sampslp <- getsamples(mcmcruns, 10000, TRUE)
 sampslp <- cbind(sampslp$samples, sampslp$lp)
 colnames(sampslp)[ncol(sampslp)] <- 'Lpost'
 bvals <- sampslp[,'b']
-losamps <- sampslp[bvals < 65,]
-hisamps <- sampslp[bvals > 71,]
+lomax <- 50
+himin <- 57
+losamps <- sampslp[bvals < lomax,]
+hisamps <- sampslp[bvals > himin,]
 
 mkdensplt(losamps)
 mkdensplt(hisamps)
@@ -137,9 +141,9 @@ Astonishingly, these two subsamples seem to be about equally good.  What's going
 on with the ones in the middle?
 
 ```{r midvals}
-midsamps <- sampslp[bvals > 65 & bvals < 71,]
+midsamps <- sampslp[bvals > lomax & bvals < himin,]
 mkdensplt(midsamps)
-cat('midsamps:\n')
+cat('midsamps: ', nrow(midsamps), ' samples\n')
 quantile(midsamps[,'Lpost'], c(0.025, 0.5, 0.975))
 ```
 
