@@ -1,7 +1,7 @@
 #!/bin/zsh
 #SBATCH -t 1000
 #SBATCH -n 1
-#SBATCH -c 10
+#SBATCH -c 2
 #SBATCH -A clinical_analytics_lab
 
 module load intel/18.0

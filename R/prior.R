@@ -53,3 +53,31 @@ gen_prior <- function(hparms, verbose=FALSE)
     }
   }
 }
+
+#' Evaluate the quantile for the multidimensional df defined by the priors
+#' 
+#' Given a vector of probabilities, find the corresponding quantile vector assuming
+#' an independence copula and margins as described in \code{\link{gen_prior}}.
+#' 
+#' @param p A vector of probabilities
+#' @param hparms  Named vector of hyperparameters, described in \code{\link{gen_post}}
+#' @export
+qprior <- function(p, hparms=list()) {
+  hparms <- fill_defaults(hparms, default_hparms)
+  parm_names <- c('T0_uhi', 'T0_hi', 'T0_lo', 'T0_ulo', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
+  stopifnot(length(p) == length(parm_names))
+  
+  qT0 <- qlnorm(p[1:4], hparms[['t0mulog']], hparms[['t0siglog']])
+  names(qT0) <- parm_names[1:4]
+  
+  ## Return a named vector of parameters
+  c(
+    qT0,
+    D0 = qlnorm(p[5], 2, 0.5),
+    A0 = qgamma(p[6], 8, 2),
+    Ts = qgamma(p[7], 8, 2),
+    I0 = qlnorm(p[8], 2, 1),
+    day_zero = qnorm(p[9], 30, 30),
+    b = qlnorm(p[10], hparms[['bmulog']], hparms[['bsiglog']])
+  )
+}

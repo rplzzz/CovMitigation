@@ -2,24 +2,9 @@ library(metrosamp)
 library(CovMitigation)
 library(doParallel)
 
-pmat <-
-  structure(c(5.88746195394305, 5.90793956177837, 5.89613471639557, 
-              6.02468741092829, 6.06641530808837, 6.10147520949943, 7.89103847089034, 
-              8.28932714803433, 8.62760022070607, 8.14688027756114, 8.70256880893263, 
-              8.78094354697475, 10.3946999206565, 8.08614328580999, 7.69621416051828, 
-              10.4900023762997, 7.80928225320863, 7.94962360402838, 3.66405849353114, 
-              3.40631379502436, 3.48262702272309, 3.54003468134357, 3.49710330355482, 
-              3.52216625795103, 3.09408164185108, 2.38408159522129, 2.77385514048705, 
-              2.92638174448749, 2.96111406603039, 2.12858300042632, 4.88455897613265, 
-              4.45282747183628, 4.27158090244618, 4.81548109236589, 4.57136974519403, 
-              4.32271030900459, 20.1565468817403, 24.7124746582754, 31.5814644267786, 
-              17.5139677975584, 24.8729260876337, 27.0003867599893, 20.5419284246121, 
-              49.5798261203186, 91.4042152244011, 20.0377723818836, 50.0997057565297, 
-              90.7519476006041), .Dim = c(6L, 8L), 
-            .Dimnames = list(NULL, c("T0_hi", 
-                                     "T0", "D0", "A0", "I0", "Ts", "day_zero", "b")))
+scl_warmup <- c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.1, 0.1, 0.1, 0.01)
 
-scl <-
+scl_main <-
   structure(c(0.0196274353762327, 0.0296350461689918, 0, 0, -0.0101040739504531, 
               0.00433204814709052, -0.228175572395601, 0.0920387639847004, 
               0.0296350461689918, 0.057437930699364, -0.0148183235736357, 0, 
@@ -37,7 +22,8 @@ scl <-
             .Dimnames = list(c("T0_hi","T0", "D0", "A0", "I0", "Ts", "day_zero", "b"), 
                              c("T0_hi", "T0", "D0", "A0", "I0", "Ts", "day_zero", "b")))
 
-lpost <- gen_post(hparms=list(nhosp_weight=25))
+hyper_parms <- list(nhosp_weight=50)
+lpost <- gen_post(hparms=hyper_parms)
 
 run_mcmc <- function(tid, nsamp, outfilename, restartfile=NULL, 
                      nproc=8, nwarmup = 1000, usescl=TRUE)
@@ -50,17 +36,29 @@ run_mcmc <- function(tid, nsamp, outfilename, restartfile=NULL,
   
   set.seed(867-5309 + tid)
   if(is.null(restartfile)) {
-    ## Distribute the samplers amongst the optimization results.
-    irow <- 1 + tid%%nrow(pmat)    
-    pstrt <- pmat[irow,]
+    ## This calculation is a warmup.  Start with quasi-random samples from the
+    ## prior distribution.
+    if(is.matrix(scl_warmup)) {
+      ndim <- ncol(scl_warmup)
+    }
+    else {
+      ndim <- length(scl_warmup)
+    }
+    qrvals <- randtoolbox::sobol(tid+1, dim=ndim)
+    irow <- 1 + tid    
+    pstrt <- qprior(qrvals[irow,], hyper_parms)
     
-    mcwarmup <- metrosamp(lpost, pstrt, nwarmup, 1, scl)
-    mcs <- metrosamp(lpost, mcwarmup, nsamp, 1)
+    ## Now do a local optimization to find a "pretty good" start value.  It's 
+    ## ok if this doesn't make it all the way to convergence.
+    opt <- optim(pstrt, lpost, control=list(fnscale=-1))
+    
+    mcs <- metrosamp(lpost, opt$par, nsamp, 1, scl_warmup)
   }
   else {
+    ## Production run, either starting from a warmup run or continuing a previous batch.
     mcwarmup <- readRDS(restartfile)
     if(usescl) {
-      mcs <- metrosamp(lpost, mcwarmup, nsamp, 1, scl)
+      mcs <- metrosamp(lpost, mcwarmup, nsamp, 1, scl_main)
     } else {
       mcs <- metrosamp(lpost, mcwarmup, nsamp,1)
     }

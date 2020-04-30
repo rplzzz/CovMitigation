@@ -10,8 +10,8 @@ registerDoParallel(8)
 viscounties <- c('Harrisonburgcity', 'AugustaCounty',   ## ultra-high
                  'FairfaxCounty', 'HenricoCounty',      ## high
                  'AlbemarleCounty', 'Charlottesvillecity', ## low
-                 'KingandQueenCounty', 'AmherstCounty'
-                 )
+                 'JamesCityCounty', 'AmherstCounty'
+)
 
 
 p0 <- c(T0_uhi = 5, T0_hi = 7.5, T0_lo=14, T0_ulo=25, D0=7, A0=5, day_zero=60, b=20, I0=10, Ts=4)
@@ -76,16 +76,16 @@ popt_hib <- c(T0_uhi=11.8, T0_hi=9.7, T0_lo=16.4, T0_ulo=30.1, D0=1.3, A0=1.4, I
 popt_pause <- c(T0_uhi=150, T0_hi=150, T0_lo=150, T0_ulo=150, D0=2.0, A0=1.0, I0=214, Ts=2.4, day_zero=2.3, b=354)
 popt_pause2 <- c(T0_uhi=10.9, T0_hi=8.5, T0_lo=150, T0_ulo=150, D0=7.2, A0=2.9, I0=25.5, Ts=4.6, day_zero=53.0, b=96.0)
 
-popt_uncons2 <- c(T0_hi=6.2, T0=9.5, D0=6.7, A0=3.8, I0=11.4, Ts=2.6, day_zero=43.1, b=91.1)
+#popt_uncons2 <- c(T0_hi=6.2, T0=9.5, D0=6.7, A0=3.8, I0=11.4, Ts=2.6, day_zero=43.1, b=91.1)
 
-pmat <- rbind(popt_uncons, popt_t0_all, popt_t0_gen, popt_longd, popt_hib, popt_pause,
-              popt_pause_exnova, popt_uncons2)
+pmat <- rbind(popt_uncons, popt_t0_all, popt_longd, popt_hib, popt_pause,
+              popt_pause2)
+#, popt_uncons2)
 scen_names <- 
-  c( 'Unconstrained', 'Constrained td=7.5', 
-     'Constrained td=7.5 (ex. NOVA)',
+  c( 'Unconstrained', 'Constrained growth rates', 
      'Constrained D0=10', 'Constrained b=50',
-     'Pause scenario', 'Pause scenario (ex. NOVA)',
-     'Alternate Unconstrained')
+     'Pause scenario', 'Pause scenario (ex. hi and uhi)')
+#,'Alternate Unconstrained')
 
 lfcmp <- sapply(seq(1,nrow(pmat)), 
                 function(i) {
@@ -100,11 +100,10 @@ proj <- plt_projections(pmat, scen_names, usedate=TRUE)
 print(proj + ggplot2::scale_color_brewer(type='qual') + 
         ggplot2::xlim(as.Date(c('2020-03-20', '2020-06-01'))))
 
-pltcounties <- c('FairfaxCounty', 'PrinceWilliamCounty', 'AlbemarleCounty', 'Charlottesvillecity')
-modobs <- plt_modobs(pmat, scen_names, pltcounties)
-print(modobs + ggplot2::facet_wrap(~locality, scales='free_y') + ggplot2::scale_color_brewer(type='qual'))
+modobs <- plt_modobs(pmat, scen_names, viscounties)
+print(modobs + ggplot2::scale_color_brewer(type='qual'))
 
-scl0 <- c(0.1, 0.1, 0.1, 0.1, 1, 1, 1, 0.1)
+scl0 <- c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1, 1, 1, 0.1)
 
 plot_traces <- function(ms) {
   pltdata <- as.data.frame(ms$samples)
@@ -114,12 +113,13 @@ plot_traces <- function(ms) {
 }
 
 set.seed(867-5309)
-ms1 <- metrosamp(lpost, popt_uncons2, 100, 1, scl0)
-ms2 <- metrosamp(lpost, ms1, 100,1, scl0*2)
-ms3 <- metrosamp(lpost, ms2, 100, 1, scl0)
+ms1 <- metrosamp(lpost, popt_hib, 100, 1, scl0)
+ms2 <- metrosamp(lpost, ms1, 100,1, scl0/2)
+ms3 <- metrosamp(lpost, ms2, 100, 1, scl0/5)
 ms4 <- metrosamp(lpost, ms3, 100, 1, scl0/5)
-ms5 <- metrosamp(lpost, ms4, 100, 1, scl0/2)
+ms5 <- metrosamp(lpost, ms4, 100, 1, scl0/5)
 
-ms6 <- metrosamp(lpost, ms5, 1000, 1, scl0/2)
+ms6 <- metrosamp(lpost, ms5, 1000, 1, scl0/5)
+ms7 <- metrosamp(lpost, ms6, 1000, 1, scl0/10)
 
 
