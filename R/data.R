@@ -129,3 +129,31 @@
 #' @source Virginia Department of Health.  
 #' \url{https://www.vdh.virginia.gov/coronavirus/}
 "va_county_ntest"
+
+#' County growth categories
+#' 
+#' COVID-19 growth across the Commonwealth of Virginia has been very heterogeneous.
+#' Over the month of April doubling times have ranged from under 4 days to nearly
+#' 40 days.  The growth statistics over April have been used to sort the counties
+#' into four categories.  In the model, each of these categories will get its own
+#' growth rate.
+#' 
+#' @format Data frame with 2 columns
+#' \describe{
+#' \item{fips}{FIPS code}
+#' \item{locality}{Name, using the vdh conventions}
+#' }
+#' @name growth_categories
+NULL
+
+#' @describeIn growth_categories High growth rate counties
+"hi_counties"
+
+#' @describeIn growth_categories Low growth rate counties
+"lo_counties"
+
+#' @describeIn growth_categories Ultra-high growth rate counties
+"uhi_counties"
+
+#' @describeIn growth_categories Ultra-low growth rate counties
+"ulo_counties"

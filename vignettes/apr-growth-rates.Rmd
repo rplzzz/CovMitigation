@@ -1,0 +1,67 @@
+---
+title: "Analysis of COVID-19 April growth rates in Virginia"
+author: "Robert Link"
+date: "4/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages(library(dplyr))
+library(tidyr)
+library(ggplot2)
+library(CovMitigation)
+library(vacovdata)
+library(ggthemes)
+library(NYTimesCOVID19)
+```
+
+## April growth rates by county
+
+```{r grcounty}
+gr <- function(date, cases) {
+  imax <- length(date)
+  stopifnot(imax == length(cases))
+  (log(cases[imax]) - log(cases[1])) / as.numeric(date[imax]-date[1])
+}
+aprildata <- 
+  filter(cov19county, state == 'Virginia',
+         !is.na(fips),
+         date >= as.Date('2020-04-01'),
+         date <= as.Date('2020-04-30')
+         )
+growthrates <- 
+  group_by(aprildata, county, fips) %>%
+  summarise(rate=gr(date, cases), cases=max(cases)) %>%
+  mutate(td=log(2)/rate) %>%
+  arrange(desc(rate))
+
+#hist(filter(growthrates, rate>0)$td, breaks=25)
+ggplot(growthrates, aes(x=td)) + geom_histogram(bins=50, alpha=0.7) + theme_bw()
+```
+
+Counties in the UVA catchment:
+
+```{r uvagr}
+uvacounties <- filter(growthrates, fips %in% sampleCounties$fips)
+print(uvacounties)
+```
+
+Counties with doubling times less than 10:
+```{r higrowth}
+print(filter(growthrates, td <= 10))
+```
+
+Counties with doubling times between 10 and 20
+```{r midgrowth}
+print(filter(growthrates, td > 10, td<=20))
+```
+
+Counties with doubling times greater than 20
+```{r logrowth}
+print(filter(growthrates, td >20, rate>0))
+```
+
+No growth or no cases observed
+```{r nogrowth}
+print(filter(growthrates, rate==0))
+```
