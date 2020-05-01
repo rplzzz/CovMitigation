@@ -25,6 +25,10 @@ scl_main <-
 hyper_parms <- list(nhosp_weight=50)
 lpost <- gen_post(hparms=hyper_parms)
 
+## We generally run 16 independent chains.  The only time this exact number matters
+## is when searching for an initial guess during the warmup runs.
+nchain <- 16
+
 run_mcmc <- function(tid, nsamp, outfilename, restartfile=NULL, 
                      nproc=8, nwarmup = 1000, usescl=TRUE)
 {
@@ -44,10 +48,26 @@ run_mcmc <- function(tid, nsamp, outfilename, restartfile=NULL,
     else {
       ndim <- length(scl_warmup)
     }
-    qrvals <- randtoolbox::sobol(tid+1, dim=ndim)
-    irow <- 1 + tid    
-    pstrt <- qprior(qrvals[irow,], hyper_parms)
     
+    ## Search for a starting parameter set using quasi-random draws from the priors.
+    ## Occasionally we will draw a set that doesn't produce a finite log-posterior, 
+    ## so keep on searching until we find one that is valid.
+    irow <- 1 + tid    
+    repeat {
+      qrvals <- randtoolbox::sobol(irow, dim=ndim)
+      pstrt <- qprior(qrvals[irow,], hyper_parms)
+      if(pstrt['day_zero'] <= 0) {
+        ## Illegal parameter value -- shift to > 0
+        pstrt['day_zero'] <- 0.01
+      }
+      lpval <- lpost(pstrt)
+      sstrt <- paste(names(pstrt), " :\t", signif(pstrt,3), collapse='\n')
+      message('Proposed start:\n', sstrt, '\nlpost = ', lpval, '\n')
+      if(is.finite(lpval)) {
+        break
+      }
+      irow <- irow + nchain
+    }
     ## Now do a local optimization to find a "pretty good" start value.  It's 
     ## ok if this doesn't make it all the way to convergence.
     opt <- optim(pstrt, lpost, control=list(fnscale=-1))
