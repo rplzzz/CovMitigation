@@ -7,6 +7,7 @@
 plt_projections(
   parms,
   scenarios,
+  default_parms = c(day_zero = 30),
   tmax = 270,
   what = "newSympto",
   usedate = TRUE,
@@ -18,6 +19,8 @@ plt_projections(
 \item{parms}{Matrix of combinations of parameters.}
 
 \item{scenarios}{Vector of scenario names}
+
+\item{default_parms}{Default values for parameters not mentioned in parms}
 
 \item{tmax}{Maximum time to run to}
 

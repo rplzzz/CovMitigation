@@ -18,7 +18,7 @@ set.seed(867-5309)
 ```
 
 ```{r loaddata}
-datadir <- here('analysis', 'mcmc-rslts', 'warmup-1')
+datadir <- here('analysis', 'mcmc-rslts', 'warmup-2')
 warmup_files <- list.files(path=datadir, pattern='mcmc-warmup.*\\.rds', full.names=TRUE)
 
 warmups <- lapply(warmup_files, readRDS)
@@ -112,4 +112,5 @@ neff(ms4)
 cat('Proposal distribution scale:\n')
 sqrt(diag(sclmat))
 ```
+
 

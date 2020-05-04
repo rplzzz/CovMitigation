@@ -19,7 +19,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
   
   obs <- get_obsdata()
   if(!is.null(default_parms)) {
-    obs$default_parm_vals <- fill_defaults(obs$default_parm_vals, default_parms)
+    obs$default_parm_vals <- fill_defaults(default_parms, obs$default_parms_vals)
   }
   if(!is.matrix(parms)) {
     parms <- t(as.matrix(parms))
@@ -94,6 +94,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
 #' 
 #' @param parms Matrix of combinations of parameters.
 #' @param scenarios Vector of scenario names
+#' @param default_parms Default values for parameters not mentioned in parms
 #' @param tmax Maximum time to run to
 #' @param what What output to plot.  Options are 
 #' newCases, newSympto, PopSympto, PopInfection, PopCumulInfection, PopCumulFrac, popTotal
@@ -104,7 +105,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
 #' @param marketadjust If \code{TRUE}, adjust projections for UVAHS market share; 
 #' otherwise, show raw totals.
 #' @export
-plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedate=TRUE, 
+plt_projections <- function(parms, scenarios, default_parms = c(day_zero=30), tmax=270, what='newSympto', usedate=TRUE, 
                             counties=NULL, marketadjust=FALSE)
 {
   ## silence warnings
@@ -123,7 +124,7 @@ plt_projections <- function(parms, scenarios, tmax=270, what='newSympto', usedat
     dplyr::bind_rows(
       lapply(seq(1, nrow(parms)), 
              function(i) {
-               pset <- parms[i,]
+               pset <- fill_defaults(parms[i,], default_parms)
                modparms <- as.list(pset[! names(pset) %in% c('day_zero', 'b')])
                modout <- run_scenario(tvals, modparms, scenarioName = scenarios[i])
                if(!is.na(pset['day_zero'])) {

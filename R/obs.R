@@ -50,7 +50,7 @@ get_obsdata <- function()
   ## the parameter defaults together somewhere.
   
   default_parm_vals <- c(
-    day_zero = 60,
+    day_zero = 30,
     b = 0.5
   )
   
