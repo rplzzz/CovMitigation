@@ -51,7 +51,25 @@ dist_ratios <- cbind(dist_ratios, ROVA)
 ntest_unmeas <- matrix(tottest_unmeas$ntest, ncol=1) %*% dist_ratios
 date <- tottest_unmeas$date
 tests_by_district_unmeas <- cbind(date, as.data.frame(ntest_unmeas))
-tests_by_district <- rbind(tests_by_district_unmeas, tests_by_district_meas)
+
+### And now VDH has stopped publishing this information.  I'm not really sure what
+### the best approximation to make here is.  In theory, for dates before and after
+### they started publishing the tests by district we should marginalize over the 
+### unknown test allocation, but realistically we're not going to make that happen
+### in a reasonable time frame.  Instead, we just take the cumulative totals as of
+### the last data we have and keep those ratios going forward.
+tottest_post_meas <- filter(tottest,
+                            date > max(cumul_tests_by_district$date),
+                            !is.na(ntest))
+dist_ratios_post <- ctbd[nrow(ctbd), , drop=FALSE] / as.numeric(tottest_post_meas[1, 'cumntest'])
+ROVA <- 1 - sum(dist_ratios_post)
+dist_ratios_post <- cbind(dist_ratios_post, ROVA)
+ntest_post <- matrix(tottest_post_meas$ntest, ncol=1) %*% dist_ratios_post
+date <- tottest_post_meas$date
+tests_by_district_post_meas <- cbind(date, as.data.frame(ntest_post))
+
+tests_by_district <- rbind(tests_by_district_unmeas, tests_by_district_meas,
+                           tests_by_district_post_meas)
 
 ### Splendid.  Now we need to allocate the tests to individual jurisdictions within 
 ### each district.  Start by loading the table of counties and districts.  It's
