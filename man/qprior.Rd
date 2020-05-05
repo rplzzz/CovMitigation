@@ -15,3 +15,11 @@ qprior(p, hparms = list())
 Given a vector of probabilities, find the corresponding quantile vector assuming
 an independence copula and margins as described in \code{\link{gen_prior}}.
 }
+\section{TO DO}{
+
+
+This function is currently inflexible with respect to the parameters included
+in the calculation (because of the fixed list of parameter names).  Fix this
+so that we can pass p as a named list.
+}
+

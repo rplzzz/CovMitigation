@@ -71,7 +71,7 @@ run_mcmc <- function(tid, nsamp, outfilename, restartfile=NULL,
     repeat {
       qrvals <- randtoolbox::sobol(irow, dim=ndim)
       pstrt <- qprior(qrvals[irow,], hyper_parms)
-      if(pstrt['day_zero'] <= 0) {
+      if('day_zero' %in% names(pstrt) && pstrt['day_zero'] <= 0) {
         ## Illegal parameter value -- shift to > 0
         pstrt['day_zero'] <- 0.01
       }

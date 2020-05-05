@@ -59,12 +59,18 @@ gen_prior <- function(hparms, verbose=FALSE)
 #' Given a vector of probabilities, find the corresponding quantile vector assuming
 #' an independence copula and margins as described in \code{\link{gen_prior}}.
 #' 
+#' @section TO DO:
+#' 
+#' This function is currently inflexible with respect to the parameters included
+#' in the calculation (because of the fixed list of parameter names).  Fix this
+#' so that we can pass p as a named list.
+#' 
 #' @param p A vector of probabilities
 #' @param hparms  Named vector of hyperparameters, described in \code{\link{gen_post}}
 #' @export
 qprior <- function(p, hparms=list()) {
   hparms <- fill_defaults(hparms, default_hparms)
-  parm_names <- c('T0_uhi', 'T0_hi', 'T0_lo', 'T0_ulo', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
+  parm_names <- c('T0_uhi', 'T0_hi', 'T0_lo', 'T0_ulo', 'D0', 'A0', 'Ts', 'b', 'I0')
   stopifnot(length(p) == length(parm_names))
   
   qT0 <- qlnorm(p[1:4], hparms[['t0mulog']], hparms[['t0siglog']])
@@ -77,7 +83,6 @@ qprior <- function(p, hparms=list()) {
     A0 = qgamma(p[6], 8, 2),
     Ts = qgamma(p[7], 8, 2),
     I0 = qlnorm(p[8], 2, 1),
-    day_zero = qnorm(p[9], 30, 30),
-    b = qlnorm(p[10], hparms[['bmulog']], hparms[['bsiglog']])
+    b = qlnorm(p[9], hparms[['bmulog']], hparms[['bsiglog']])
   )
 }
