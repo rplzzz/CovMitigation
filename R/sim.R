@@ -377,15 +377,19 @@ select_T0 <- function(locality, parms)
 #' @export
 run_parms <- function(parms, scenario_name='Scen', tmax=273, aggregate=FALSE)
 {
-  seirparms <- parms[c('T0_hi', 'T0', 'D0', 'A0', 'I0', 'Ts')]
-  tstrt <- parms['day_zero']
+  seirparms <- parms[c('T0_uhi', 'T0_hi', 'T0_lo', 'T0_ulo', 'D0', 'A0', 'I0', 'Ts')]
+  if('day_zero' %in% names(parms))
+    tstrt <- parms['day_zero']
+  else
+    tstrt <- 30
+  
   tnext <- ceiling(tstrt)
   if(tnext - tstrt < 1e-3) {
     tnext <- tnext + 1
   }
   
   tvals <- c(tstrt, seq(tnext, tmax))
-  modout <- run_scenario(tvals, as.list(seirparms), scenario_name)
+  modout <- run_scenario(tvals, as.list(seirparms), scenarioName = scenario_name)
   
   modout <- modout[modout$time - floor(modout$time) < 1e-6,]
   modout

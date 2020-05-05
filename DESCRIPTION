@@ -1,6 +1,6 @@
 Package: CovMitigation
 Title: Demand estimates for medical centers in Virginia
-Version: 2.0.2
+Version: 2.0.3
 Authors@R:
     person(given = "Robert",
            family = "Link",
