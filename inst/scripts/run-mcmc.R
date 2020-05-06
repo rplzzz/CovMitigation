@@ -87,7 +87,7 @@ run_mcmc <- function(tid, nsamp, outfilename, restartfile=NULL,
     ## ok if this doesn't make it all the way to convergence.
     opt <- optim(pstrt, lpost, control=list(fnscale=-1))
     
-    mcs <- metrosamp(lpost, opt$par, nsamp, 1, scl_warmup)
+    mcs <- metrosamp(lpost, opt$par, nsamp, 1, scl_warmup, debug=TRUE)
   }
   else {
     ## Production run, either starting from a warmup run or continuing a previous batch.
