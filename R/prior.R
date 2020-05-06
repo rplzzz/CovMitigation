@@ -32,12 +32,11 @@ gen_prior <- function(hparms, verbose=FALSE)
       -Inf
     } else {
       logps <- c(
-        dgamma(parms[c('A0', 'Ts')], 
-               c(8,8), 
-               c(2,2), log=TRUE),
+        dgamma(parms[c('A0', 'Ts', 'D0')], 
+               c(8,8, 14), 
+               c(2,2, 2), log=TRUE),
         dlnorm(parms[c('T0_uhi', 'T0_hi', 'T0_lo', 'T0_ulo')],
                hparms[['t0mulog']], hparms[['t0siglog']], log=TRUE),
-        dlnorm(parms['D0'], 2, 0.5, log=TRUE),
         dnorm(parms['day_zero'], 30, 30, log=TRUE),
         dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
         dlnorm(parms['I0'], 2, 1, log=TRUE)
