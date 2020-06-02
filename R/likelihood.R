@@ -267,6 +267,10 @@ gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=list(), verbose
   
   function(parms) {
     logp <- prior_weight * lprior(parms)
+    if(verbose) {
+      message('prior wgt:\t', prior_weight, '\n----------------\ntotal prior:\t',
+              logp, '\n')
+    }
     if(is.finite(logp)) {
       logp <- logp + llik(parms)
     }

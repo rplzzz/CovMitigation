@@ -42,7 +42,8 @@ gen_prior <- function(hparms, verbose=FALSE)
         dlnorm(parms['I0'], 2, 1, log=TRUE)
       )
       if(verbose) {
-        pnames <- c('A0:\t', 'Ts:\t', 'T0_hi:\t', 'T0:\t', 'D0:\t', 'day_zero:\t', 'b:\t', 'I0:\t')
+        pnames <- c('A0:\t', 'Ts:\t',  'D0:\t', 'T0_uhi:\t', 'T0_hi:\t', 'T0_lo:\t', 
+                    'T0_ulo:\t', 'day_zero:\t', 'b:\t', 'I0:\t')
         prvals <- signif(logps, 3)
         msg <- paste(pnames, prvals, collapse='\n')
         totmsg <- paste('total:\t', signif(sum(logps, na.rm=TRUE), 4))
