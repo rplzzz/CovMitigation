@@ -11,16 +11,16 @@ fips,county,district,areaSqMile,population,locality
 51017,Bath,Central Shenandoah,529.16,4644,BathCounty
 51515,Bedford city,Central Virginia,8.74,6585,Bedfordcity
 51019,Bedford,Central Virginia,753.02,75607,BedfordCounty
-51021,Bland,Mount Rodgers,357.72,6727,BlandCounty
+51021,Bland,Mount Rogers,357.72,6727,BlandCounty
 51023,Botetourt,Alleghany,541.2,33105,BotetourtCounty
-51520,Bristol city,Mount Rodgers,13.01,17595,Bristolcity
+51520,Bristol city,Mount Rogers,13.01,17595,Bristolcity
 51025,Brunswick,Southside,566.17,16961,BrunswickCounty
 51027,Buchanan,Cumberland Plateau,502.76,23683,BuchananCounty
 51029,Buckingham,Piedmont,579.66,17072,BuckinghamCounty
 51530,Buena Vista city,Central Shenandoah,6.7,6683,BuenaVistacity
 51031,Campbell,Central Virginia,503.87,54833,CampbellCounty
 51033,Caroline,Rappahannock,527.51,29057,CarolineCounty
-51035,Carroll,Mount Rodgers,474.69,29881,CarrollCounty
+51035,Carroll,Mount Rogers,474.69,29881,CarrollCounty
 51036,Charles City,Chickahominy,182.82,7154,CharlesCityCounty
 51037,Charlotte,Piedmont,475.27,12399,CharlotteCounty
 51540,Charlottesville city,Thomas Jefferson,10.24,44505,Charlottesvillecity
@@ -48,11 +48,11 @@ fips,county,district,areaSqMile,population,locality
 51620,Franklin city,Western Tidewater,8.21,8534,Franklincity
 51069,Frederick,Lord Fairfax,413.5,80377,FrederickCounty
 51630,Fredericksburg city,Rappahannock,10.44,26632,Fredericksburgcity
-51640,Galax city,Mount Rodgers,8.24,6981,Galaxcity
+51640,Galax city,Mount Rogers,8.24,6981,Galaxcity
 51071,Giles,New River,355.78,17025,GilesCounty
 51073,Gloucester,Three Rivers,217.81,36938,GloucesterCounty
 51075,Goochland,Chickahominy,281.41,21627,GoochlandCounty
-51077,Grayson,Mount Rodgers,442.17,15255,GraysonCounty
+51077,Grayson,Mount Rogers,442.17,15255,GraysonCounty
 51079,Greene,Thomas Jefferson,156.25,18766,GreeneCounty
 51081,Greensville,Crater,295.23,11911,GreensvilleCounty
 51083,Halifax,Southside,817.84,35704,HalifaxCounty
@@ -115,7 +115,7 @@ fips,county,district,areaSqMile,population,locality
 51775,Salem city,Alleghany,14.44,25120,Salemcity
 51169,Scott,Lenowisco,535.53,22781,ScottCounty
 51171,Shenandoah,Lord Fairfax,508.78,42545,ShenandoahCounty
-51173,Smyth,Mount Rodgers,450.93,31876,SmythCounty
+51173,Smyth,Mount Rogers,450.93,31876,SmythCounty
 51175,Southampton,Western Tidewater,599.14,18364,SouthamptonCounty
 51177,Spotsylvania,Rappahannock,401.5,126200,SpotsylvaniaCounty
 51179,Stafford,Rappahannock,268.96,134672,StaffordCounty
@@ -126,11 +126,11 @@ fips,county,district,areaSqMile,population,locality
 51185,Tazewell,Cumberland Plateau,518.85,44331,TazewellCounty
 51810,Virginia Beach city,Virginia Beach,249.02,445623,VirginiaBeachcity
 51187,Warren,Lord Fairfax,213.47,38142,WarrenCounty
-51191,Washington,Mount Rodgers,560.97,54833,WashingtonCounty
+51191,Washington,Mount Rogers,560.97,54833,WashingtonCounty
 51820,Waynesboro city,Central Shenandoah,15.04,21177,Waynesborocity
 51193,Westmoreland,Three Rivers,229.37,17518,WestmorelandCounty
 51830,Williamsburg city,Peninsula,9.02,14401,Williamsburgcity
 51840,Winchester city,Lord Fairfax,9.23,27031,Winchestercity
 51195,Wise,Lenowisco,403.19,40872,WiseCounty
-51197,Wythe,Mount Rodgers,461.82,29259,WytheCounty
+51197,Wythe,Mount Rogers,461.82,29259,WytheCounty
 51199,York,Peninsula,104.78,65808,YorkCounty
