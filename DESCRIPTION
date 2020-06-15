@@ -26,7 +26,8 @@ Suggests:
     tidyr (>= 1.0),
     metrosamp (>= 0.7),
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 2.1.0)
 License: TBD
 Encoding: UTF-8
 LazyData: true

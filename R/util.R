@@ -146,3 +146,42 @@ namebackup <- function(name)
   ## paste the parts together for the return value  
   paste0(backupstem, sprintf('_%03d_', backupindx), nameext)
 }
+
+#' Aggregate model output to weekly resolution
+#' 
+#' Compute the sum or average of the daily output from the model, for weeks
+#' ending on dates specified in the output.  Aggregation will be performed only
+#' for the requested columns; other columns will have their values at the
+#' specified dates copied over unmodified.
+#' 
+#' @param weekending End dates for the weeks being calculated.
+#' @param df Dataset to operate on
+#' @param cols Columns to aggregate
+#' @param aggfun Function to aggregate with (default is \code{mean})
+#' @param nday Number of days in the "week".  Default is 7
+wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
+{
+  doagg <- function(date) {
+    dend <- date
+    dstrt <- date - nday
+    iend <- which(df$date == dend)
+    
+    ## Date must be in the data frame exactly once.
+    stopifnot(length(iend) == 1)
+    
+    usedays <- df$date > dstrt & df$date <= dend
+    rslt <- list(date=date)
+    for(col in names(df)) {
+      if(col %in% cols) {
+        rslt[[col]] <- aggfun(df[[col]][usedays])
+      }
+      else {
+        rslt[[col]] <- df[[col]][iend]
+      }
+    }
+    
+    as.data.frame(rslt)
+  }
+  
+  dplyr::bind_rows(lapply(weekending, doagg))
+}
