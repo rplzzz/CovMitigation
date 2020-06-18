@@ -31,6 +31,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
     
   
   obsdata <- obs[['obsdata']]
+  wkdates <- unique(obsdata$date)
   
   modrslts <- 
     lapply(seq_along(scenarios),
@@ -46,7 +47,17 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
         modout <- run_scenario(tvals, modpvals, counties=counties)
         modout[['scenario']] <- scenarios[i]
         modout[['bias']] <- pvals[['b']]
-        modout
+        modout[['fi']] <- modout[['PopInfection']] / modout[['population']]
+        modout[['date']] <- modout[['time']] + as.Date('2020-01-01')
+      
+        modout <- modout[,c('scenario','date','time','locality','fi','bias')]
+        
+        lmout <- split(modout, modout$locality, drop=TRUE)
+        
+        dplyr::bind_rows(
+          lapply(lmout, function(df) {wkagg(wkdates, df, 'fi')})
+        )
+        
       })
   
   if (is.null(counties)){
@@ -63,22 +74,18 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
       va_county_first_case$FIPS[va_county_first_case$Locality %in% counties]
   }
   
-  modrslts <- 
+  pltdata <- 
     dplyr::bind_rows(modrslts) %>%
-    dplyr::left_join(obs[['fips_codes']], by=c(locality='Locality'))
-  modrslts[['Itot']] <- modrslts[['I']] + modrslts[['Is']]
-  modrslts[['fi']] <- modrslts[['Itot']] / modrslts[['population']]
-  
-  pltdata <- dplyr::left_join(modrslts, obsdata, by=c('fips','time'))
+    dplyr::left_join(obsdata, by=c('date','time', 'locality'))
   pltdata <- pltdata[pltdata[['fips']] %in% use_fips,]
-  pltdata <- pltdata[!is.na(pltdata[['newcases']]), ]
+  pltdata <- pltdata[!is.na(pltdata[['npos']]), ]
   
   pltdata[['predicted']] <- 
     padjust(pltdata[['fi']], pltdata[['bias']]) * pltdata[['ntest']]
   
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) + 
     ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted', color=scenario), size=1.2) + 
-    ggplot2::geom_point(mapping=ggplot2::aes(y=newcases, shape='observed')) + 
+    ggplot2::geom_point(mapping=ggplot2::aes(y=npos, shape='observed')) + 
     ggplot2::facet_wrap(~locality, scales='free_y') +
     ggplot2::guides(
       color=ggplot2::guide_legend('Scenario', order=1),

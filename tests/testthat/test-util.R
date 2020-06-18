@@ -44,7 +44,7 @@ test_that("Week aggregation works", {
   
   ## Check that we get an error if we ask for a date that isn't in the data frame
   weekending <- c(as.Date('2019-01-01'), weekending)
-  expect_error(dfwkmean <- wkagg(weekending, df, c('time','y')))
+  expect_error({dfwkmean <- wkagg(weekending, df, c('time','y'))})
   
   
 })

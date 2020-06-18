@@ -180,7 +180,7 @@ wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
       }
     }
     
-    as.data.frame(rslt)
+    tibble::as_tibble(rslt)
   }
   
   dplyr::bind_rows(lapply(weekending, doagg))
