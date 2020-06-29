@@ -31,7 +31,7 @@ puncons <- opt_uncons$par
 
 ## Run an optimization with D0 fixed at something longer.
 fplongd <- puncons
-fplongd['D0'] <- 10
+fplongd['D0'] <- 7
 pstrtlongd <- opt_uncons$par[-which(names(opt_uncons$par) == 'D0')]
 lpost_longd <- gen_post(fixed_parms = c(fplongd, day_zero=day0fix))
 opt_longd <- optim(pstrtlongd, lpost_longd, control=ctrl)
@@ -67,12 +67,12 @@ opt_pause2 <- optim(pstrtpause2, lpost_pause2, control=ctrl)
 
 ## Based on results of opt, above (caching these values to prevent having to 
 ## rerun it, since it takes kind of a long time.)
-popt_t0_all <- c(T0_uhi=5, T0_hi=7.5, T0_lo=15, T0_ulo=25, D0=1.5, A0=0.51, I0=9.3, Ts=2.4, b=33.9)
-popt_uncons <- c(T0_uhi=8.9, T0_hi=6.7, T0_lo=14.0, T0_ulo=20.8, D0=1.2, A0=0.9, I0=17.5, Ts=1.8, b=33.9)
-popt_longd <- c(T0_uhi=11.3, T0_hi=9.6, T0_lo=17.0, T0_ulo=21.1, D0=10, A0=2.9, I0=12.0, Ts=5.1, b=31.6)
-popt_hib <- c(T0_uhi=9.2, T0_hi=6.8, T0_lo=15.2, T0_ulo=18.6, D0=1.0, A0=0.9, I0=16.6, Ts=1.4, b=50)
-popt_pause <- c(T0_uhi=150, T0_hi=150, T0_lo=150, T0_ulo=150, D0=1.5, A0=0.9, I0=306, Ts=1.8, b=311)
-popt_pause2 <- c(T0_uhi=14.2, T0_hi=10.9, T0_lo=150, T0_ulo=150, D0=1.1, A0=0.54, I0=39.0, Ts=1.9, b=97.7)
+popt_t0_all <- c(T0_uhi=5, T0_hi=7.5, T0_lo=15, T0_ulo=25, D0=2.9, A0=0.78, I0=7.1, Ts=4.9, b=11.6)
+popt_uncons <- c(T0_uhi=10.5, T0_hi=8.0, T0_lo=16.1, T0_ulo=4.1, D0=2.4, A0=1.1, I0=13.2, Ts=2.7, b=16.2)
+popt_longd <- c(T0_uhi=13.6, T0_hi=10.2, T0_lo=18.3, T0_ulo=3.9, D0=10, A0=1.9, I0=35.7, Ts=5.5, b=8.0)
+popt_hib <- c(T0_uhi=10.4, T0_hi=9.1, T0_lo=17.8, T0_ulo=5.0, D0=1.4, A0=0.96, I0=13.8, Ts=1.6, b=50)
+popt_pause <- c(T0_uhi=150, T0_hi=150, T0_lo=150, T0_ulo=150, D0=5.7, A0=2.7, I0=66.1, Ts=5.4, b=176)
+popt_pause2 <- c(T0_uhi=33.3, T0_hi=19.6, T0_lo=150, T0_ulo=150, D0=3.9, A0=2.2, I0=38.3, Ts=3.8, b=76)
 
 pmat <- rbind(popt_uncons, popt_t0_all, popt_longd, popt_hib, popt_pause,
               popt_pause2)
@@ -93,7 +93,7 @@ for(i in ii) {
 
 proj <- plt_projections(pmat, scen_names, p0, usedate=TRUE)
 print(proj + ggplot2::scale_color_brewer(type='qual') + 
-        ggplot2::xlim(as.Date(c('2020-04-15', '2020-07-01'))))
+        ggplot2::xlim(as.Date(c('2020-04-15', '2020-07-31'))))
 
 modobs <- plt_modobs(pmat, scen_names, viscounties)
 print(modobs + ggplot2::scale_color_brewer(type='qual'))

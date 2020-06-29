@@ -84,7 +84,7 @@
 gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FALSE)
 {
   ## silence warnings
-  fips <- ntest <- biased_fi <- locality <- newcases <- expected <- 
+  fips <- ntest <- biased_fi <- locality <- npos <- expected <- 
     x <- m <- n <- k <- NULL
   
   obs <- get_obsdata()
@@ -96,6 +96,12 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
     }
   }
   default_parm_vals <- obs$default_parm_vals
+
+  ## Final dates of the weeks we use for aggregation  
+  wkdates <- sort(unique(obs$obsdata$date))
+  ## Table of fips codes
+  fips_table <- unique(dplyr::select(obs$obsdata, locality, fips))
+  jan01 <- as.Date('2020-01-01')
   
   function(parms) {
     ## complete the parameters from the defaults
@@ -130,9 +136,21 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
     mdata <- modout[c('time', 'locality','I','Is','population')]
     mdata$Itot <- mdata$I + mdata$Is
     mdata$fi <- mdata$Itot / mdata$population
-    mdata <- dplyr::left_join(mdata, obs$fips_codes, by=c(locality='Locality'))
+    mdata <- dplyr::left_join(mdata, fips_table, by='locality')
+    mdata$date <- mdata$time + jan01
     
-    cmp <- dplyr::full_join(obs$obsdata, mdata, by=c('time', 'fips'))
+    ## Aggregate the data by week.  For model outputs we want the average over
+    ## the week.
+    mdatawk <-
+      dplyr::group_by(mdata, locality, fips) %>%
+      dplyr::group_map(
+        function(df, group) {
+          wkagg(wkdates, df, c('I','Is','It'))
+      },
+      keep=TRUE) %>%
+      dplyr::bind_rows()
+    
+    cmp <- dplyr::full_join(obs$obsdata, mdatawk, by=c('time','date', 'locality', 'fips'))
     cmp <- cmp[!(is.na(cmp$fi) | is.na(cmp$ntest)),]
     cmp <- cmp[(cmp$fi > 0) & (cmp$ntest > 0),]
     
@@ -147,8 +165,8 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
       -Inf
     }
     else {
-      miss <- is.na(cmp$newcases)
-      cmp$newcases[miss] <- 0
+      miss <- is.na(cmp$npos)
+      cmp$npos[miss] <- 0
       
       ## adjust model outputs for testing fraction and testing bias!
       b <- parms[['b']]
@@ -158,19 +176,11 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
       ## testing is biased toward people who are infected, so we multiply the odds
       ## ratio by a bias factor b
       cmp$biased_fi <- padjust(cmp$fi, b)
-      total_pop_va <- vaMyAgeBands$Total[1]
-      popfac <- 1/total_pop_va
-      cmp$popfrac <- cmp$population * popfac
       
-      dhargs <- tibble::tibble(x=cmp$newcases,
+      dhargs <- tibble::tibble(x=cmp$npos,
                                m=cmp$biased_fi * cmp$population,
                                n=(1-cmp$biased_fi) * cmp$population,
                                k=cmp$ntest)
-      
-      ## There are a few counties and times where the number of observed cases is greater than
-      ## the number of tests we're estimating.  In those cases, set the number of tests
-      ## to the number of cases.
-      dhargs$k <- pmax(dhargs$k, dhargs$x)
       
       ## Hypergeometric distribution.  Assume that tests performed in each county
       ## are proportional to the county's share of the total population.
@@ -218,7 +228,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
       if(waicmode) {
         rslt <- dplyr::bind_cols(cmp, dhargs) %>%
           dplyr::mutate(expected=biased_fi*ntest, logl=logl) %>%
-          dplyr::select(date, fips, locality, newcases, ntest, expected,
+          dplyr::select(date, fips, locality, npos, ntest, expected,
                         x, m, n, k, logl)
         attr(rslt, 'fsadjust') <- fsadjust
         attr(rslt, 'hfadjust') <- hospadjust
@@ -267,6 +277,10 @@ gen_post <- function(prior_weight=NULL, fixed_parms=NULL, hparms=list(), verbose
   
   function(parms) {
     logp <- prior_weight * lprior(parms)
+    if(verbose) {
+      message('prior wgt:\t', prior_weight, '\n----------------\ntotal prior:\t',
+              logp, '\n')
+    }
     if(is.finite(logp)) {
       logp <- logp + llik(parms)
     }

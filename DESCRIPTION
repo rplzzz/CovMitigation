@@ -1,14 +1,15 @@
 Package: CovMitigation
-Title: Demand estimates for medical centers in Virginia
-Version: 2.0.3
+Title: COVID-19 infection model for Virginia
+Version: 2.0.5
 Authors@R:
     person(given = "Robert",
            family = "Link",
            role = c("aut", "cre", "ard"),
            email = "rl8z@virginia.edu",
            comment = c(ORCID = "0000-0002-7071-248X"))
-Description: The goal is to simulate the spread of the COVID infection in each Virginia county and then
-  use that information plus other assummptions about health care utilization to estmate demand.
+Description: Simulate the spread of the COVID infection in each Virginia county for use
+    with hospital demand models.  Also includes tools for Bayesian Monte Carlo calibration
+    of model parameters.
 Depends: R (>= 3.3.3)
 Imports:
   deSolve (>= 1.28),
@@ -16,8 +17,7 @@ Imports:
   foreach (>= 1.4),
   doParallel (>= 1.0),
   nleqslv (>= 3.3),
-  NYTimesCOVID19,
-  vacovdata,
+  vdhcovid,
   dplyr (>= 0.7)
 Suggests:
     here (>= 0.1),
@@ -26,7 +26,8 @@ Suggests:
     tidyr (>= 1.0),
     metrosamp (>= 0.7),
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 2.1.0)
 License: TBD
 Encoding: UTF-8
 LazyData: true

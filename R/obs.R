@@ -14,32 +14,10 @@
 #' @keywords internal
 get_obsdata <- function()
 {
-  ## silence warnings
-  ntest <- ntest <- state <- date <- FIPS <- fips <- 
-    cases <- time <- Locality <- newcases <- NULL
-  
-  teststats <- dplyr::select(va_county_ntest, date, fips, ntest)
-  
-  obsdata <- 
-    dplyr::filter(NYTimesCOVID19::cov19county, 
-                  state=='Virginia',
-                  !is.na(fips),
-                  date >= min(teststats[['date']])) %>%
-    dplyr::mutate(time = as.numeric(date - as.Date('2020-01-01')),
-                  fips = as.integer(fips)) %>%
-    dplyr::group_by(fips) %>%
-    dplyr::mutate(newcases = c(0, diff(cases))) %>%    # add daily new cases
-    dplyr::ungroup() %>%
-    ## sometimes you get a decrease due to transfers or data corrections.  Treat
-    ## these as zero
-    dplyr::mutate(newcases = pmax(0, newcases)) %>%
-    ## Add the estimates of number of tests
-    dplyr::left_join(teststats, by=c('date', 'fips')) %>%
-    dplyr::select(date, fips, newcases, ntest, time)
-    
-  ## Our locality names are not the same as NYT, but we have a table of FIPS codes
-  fips_codes <- dplyr::select(va_county_first_case, FIPS, Locality) %>%
-    dplyr::rename(fips=FIPS)
+  ntesteff <- nposeff <- NULL
+  obsdata <- vdhcovid::va_weekly_ntest_county
+  obsdata$time <- as.numeric(obsdata$date - as.Date('2020-01-01'))
+  obsdata <- dplyr::rename(obsdata, ntest=ntesteff, npos=nposeff)
   
   ## Ordinarily I would arrange the obs in the same order that the output comes
   ## from the model, but in this case we can't be guaranteed that we will have
@@ -54,6 +32,5 @@ get_obsdata <- function()
     b = 0.5
   )
   
-  list(obsdata=obsdata, fips_codes=fips_codes, 
-       default_parm_vals=default_parm_vals)
+  list(obsdata=obsdata, default_parm_vals=default_parm_vals)
 }
