@@ -75,6 +75,21 @@ calcbeta <- function(parms)
   solv$x
 }
 
+#' Calculate the local value of beta from population density
+#' 
+#' Our formula is \eqn{\beta = \exp(\eta + \xi d)}, where \eqn{d} is the 
+#' standardized population density.
+#' 
+#' This function is vectorized over localities.
+#' 
+#' @export
+localbeta <- function(parms, localities)
+{
+  idx <- match(localities, vdhcovid::valocalities$locality)
+  
+  exp(parms[['eta']] + parms[['xi']]*vdhcovid::valocalities[['stdpopdens']][idx])
+}
+
 #' @describeIn coefs Calculate effective reproduction number \eqn{R_e} from model parameters.
 #' 
 #' @export

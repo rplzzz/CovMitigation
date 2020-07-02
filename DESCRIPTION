@@ -1,6 +1,6 @@
 Package: CovMitigation
 Title: COVID-19 infection model for Virginia
-Version: 2.0.5
+Version: 2.0.5.3000
 Authors@R:
     person(given = "Robert",
            family = "Link",
@@ -17,7 +17,7 @@ Imports:
   foreach (>= 1.4),
   doParallel (>= 1.0),
   nleqslv (>= 3.3),
-  vdhcovid,
+  vdhcovid (>= 1.6.1),
   dplyr (>= 0.7)
 Suggests:
     here (>= 0.1),

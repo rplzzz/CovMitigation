@@ -13,7 +13,8 @@
 #' 
 #' The model parameters currently recognized are:
 #' \describe{
-#' \item{T0}{(real > 0) The initial doubling time for the number of infected people}
+#' \item{eta}{(real) Log of the baseline transmissibility}
+#' \item{xi}{(real) Coefficient of population density in log-transmissibility}
 #' \item{D0}{(real > 0) The initial average infection duration}
 #' \item{A0}{(real > 0) The average incubation time}
 #' \item{Ts}{(real > 0) The average time from infection to symptom onset.  Note that
@@ -182,6 +183,13 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
                                n=(1-cmp$biased_fi) * cmp$population,
                                k=cmp$ntest)
       
+      ## Sometimes you get a number of observations greater than the total number
+      ## of cases the model is projecting.  In theory, that model should be excluded
+      ## with a logl of -Inf, but that can make it hard to find a good initial guess.
+      ## Instead, adjust x so that that x <= m, but apply a finite penalty for each x > m.
+      dhpenalty <- -1000 * sum(dhargs$x > ceiling(dhargs$m))
+      dhargs$x <- pmin(dhargs$x, ceiling(dhargs$m))
+      
       ## Hypergeometric distribution.  Assume that tests performed in each county
       ## are proportional to the county's share of the total population.
       logl <- dhyper(dhargs$x,
@@ -220,8 +228,8 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
         suml <- signif(sum(logl), 5)
         fsa <- signif(fsadjust, 5)
         hsa <- signif(hospadjust, 5)
-        msg <- paste(c('logl:\t', 'fsadjust:\t', 'hospadjust:\t'), 
-                     c(suml, fsa, hsa), collapse='\n')
+        msg <- paste(c('logl:\t', 'fsadjust:\t', 'hospadjust:\t', 'dhpenalty:\t'), 
+                     c(suml, fsa, hsa, dhpenalty), collapse='\n')
         message('Likelihood contributions:\n', msg)
       }
       
@@ -235,7 +243,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
         rslt          
       }
       else {
-        sum(logl, na.rm=TRUE) + fsadjust + hospadjust
+        sum(logl, na.rm=TRUE) + fsadjust + hospadjust + dhpenalty
       }
     }
   }
