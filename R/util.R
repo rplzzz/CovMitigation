@@ -174,6 +174,7 @@ namebackup <- function(name)
 #' @param cols Columns to aggregate
 #' @param aggfun Function to aggregate with (default is \code{mean})
 #' @param nday Number of days in the "week".  Default is 7
+#' @export
 wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
 {
   doagg <- function(date) {
@@ -181,14 +182,22 @@ wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
     dstrt <- date - nday
     iend <- which(df$date == dend)
     
-    ## Date must be in the data frame exactly once.
-    stopifnot(length(iend) == 1)
-    
     usedays <- df$date > dstrt & df$date <= dend
+    if(sum(usedays) == 0) {
+      ## no days in the dataset for this week
+      return(NULL)
+    }
+    dlast <- max(df[['date']][usedays])
+    iend <- which(df$date == dlast)
+    
+    ## Date must be in the data frame exactly once.
+    stopifnot(length(iend) <= 1)
+    
     rslt <- list(date=date)
     for(col in names(df)) {
       if(col %in% cols) {
-        rslt[[col]] <- aggfun(df[[col]][usedays])
+        vals <- df[[col]][usedays]
+        rslt[[col]] <- aggfun(vals[!is.na(vals)])
       }
       else {
         rslt[[col]] <- df[[col]][iend]
