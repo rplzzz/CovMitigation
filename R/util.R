@@ -209,3 +209,63 @@ wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
   
   dplyr::bind_rows(lapply(weekending, doagg))
 }
+
+#' Compute transmissibility adjustment for mobility
+#' 
+#' Compute multiplicative adjustment to transmissibility, based on percentage
+#' a population mobility measurement
+#' The adjustment is \code{exp(zeta * mobility)}
+#' 
+#' The mobility table is processed in \code{\link{local_mobility}}.  
+#' 
+#' @param t Days since 2020-01-1
+#' @param zeta Model coefficient for influence of mobility on transmissibility
+#' @param mobility_table Mobility table for the locality being processed (see details)
+#' 
+mobility_adjust <- function(t, zeta, mobility_table)
+{
+
+  if(nrow(mobility_table) == 0) {
+    ## Some localities don't have any mobility data, so apply no adjustment
+    return(1)
+  }
+  
+  imax <- which.max(mobility_table[['t']])
+  tmax <- mobility_table[['t']][imax]
+  tmin <- min(mobility_table[['t']])
+  
+  mobval <- 
+    ifelse(t < tmin, 
+           0,
+           ifelse(t > tmax, 
+                  mobility_table[['mobility']][imax],
+                  mobility_table[['mobility']][match(round(t), mobility_table[['t']])])
+           )
+  exp(zeta * mobval)  
+}
+
+#' Extract the mobility table for a specified locality.
+#' 
+#' The mobility data currently in use is the Google mobility data, stored in the
+#' \code{\link{va_mobility_daily}} dataset.
+#' 
+#' The mobility dataset has columns for retail, grocery, parks, transit, work, and
+#' home categories.  (The latter is actually inversely related to mobility, since
+#' it represents staying at home.)  The default is to use the 'home' column, but
+#' this can be changed by setting the option \code{CovMitigation.mobility_column}.  
+#' 
+#' Setting the mobility category via an option is manifestly a terrible idea, since
+#' the mobility column used is not recorded anywhere in the output.  Once we decide
+#' which category best captures the effect that we are after, we will set that 
+#' column as the default and disable the set-by-option capability
+#' 
+#' @param locality Name of the locality to extract
+local_mobility <- function(locality)
+{
+  mobility_col <- getOption('CovMitigation.mobility_column', default='home')
+  mobility_table <- 
+    va_mobility_daily[va_mobility_daily$locality == locality , 
+                      c('date','t', mobility_col)]
+  names(mobility_table) <- c('date', 't', 'mobility')
+  mobility_table <- mobility_table[!is.na(mobility_table[['mobility']]),]
+}

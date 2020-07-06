@@ -37,6 +37,7 @@
 seir_equations <- function(t, variables, parameters)
 {
   beta <- getparam(t, parameters[['beta']])
+  beta <- beta * mobility_adjust(t, parameters[['zeta']], parameters[['mobility_table']])
   gamma <- getparam(t, parameters[['gamma']])
   alpha <- getparam (t, parameters[['alpha']])
   epsilon <- parameters[['epsilon']]
@@ -49,6 +50,9 @@ seir_equations <- function(t, variables, parameters)
     dI <-  alpha*E - gamma * I - epsilon*I
     dIs <- epsilon*I - gamma*Is
     dR <-  gamma * Itot
+    if(any(is.na(c(dS, dE, dI, dIs, dR)))) {
+      browser()
+    }
     return(list(c(dS, dE, dI, dIs, dR)))
   })
 }
@@ -82,8 +86,9 @@ param_defaults <-
   list(
     ## Epidemiological model parameters
     ## transmissivity log(beta) = eta + xi*popdens
-    eta               = -0.6,    # pop density independent component of log baseline transmissivity
-    xi                = 0,       # pop density dependent coefficient of log baseline transmissivity
+    eta               = -0.6,    # pop density independent component of log baseline transmissibility
+    xi                = 0,       # pop density dependent coefficient of log baseline transmissibility
+    zeta              = 0,       # mobility dependent coefficient of log transmissibility
     D0                = 4,       # contagious period - this will be turned into a recovery rate
     A0                = 3,       # base incubation time - this will be turned into a progression rate
     Ts                = 3,       # average time to symptom onset, once progressed to infectious state
@@ -282,11 +287,13 @@ run_single_county <- function(locality, mktshare, timevals, params)
     beta_schedule <- beta0
   }
   
+  mobility_table <- local_mobility(locality)
+  
   epsilon <- 1/params$Ts
   
   #message('\tbeta= ', beta_schedule)
   ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule,
-                     epsilon=epsilon)
+                     epsilon=epsilon, mobility_table=mobility_table, zeta=params$zeta)
   initvals <- c(S=(N-params$E0-params$I0)*params$S0,
                 E=params$E0, 
                 I=params$I0,
@@ -357,7 +364,7 @@ run_single_county <- function(locality, mktshare, timevals, params)
 #' @export
 run_parms <- function(parms, scenario_name='Scen', tmax=273, aggregate=FALSE)
 {
-  seirparms <- parms[c('eta', 'xi', 'D0', 'A0', 'I0', 'Ts')]
+  seirparms <- parms[c('eta', 'xi', 'zeta', 'D0', 'A0', 'I0', 'Ts')]
   if('day_zero' %in% names(parms))
     tstrt <- parms['day_zero']
   else

@@ -14,13 +14,13 @@ viscounties <- c('AlbemarleCounty', 'Charlottesvillecity', 'NelsonCounty',  ## T
   
 day0fix <- 30
 
-p0 <- c(eta=-0.7, xi=0, D0=7, A0=5, day_zero=day0fix, b=20, I0=10, Ts=4)
+p0 <- c(eta=-0.7, xi=1, zeta=0, D0=7, A0=5, day_zero=day0fix, b=20, I0=10, Ts=4)
 
 lpost <- gen_post(fixed_parms=p0)   # fixed parameters can still be overriden by supplying them explicitly
 
 print(lpost(p0))
 
-pstrt <- p0[-c(5)]
+pstrt <- p0[-c(6)]
 ctrl <- list(fnscale=-1, maxit=2000)
 opt_uncons <- optim(pstrt, lpost, control=ctrl)
 puncons <- opt_uncons$par

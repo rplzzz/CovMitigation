@@ -16,7 +16,7 @@
 #' @export
 gen_prior <- function(hparms, verbose=FALSE)
 {
-  parm_names <- c('eta','xi', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
+  parm_names <- c('eta','xi', 'zeta', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
   function(parms) {
     stopifnot(!is.null(names(parms)))
     if(any(!names(parms) %in% parm_names)) {
@@ -30,6 +30,7 @@ gen_prior <- function(hparms, verbose=FALSE)
              c(2,2, 2), log=TRUE),
       dnorm(parms['eta'], -0.7, 1, log=TRUE),
       dnorm(parms['xi'], 0, 2, log=TRUE),
+      dnorm(parms['zeta'], 0, 2, log=TRUE),
       dnorm(parms['day_zero'], 30, 30, log=TRUE),
       dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
       dlnorm(parms['I0'], 2, 1, log=TRUE)
@@ -70,10 +71,11 @@ qprior <- function(p, hparms=list()) {
   c(
     eta = qnorm(p[1], -0.7, 1),
     xi = qnorm(p[2], 0, 2),
-    D0 = qlnorm(p[3], 2, 0.5),
-    A0 = qgamma(p[4], 8, 2),
-    Ts = qgamma(p[5], 8, 2),
-    I0 = qlnorm(p[6], 2, 1),
-    b = qlnorm(p[7], hparms[['bmulog']], hparms[['bsiglog']])
+    zeta = qnorm(p[3], 0, 2),
+    D0 = qlnorm(p[4], 2, 0.5),
+    A0 = qgamma(p[5], 8, 2),
+    Ts = qgamma(p[6], 8, 2),
+    I0 = qlnorm(p[7], 2, 1),
+    b = qlnorm(p[8], hparms[['bmulog']], hparms[['bsiglog']])
   )
 }

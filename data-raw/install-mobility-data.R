@@ -27,11 +27,12 @@ va_mobility_daily <-
   group_by(va_mobility_temp, fips, county, locality) %>%
   group_map(
     function(df, group) {
+      df <- tidyr::complete(df, date=seq(min(df$date), max(df$date), by=1))
       t <- as.numeric(df[['date']] - df[['date']][1])
       rslt <- as.list(group)
       rslt[['date']] <- df[['date']]
       for(col in c('retail','grocery','parks','transit','work','home')) {
-        y <- df[[col]]
+        y <- df[[col]]/100      ## Convert percentage to fraction.
         miss <- is.na(y)
         if(sum(!miss) < 20) {
           rslt[[col]] <- NA_real_
@@ -45,7 +46,8 @@ va_mobility_daily <-
       tibble::as_tibble(rslt)
     }
   ) %>%
-  bind_rows()
+  bind_rows() %>%
+  mutate(t = as.numeric(date - as.Date('2020-01-01')))
 
 wkdates <- unique(vdhcovid::vaweeklytests[['date']])
 
