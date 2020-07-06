@@ -230,17 +230,20 @@ mobility_adjust <- function(t, zeta, mobility_table)
     return(1)
   }
   
-  imax <- which.max(mobility_table[['t']])
-  tmax <- mobility_table[['t']][imax]
-  tmin <- min(mobility_table[['t']])
+  ttbl <- mobility_table[['t']]
+  imax <- which.max(ttbl)
+  tmax <- ttbl[imax]
+  tmin <- min(ttbl)
   
-  mobval <- 
-    ifelse(t < tmin, 
-           0,
-           ifelse(t > tmax, 
-                  mobility_table[['mobility']][imax],
-                  mobility_table[['mobility']][match(round(t), mobility_table[['t']])])
-           )
+  ival <- 
+    ifelse(t > tmax, 
+           imax,
+           1 + round(t) - tmin)
+
+  mobval <- ifelse(ival<1,
+                   0,
+                   mobility_table[['mobility']][ival])
+  
   exp(zeta * mobval)  
 }
 
@@ -268,4 +271,13 @@ local_mobility <- function(locality)
                       c('date','t', mobility_col)]
   names(mobility_table) <- c('date', 't', 'mobility')
   mobility_table <- mobility_table[!is.na(mobility_table[['mobility']]),]
+  
+  nr <- nrow(mobility_table)
+  if(nr > 0) {
+    ## Check that there are no gaps in the table.
+    nday <- 1 + max(mobility_table[['t']]) - min(mobility_table[['t']])
+    stopifnot(nr==nday)
+  }
+  
+  mobility_table
 }
