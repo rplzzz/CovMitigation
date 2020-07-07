@@ -16,7 +16,7 @@
 #' @export
 gen_prior <- function(hparms, verbose=FALSE)
 {
-  parm_names <- c('eta','xi', 'zeta', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0')
+  parm_names <- c('eta','xi', 'zeta', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0', 'mask_effect')
   function(parms) {
     stopifnot(!is.null(names(parms)))
     if(any(!names(parms) %in% parm_names)) {
@@ -33,12 +33,13 @@ gen_prior <- function(hparms, verbose=FALSE)
       dnorm(parms['zeta'], 0, 2, log=TRUE),
       dnorm(parms['day_zero'], 30, 30, log=TRUE),
       dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
-      dlnorm(parms['I0'], 2, 1, log=TRUE)
+      dlnorm(parms['I0'], 2, 1, log=TRUE),
+      dgamma(-parms['mask_effect'], 1, 2, log=TRUE)  # mask effect expected to be negative
     )
     if(verbose) {
       pnames <- c('A0:\t', 'Ts:\t',  'D0:\t', 
-                  'eta', 'xi',
-                  'day_zero:\t', 'b:\t', 'I0:\t')
+                  'eta', 'xi', 'zeta',
+                  'day_zero:\t', 'b:\t', 'I0:\t', 'mask_effect:\t')
       prvals <- signif(logps, 3)
       msg <- paste(pnames, prvals, collapse='\n')
       totmsg <- paste('total:\t', signif(sum(logps, na.rm=TRUE), 4))
@@ -64,7 +65,7 @@ gen_prior <- function(hparms, verbose=FALSE)
 #' @export
 qprior <- function(p, hparms=list()) {
   hparms <- fill_defaults(hparms, default_hparms)
-  parm_names <- c('eta', 'xi', 'D0', 'A0', 'Ts', 'b', 'I0')
+  parm_names <- c('eta', 'xi', 'D0', 'A0', 'Ts', 'b', 'I0', 'mask_effect')
   stopifnot(length(p) == length(parm_names))
   
   ## Return a named vector of parameters
@@ -76,6 +77,7 @@ qprior <- function(p, hparms=list()) {
     A0 = qgamma(p[5], 8, 2),
     Ts = qgamma(p[6], 8, 2),
     I0 = qlnorm(p[7], 2, 1),
-    b = qlnorm(p[8], hparms[['bmulog']], hparms[['bsiglog']])
+    b = qlnorm(p[8], hparms[['bmulog']], hparms[['bsiglog']]),
+    mask_effect = -qgamma(p[9], 1, 2)
   )
 }

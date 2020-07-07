@@ -37,7 +37,9 @@
 seir_equations <- function(t, variables, parameters)
 {
   beta <- getparam(t, parameters[['beta']])
-  beta <- beta * mobility_adjust(t, parameters[['zeta']], parameters[['mobility_table']])
+  beta <- beta * 
+    mobility_adjust(t, parameters[['zeta']], parameters[['mobility_table']]) *
+    exp(parameters[['mask_effect']] * mask_indicator(t))
   gamma <- getparam(t, parameters[['gamma']])
   alpha <- getparam (t, parameters[['alpha']])
   epsilon <- parameters[['epsilon']]
@@ -95,6 +97,7 @@ param_defaults <-
     beta_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection rate
     duration_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection duration
     prog_schedule = data.frame(time=0, value=1),  # schedule for relative changes in progression rate
+    mask_effect       = 0,       # log-mask effect on transmission
     
     ## Initial state parameters
     S0                = 1,    # Fraction initially susceptible (the rest are uninfected but immune)
@@ -216,6 +219,7 @@ run_scenario <- function(timevals, params=list(), counties = NULL,
 
   bdt <- calct0(1/params$A0, exp(params$eta), 1/params$D0)
   ## Add some identifiers for the scenario
+  ## TODO: update these identifiers to include time-dependent effects.
   dplyr::mutate(inpatientEstimates,
                 scenario=scenarioName, 
                 beta=localbeta(params, locality),
@@ -293,7 +297,8 @@ run_single_county <- function(locality, mktshare, timevals, params)
   
   #message('\tbeta= ', beta_schedule)
   ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule,
-                     epsilon=epsilon, mobility_table=mobility_table, zeta=params$zeta)
+                     epsilon=epsilon, mobility_table=mobility_table, zeta=params$zeta,
+                     mask_effect=params$mask_effect)
   initvals <- c(S=(N-params$E0-params$I0)*params$S0,
                 E=params$E0, 
                 I=params$I0,
