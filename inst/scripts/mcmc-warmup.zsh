@@ -6,7 +6,7 @@
 
 module load intel/18.0
 module load intelmpi/18.0
-module load R/3.6.0
+module load R/3.6.3
 
 echo "start:  " `date`
 
