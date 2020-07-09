@@ -37,6 +37,9 @@
 seir_equations <- function(t, variables, parameters)
 {
   beta <- getparam(t, parameters[['beta']])
+  beta <- beta * 
+    mobility_adjust(t, parameters[['zeta']], parameters[['mobility_table']]) *
+    exp(parameters[['mask_effect']] * mask_indicator(t))
   gamma <- getparam(t, parameters[['gamma']])
   alpha <- getparam (t, parameters[['alpha']])
   epsilon <- parameters[['epsilon']]
@@ -49,6 +52,9 @@ seir_equations <- function(t, variables, parameters)
     dI <-  alpha*E - gamma * I - epsilon*I
     dIs <- epsilon*I - gamma*Is
     dR <-  gamma * Itot
+    if(any(is.na(c(dS, dE, dI, dIs, dR)))) {
+      browser()
+    }
     return(list(c(dS, dE, dI, dIs, dR)))
   })
 }
@@ -81,17 +87,17 @@ getparam <- function(t, param)
 param_defaults <- 
   list(
     ## Epidemiological model parameters
-    # initial doubling times will be turned into infection rates
-    T0_uhi            = 5,      # initial doubling time for ultra-high growth rate areas
-    T0_hi             = 7.5,    # initial doubling time for high growth rate areas
-    T0_lo             = 14,     # initial doubling time for low growth rate areas
-    T0_ulo            = 25,     # initial doubling time for ultra-low growth rate areas
+    ## transmissivity log(beta) = eta + xi*popdens
+    eta               = -0.6,    # pop density independent component of log baseline transmissibility
+    xi                = 0,       # pop density dependent coefficient of log baseline transmissibility
+    zeta              = 0,       # mobility dependent coefficient of log transmissibility
     D0                = 4,       # contagious period - this will be turned into a recovery rate
     A0                = 3,       # base incubation time - this will be turned into a progression rate
     Ts                = 3,       # average time to symptom onset, once progressed to infectious state
     beta_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection rate
     duration_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection duration
     prog_schedule = data.frame(time=0, value=1),  # schedule for relative changes in progression rate
+    mask_effect       = 0,       # log-mask effect on transmission
     
     ## Initial state parameters
     S0                = 1,    # Fraction initially susceptible (the rest are uninfected but immune)
@@ -164,8 +170,8 @@ validate_params <- function(params)
 #' 
 #' The parameters for the model are:
 #' \describe{
-#' \item{T0}{(scalar) Base doubling time.  Doubling time for number of cases when the number of infections
-#' is small compared to the total population.}
+#' \item{eta}{(scalar) base value for initial transmissivity}
+#' \item{xi}{(scalar) coefficient for population density in initial transmissivity}
 #' \item{D0}{(scalar) Base recovery time.  Average base recovery time for an infected person.}
 #' \item{A0}{(scalar) Base incubation time.  Average tie for an exposed person to 
 #' become infected.}
@@ -211,10 +217,14 @@ run_scenario <- function(timevals, params=list(), counties = NULL,
                         timevals, params)
   }
 
+  bdt <- calct0(1/params$A0, exp(params$eta), 1/params$D0)
   ## Add some identifiers for the scenario
+  ## TODO: update these identifiers to include time-dependent effects.
   dplyr::mutate(inpatientEstimates,
                 scenario=scenarioName, 
-                doublingTime=params$T0,
+                beta=localbeta(params, locality),
+                popfactor=params$xi,
+                baseDoublingTime=bdt,
                 recoveryTime=params$D0,
                 incubationTime=params$A0,
                 symptomTime=params$Ts,
@@ -228,11 +238,11 @@ run_scenario <- function(timevals, params=list(), counties = NULL,
 #' @param mktshare Market share for the locality
 #' @param timevals Vector of output times for the simulation
 #' @param params Model parameter list
-#' @param hicounties List of counties that should use the high growth rate.
 #' @keywords internal
-run_single_county <- function(locality, mktshare, timevals, params, hicounties)
+run_single_county <- function(locality, mktshare, timevals, params)
 {
   ## Need to get the total population from the vaMyAgeBands dataset
+  #message('Running: ', locality)
   pop <- vaMyAgeBands$Total[vaMyAgeBands$Locality == locality]
   if(length(pop) == 0) {
     stop('Cannot find locality:  ',locality)
@@ -254,8 +264,6 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
   
   ## Calculate derived parameters
   N <- (pop-params$I0) * params$S0
-  params[['T0']] <- select_T0(locality, params)
-  #message('Locality: ', locality, '  T0: ', params[['T0']])
   
   gamma_schedule <- params$duration_schedule
   gamma_schedule$value <- 1/(gamma_schedule$value * params$D0)
@@ -272,8 +280,10 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
     alpha0 <- getparam(0, alpha_schedule)
     alpha_schedule <- alpha0
   }
-  
-  beta0 <- calcbeta(params)
+
+  ## Ugly text matching on every call.  Devise a better way to look this up.
+  beta0 <- localbeta(params, locality)
+  #message('\tbeta0= ', beta0)
   
   beta_schedule <- params$beta_schedule
   beta_schedule$value <- beta_schedule$value * beta0
@@ -281,11 +291,14 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
     beta_schedule <- beta0
   }
   
+  mobility_table <- local_mobility(locality)
+  
   epsilon <- 1/params$Ts
   
   #message('\tbeta= ', beta_schedule)
   ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule,
-                     epsilon=epsilon)
+                     epsilon=epsilon, mobility_table=mobility_table, zeta=params$zeta,
+                     mask_effect=params$mask_effect)
   initvals <- c(S=(N-params$E0-params$I0)*params$S0,
                 E=params$E0, 
                 I=params$I0,
@@ -339,27 +352,6 @@ run_single_county <- function(locality, mktshare, timevals, params, hicounties)
   rslt
 }
 
-#' Select the appropriate T0 parameter for a locality
-#' 
-#' See discussion in \code{\link{growth_categories}}
-#' 
-#' @param locality Name of the locality
-#' @param parms Named list of parameters.  It must have entries for 'T0_uhi',
-#' 'T0_hi', 'T0_lo', and 'T0_ulo'
-#' @keywords internal
-select_T0 <- function(locality, parms)
-{
-  if(locality %in% uhi_counties$locality) {
-    parms[['T0_uhi']]
-  } else if (locality %in% ulo_counties$locality) {
-    parms[['T0_ulo']]
-  } else if (locality %in% lo_counties$locality) {
-    parms[['T0_lo']]
-  } else {
-    parms[['T0_hi']]
-  }
-}
-
 #' Run the scenario for a vector of likelihood parameters
 #' 
 #' This function extracts the parameters that need to be passed to 
@@ -377,7 +369,7 @@ select_T0 <- function(locality, parms)
 #' @export
 run_parms <- function(parms, scenario_name='Scen', tmax=273, aggregate=FALSE)
 {
-  seirparms <- parms[c('T0_uhi', 'T0_hi', 'T0_lo', 'T0_ulo', 'D0', 'A0', 'I0', 'Ts')]
+  seirparms <- parms[c('eta', 'xi', 'zeta', 'D0', 'A0', 'I0', 'Ts')]
   if('day_zero' %in% names(parms))
     tstrt <- parms['day_zero']
   else

@@ -75,6 +75,21 @@ calcbeta <- function(parms)
   solv$x
 }
 
+#' Calculate the local value of beta from population density
+#' 
+#' Our formula is \eqn{\beta = \exp(\eta + \xi d)}, where \eqn{d} is the 
+#' standardized population density.
+#' 
+#' This function is vectorized over localities.
+#' 
+#' @export
+localbeta <- function(parms, localities)
+{
+  idx <- match(localities, vdhcovid::valocalities$locality)
+  
+  exp(parms[['eta']] + parms[['xi']]*vdhcovid::valocalities[['stdpopdens']][idx])
+}
+
 #' @describeIn coefs Calculate effective reproduction number \eqn{R_e} from model parameters.
 #' 
 #' @export
@@ -159,6 +174,7 @@ namebackup <- function(name)
 #' @param cols Columns to aggregate
 #' @param aggfun Function to aggregate with (default is \code{mean})
 #' @param nday Number of days in the "week".  Default is 7
+#' @export
 wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
 {
   doagg <- function(date) {
@@ -166,14 +182,22 @@ wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
     dstrt <- date - nday
     iend <- which(df$date == dend)
     
-    ## Date must be in the data frame exactly once.
-    stopifnot(length(iend) == 1)
-    
     usedays <- df$date > dstrt & df$date <= dend
+    if(sum(usedays) == 0) {
+      ## no days in the dataset for this week
+      return(NULL)
+    }
+    dlast <- max(df[['date']][usedays])
+    iend <- which(df$date == dlast)
+    
+    ## Date must be in the data frame exactly once.
+    stopifnot(length(iend) <= 1)
+    
     rslt <- list(date=date)
     for(col in names(df)) {
       if(col %in% cols) {
-        rslt[[col]] <- aggfun(df[[col]][usedays])
+        vals <- df[[col]][usedays]
+        rslt[[col]] <- aggfun(vals[!is.na(vals)])
       }
       else {
         rslt[[col]] <- df[[col]][iend]
@@ -184,4 +208,76 @@ wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
   }
   
   dplyr::bind_rows(lapply(weekending, doagg))
+}
+
+#' Compute transmissibility adjustment for mobility
+#' 
+#' Compute multiplicative adjustment to transmissibility, based on percentage
+#' a population mobility measurement
+#' The adjustment is \code{exp(zeta * mobility)}
+#' 
+#' The mobility table is processed in \code{\link{local_mobility}}.  
+#' 
+#' @param t Days since 2020-01-1
+#' @param zeta Model coefficient for influence of mobility on transmissibility
+#' @param mobility_table Mobility table for the locality being processed (see details)
+#' 
+mobility_adjust <- function(t, zeta, mobility_table)
+{
+
+  if(nrow(mobility_table) == 0) {
+    ## Some localities don't have any mobility data, so apply no adjustment
+    return(1)
+  }
+  
+  ttbl <- mobility_table[['t']]
+  imax <- which.max(ttbl)
+  tmax <- ttbl[imax]
+  tmin <- min(ttbl)
+  
+  ival <- 
+    ifelse(t > tmax, 
+           imax,
+           1 + round(t) - tmin)
+
+  mobval <- ifelse(ival<1,
+                   0,
+                   mobility_table[['mobility']][ival])
+  
+  exp(zeta * mobval)  
+}
+
+#' Extract the mobility table for a specified locality.
+#' 
+#' The mobility data currently in use is the Google mobility data, stored in the
+#' \code{\link{va_mobility_daily}} dataset.
+#' 
+#' The mobility dataset has columns for retail, grocery, parks, transit, work, and
+#' home categories.  (The latter is actually inversely related to mobility, since
+#' it represents staying at home.)  The default is to use the 'home' column, but
+#' this can be changed by setting the option \code{CovMitigation.mobility_column}.  
+#' 
+#' Setting the mobility category via an option is manifestly a terrible idea, since
+#' the mobility column used is not recorded anywhere in the output.  Once we decide
+#' which category best captures the effect that we are after, we will set that 
+#' column as the default and disable the set-by-option capability
+#' 
+#' @param locality Name of the locality to extract
+local_mobility <- function(locality)
+{
+  mobility_col <- getOption('CovMitigation.mobility_column', default='home')
+  mobility_table <- 
+    va_mobility_daily[va_mobility_daily$locality == locality , 
+                      c('date','t', mobility_col)]
+  names(mobility_table) <- c('date', 't', 'mobility')
+  mobility_table <- mobility_table[!is.na(mobility_table[['mobility']]),]
+  
+  nr <- nrow(mobility_table)
+  if(nr > 0) {
+    ## Check that there are no gaps in the table.
+    nday <- 1 + max(mobility_table[['t']]) - min(mobility_table[['t']])
+    stopifnot(nr==nday)
+  }
+  
+  mobility_table
 }

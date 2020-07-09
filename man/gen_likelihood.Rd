@@ -37,7 +37,8 @@ by the COVID Tracking project (\code{https://covidtracking.com/}).
 
 The model parameters currently recognized are:
 \describe{
-\item{T0}{(real > 0) The initial doubling time for the number of infected people}
+\item{eta}{(real) Log of the baseline transmissibility}
+\item{xi}{(real) Coefficient of population density in log-transmissibility}
 \item{D0}{(real > 0) The initial average infection duration}
 \item{A0}{(real > 0) The average incubation time}
 \item{Ts}{(real > 0) The average time from infection to symptom onset.  Note that

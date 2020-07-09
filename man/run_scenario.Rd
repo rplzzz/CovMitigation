@@ -45,8 +45,8 @@ The results returned will be:
 
 The parameters for the model are:
 \describe{
-\item{T0}{(scalar) Base doubling time.  Doubling time for number of cases when the number of infections
-is small compared to the total population.}
+\item{eta}{(scalar) base value for initial transmissivity}
+\item{xi}{(scalar) coefficient for population density in initial transmissivity}
 \item{D0}{(scalar) Base recovery time.  Average base recovery time for an infected person.}
 \item{A0}{(scalar) Base incubation time.  Average tie for an exposed person to 
 become infected.}

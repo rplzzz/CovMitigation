@@ -83,6 +83,8 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
   pltdata[['predicted']] <- 
     padjust(pltdata[['fi']], pltdata[['bias']]) * pltdata[['ntest']]
   
+  pltdata[['locality']] <- ordered(pltdata[['locality']], levels = counties)
+  
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) + 
     ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted', color=scenario), size=1.2) + 
     ggplot2::geom_point(mapping=ggplot2::aes(y=npos, shape='observed')) + 

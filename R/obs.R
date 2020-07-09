@@ -26,10 +26,9 @@ get_obsdata <- function()
   
   ## Default values for likelihood parameters.  Ideally we should collect all of
   ## the parameter defaults together somewhere.
-  
   default_parm_vals <- c(
     day_zero = 30,
-    b = 0.5
+    b = 10.0
   )
   
   list(obsdata=obsdata, default_parm_vals=default_parm_vals)

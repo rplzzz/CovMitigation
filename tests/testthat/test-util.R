@@ -23,28 +23,29 @@ test_that("Week aggregation works", {
   
   dfwkmean <- wkagg(weekending, df, c('time', 'x'))
   
-  cmpdata <- 
+  cmpdata_mean <- 
     as.data.frame(
       group_by(df, week)  %>%
         summarise(date=max(date), time=mean(time), x=mean(x), y=max(y)) %>%
         select(date, time, week, x, y)
     )
   
-  expect_equal(dfwkmean, cmpdata)
+  expect_equal(dfwkmean, cmpdata_mean)
   
   ## Check that changing the aggregating function works
-  dfwkmean <- wkagg(weekending, df, c('time','y'), aggfun=min)
-  cmpdata <- 
+  dfwkmin <- wkagg(weekending, df, c('time','y'), aggfun=min)
+  cmpdata_min <- 
     as.data.frame(
       group_by(df, week)  %>%
         summarise(date=max(date), time=min(time), x=max(x), y=min(y)) %>%
         select(date, time, week, x, y)
     )
-  expect_equal(dfwkmean, cmpdata)
+  expect_equal(dfwkmin, cmpdata_min)
   
-  ## Check that we get an error if we ask for a date that isn't in the data frame
+  ## Check that dates out of range are ignored.
   weekending <- c(as.Date('2019-01-01'), weekending)
-  expect_error({dfwkmean <- wkagg(weekending, df, c('time','y'))})
+  dfwkmean <- wkagg(weekending, df, c('time','x'))
+  expect_equal(dfwkmean, cmpdata_mean)
   
   
 })
