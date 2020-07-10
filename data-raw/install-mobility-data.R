@@ -47,7 +47,9 @@ va_mobility_daily <-
     }
   ) %>%
   bind_rows() %>%
-  mutate(t = as.numeric(date - as.Date('2020-01-01')))
+  mutate(t = as.numeric(date - as.Date('2020-01-01')),
+         home = -home           # Give home index the same sign convention as other indices
+         )
 
 wkdates <- unique(vdhcovid::vaweeklytests[['date']])
 
