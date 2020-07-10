@@ -52,9 +52,6 @@ seir_equations <- function(t, variables, parameters)
     dI <-  alpha*E - gamma * I - epsilon*I
     dIs <- epsilon*I - gamma*Is
     dR <-  gamma * Itot
-    if(any(is.na(c(dS, dE, dI, dIs, dR)))) {
-      browser()
-    }
     return(list(c(dS, dE, dI, dIs, dR)))
   })
 }
