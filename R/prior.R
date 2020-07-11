@@ -30,7 +30,7 @@ gen_prior <- function(hparms, verbose=FALSE)
              c(2,2, 2), log=TRUE),
       dnorm(parms['eta'], -0.7, 1, log=TRUE),
       dnorm(parms['xi'], 0, 2, log=TRUE),
-      dnorm(parms['zeta'], 0, 2, log=TRUE),
+      dgamma(parms['zeta'], 1, 1, log=TRUE),         # mobility effect expected to be positive
       dnorm(parms['day_zero'], 30, 30, log=TRUE),
       dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
       dlnorm(parms['I0'], 2, 1, log=TRUE),
@@ -65,14 +65,14 @@ gen_prior <- function(hparms, verbose=FALSE)
 #' @export
 qprior <- function(p, hparms=list()) {
   hparms <- fill_defaults(hparms, default_hparms)
-  parm_names <- c('eta', 'xi', 'D0', 'A0', 'Ts', 'b', 'I0', 'mask_effect')
+  parm_names <- c('eta', 'xi', 'zeta', 'D0', 'A0', 'Ts', 'b', 'I0', 'mask_effect')
   stopifnot(length(p) == length(parm_names))
   
   ## Return a named vector of parameters
   c(
     eta = qnorm(p[1], -0.7, 1),
     xi = qnorm(p[2], 0, 2),
-    zeta = qnorm(p[3], 0, 2),
+    zeta = qgamma(p[3], 1, 1),
     D0 = qlnorm(p[4], 2, 0.5),
     A0 = qgamma(p[5], 8, 2),
     Ts = qgamma(p[6], 8, 2),
