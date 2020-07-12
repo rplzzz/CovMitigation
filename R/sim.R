@@ -37,23 +37,22 @@
 seir_equations <- function(t, variables, parameters)
 {
   beta <- getparam(t, parameters[['beta']])
-  beta <- beta * 
-    mobility_adjust(t, parameters[['zeta']], parameters[['mobility_table']]) *
-    exp(parameters[['mask_effect']] * mask_indicator(t))
+  mobadjust <- mobility_adjust(t, parameters[['zeta']], parameters[['mobility_table']])
+  maskadjust <- exp(parameters[['mask_effect']] * mask_indicator.default(t))
+  beta <- beta * mobadjust * maskadjust
   gamma <- getparam(t, parameters[['gamma']])
   alpha <- getparam (t, parameters[['alpha']])
   epsilon <- parameters[['epsilon']]
-  with(as.list(variables), {
-    N <- S + E + I + Is + R
-    Itot <- I + Is
-    expos <- beta * Itot * S / N
-    dS <- -expos
-    dE <- expos  - alpha*E
-    dI <-  alpha*E - gamma * I - epsilon*I
-    dIs <- epsilon*I - gamma*Is
-    dR <-  gamma * Itot
-    return(list(c(dS, dE, dI, dIs, dR)))
-  })
+  S <- variables['S']; E <- variables['E']; I <- variables['I']; Is <- variables['Is']; R <- variables['R']
+  N <- S + E + I + Is + R
+  Itot <- I + Is
+  expos <- beta * Itot * S / N
+  dS <- -expos
+  dE <- expos  - alpha*E
+  dI <-  alpha*E - gamma * I - epsilon*I
+  dIs <- epsilon*I - gamma*Is
+  dR <-  gamma * Itot
+  return(list(c(dS, dE, dI, dIs, dR)))
 }
 
 
