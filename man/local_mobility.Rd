@@ -9,6 +9,10 @@ local_mobility(locality)
 \arguments{
 \item{locality}{Name of the locality to extract}
 }
+\value{
+A list with two vectors, \code{t} and \code{mobility}, in that
+order.
+}
 \description{
 The mobility data currently in use is the Google mobility data, stored in the
 \code{\link{va_mobility_daily}} dataset.

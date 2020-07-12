@@ -225,12 +225,7 @@ wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
 mobility_adjust <- function(t, zeta, mobility_table)
 {
 
-  if(nrow(mobility_table) == 0) {
-    ## Some localities don't have any mobility data, so apply no adjustment
-    return(1)
-  }
-  
-  ttbl <- mobility_table[['t']]
+  ttbl <- mobility_table[[1]]
   imax <- which.max(ttbl)
   tmax <- ttbl[imax]
   tmin <- min(ttbl)
@@ -242,7 +237,7 @@ mobility_adjust <- function(t, zeta, mobility_table)
 
   mobval <- ifelse(ival<1,
                    0,
-                   mobility_table[['mobility']][ival])
+                   mobility_table[[2]][ival])
   
   exp(zeta * mobval)  
 }
@@ -263,13 +258,15 @@ mobility_adjust <- function(t, zeta, mobility_table)
 #' column as the default and disable the set-by-option capability
 #' 
 #' @param locality Name of the locality to extract
+#' @return A list with two vectors, \code{t} and \code{mobility}, in that
+#' order.
 local_mobility <- function(locality)
 {
   mobility_col <- getOption('CovMitigation.mobility_column', default='home')
   mobility_table <- 
     va_mobility_daily[va_mobility_daily$locality == locality , 
-                      c('date','t', mobility_col)]
-  names(mobility_table) <- c('date', 't', 'mobility')
+                      c('t', mobility_col)]
+  names(mobility_table) <- c('t', 'mobility')
   mobility_table <- mobility_table[!is.na(mobility_table[['mobility']]),]
   
   nr <- nrow(mobility_table)
@@ -278,6 +275,11 @@ local_mobility <- function(locality)
     nday <- 1 + max(mobility_table[['t']]) - min(mobility_table[['t']])
     stopifnot(nr==nday)
   }
+  else {
+    ## No data in the table, so create a dummy table that will produce no 
+    ## adjustment.
+    mobility_table <- tibble::tibble(t=c(0,1), mobility=c(0,0))
+  }
   
-  mobility_table
+  as.list(mobility_table)
 }
