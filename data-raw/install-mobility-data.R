@@ -62,4 +62,18 @@ va_mobility_weekly <-
   ungroup() %>%
   mutate(t = as.numeric(date - as.Date('2020-01-01')))
 
+sentinels <- lapply(unique(va_mobility_weekly$locality), 
+                    function(loc) {
+                      ld <- filter(va_mobility_weekly, locality==loc)
+                      sentinel <- ld[nrow(ld),]
+                      sentinel[1,'t'] <- 1e6
+                      sentinel[1,'date'] <- 1e6 + as.Date('2020-01-01')
+                      sentinel
+                    }) %>%
+  bind_rows()
+
+va_mobility_weekly <- 
+  bind_rows(sentinels, va_mobility_weekly) %>%
+  arrange(locality, t)
+
 usethis::use_data(va_mobility_daily, va_mobility_weekly, overwrite=TRUE)

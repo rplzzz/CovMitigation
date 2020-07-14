@@ -230,11 +230,12 @@ mobility_adjust <- function(t, zeta, mobility_table)
   tmax <- ttbl[imax]
 
   
-  ival <- 
-    ifelse(t > tmax, 
-           imax,
-           which.max(ttbl >= t))
+  # ival <- 
+  #   ifelse(t > tmax, 
+  #          imax,
+  #          which.max(ttbl >= t))
 
+  ival <- which.max(ttbl >= t)     # sentinel value guarantees that there is at least one value.
   mobval <- mobility_table[[2]][ival]
   
   exp(zeta * mobval)  
@@ -271,7 +272,7 @@ local_mobility <- function(locality)
   if(nr == 0) {
     ## No data in the table, so create a dummy table that will produce no 
     ## adjustment.
-    mobility_table <- tibble::tibble(t=c(0,1), mobility=c(0,0))
+    mobility_table <- tibble::tibble(t=c(0,1e6), mobility=c(0,0))
   }
   
   as.list(mobility_table)
