@@ -228,16 +228,15 @@ mobility_adjust <- function(t, zeta, mobility_table)
   ttbl <- mobility_table[[1]]
   imax <- which.max(ttbl)
   tmax <- ttbl[imax]
-  tmin <- min(ttbl)
-  
-  ival <- 
-    ifelse(t > tmax, 
-           imax,
-           1 + round(t) - tmin)
 
-  mobval <- ifelse(ival<1,
-                   0,
-                   mobility_table[[2]][ival])
+  
+  # ival <- 
+  #   ifelse(t > tmax, 
+  #          imax,
+  #          which.max(ttbl >= t))
+
+  ival <- which.max(ttbl >= t)     # sentinel value guarantees that there is at least one value.
+  mobval <- mobility_table[[2]][ival]
   
   exp(zeta * mobval)  
 }
@@ -264,21 +263,16 @@ local_mobility <- function(locality)
 {
   mobility_col <- getOption('CovMitigation.mobility_column', default='home')
   mobility_table <- 
-    va_mobility_daily[va_mobility_daily$locality == locality , 
+    va_mobility_weekly[va_mobility_weekly$locality == locality , 
                       c('t', mobility_col)]
   names(mobility_table) <- c('t', 'mobility')
   mobility_table <- mobility_table[!is.na(mobility_table[['mobility']]),]
   
   nr <- nrow(mobility_table)
-  if(nr > 0) {
-    ## Check that there are no gaps in the table.
-    nday <- 1 + max(mobility_table[['t']]) - min(mobility_table[['t']])
-    stopifnot(nr==nday)
-  }
-  else {
+  if(nr == 0) {
     ## No data in the table, so create a dummy table that will produce no 
     ## adjustment.
-    mobility_table <- tibble::tibble(t=c(0,1), mobility=c(0,0))
+    mobility_table <- tibble::tibble(t=c(0,1e6), mobility=c(0,0))
   }
   
   as.list(mobility_table)

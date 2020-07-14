@@ -17,7 +17,7 @@ rawdata <- readr::read_csv(dataurl, col_types=colspec) %>%
          transit = transit_stations_percent_change_from_baseline,
          work = workplaces_percent_change_from_baseline,
          home = residential_percent_change_from_baseline
-         )
+  )
 
 ## Add the version of the locality identifiers used in state data
 locality_names <- select(vdhcovid::valocalities, fips, locality)
@@ -50,16 +50,30 @@ va_mobility_daily <-
   bind_rows() %>%
   mutate(t = as.numeric(date - as.Date('2020-01-01')),
          home = -home           # Give home index the same sign convention as other indices
-         )
+  )
 
-wkdates <- unique(vdhcovid::vaweeklytests[['date']])
+strt <- as.Date('2019-12-30')
+t <- as.numeric(va_mobility_daily$date - strt)
+va_mobility_daily$week <- as.integer(floor(t/7))
+va_mobility_weekly <- 
+  group_by(va_mobility_daily, fips, locality, week) %>%
+  summarise(date = week[1]*7 + strt, retail=mean(retail), grocery=mean(grocery), parks=mean(parks), work=mean(work),
+            home=mean(home)) %>%
+  ungroup() %>%
+  mutate(t = as.numeric(date - as.Date('2020-01-01')))
+
+sentinels <- lapply(unique(va_mobility_weekly$locality), 
+                    function(loc) {
+                      ld <- filter(va_mobility_weekly, locality==loc)
+                      sentinel <- ld[nrow(ld),]
+                      sentinel[1,'t'] <- 1e6
+                      sentinel[1,'date'] <- 1e6 + as.Date('2020-01-01')
+                      sentinel
+                    }) %>%
+  bind_rows()
 
 va_mobility_weekly <- 
-  group_by(va_mobility_daily, fips, locality) %>%
-  group_map(function(df, group) {
-    wkagg(wkdates, df, c('retail','grocery','parks','transit', 'work', 'home'))
-  },
-  keep=TRUE) %>%
-  bind_rows()
+  bind_rows(sentinels, va_mobility_weekly) %>%
+  arrange(locality, t)
 
 usethis::use_data(va_mobility_daily, va_mobility_weekly, overwrite=TRUE)
