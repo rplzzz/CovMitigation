@@ -29,7 +29,7 @@ gen_prior <- function(hparms, verbose=FALSE)
              c(8,8, 14), 
              c(2,2, 2), log=TRUE),
       dnorm(parms['eta'], -0.7, 1, log=TRUE),
-      dnorm(parms['xi'], 0, 2, log=TRUE),
+      dlnorm(parms['xi'], -0.7, 0.5, log=TRUE),
       dgamma(parms['zeta'], 1, 1, log=TRUE),         # mobility effect expected to be positive
       dnorm(parms['day_zero'], 30, 30, log=TRUE),
       dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
@@ -71,7 +71,7 @@ qprior <- function(p, hparms=list()) {
   ## Return a named vector of parameters
   c(
     eta = qnorm(p[1], -0.7, 1),
-    xi = qnorm(p[2], 0, 2),
+    xi = qlnorm(p[2], -0.7, 0.5),
     zeta = qgamma(p[3], 1, 1),
     D0 = qlnorm(p[4], 2, 0.5),
     A0 = qgamma(p[5], 8, 2),
