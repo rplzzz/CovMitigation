@@ -9,19 +9,29 @@ library(dplyr)
 library(here)
 library(metrosamp)
 library(ggplot2)
+library(ggthemes)
 library(tidyr)
 library(CovMitigation)
 
 registerDoParallel(8)
 
+mkdensplt <- function(samps) {
+  varnames <- colnames(samps)
+  pltdata <- pivot_longer(as.data.frame(samps), everything(), names_to = 'parameter')
+  pltdata$parameter <- factor(pltdata$parameter, levels=varnames, ordered=TRUE)
+  ggplot(data=pltdata, aes(x=value)) + geom_density(fill='LightGrey', alpha=0.5) + facet_wrap(~parameter, scales='free') +
+    theme_bw()
+}
+
 set.seed(867-5309)
 ```
 
 ```{r loaddata}
-datadir <- here('analysis', 'mcmc-rslts', 'warmup-4')
-warmup_files <- list.files(path=datadir, pattern='mcmc-warmup.*\\.rds', full.names=TRUE)
+datadir <- here('analysis', 'mcmc-rslts', 'mcmc-test-v3')
+warmup_files <- list.files(path=datadir, pattern='mcmc-ckpt.*\\.rds', full.names=TRUE)
 
 warmups <- lapply(warmup_files, readRDS)
+warmups <- recover_ckpt(warmups)
 
 cwarmups <- metrosamp2coda(warmups, 2500)
 ```
@@ -42,6 +52,80 @@ cat('\nRhat statistic:\n')
 coda::gelman.diag(cwarmups)
 ```
 
+## Density plots
+
+```{r densplots}
+allsamps <- getsamples(warmups, thinto=1600)
+mkdensplt(allsamps)
+```
+
+```{r sampleruns}
+Nsamp <- 250
+parmsamps <- rsample(warmups, Nsamp)
+runparms <- function(parms, scenname) {
+  modparms <- parms[c('eta','xi','zeta', 'A0', 'D0', 'Ts', 'I0', 'mask_effect')]
+  day_zero <- 30
+  raw <- run_scenario(270, as.list(modparms), scenarioName = scenname)
+  totalUVA <- 
+    group_by(raw, time, scenario) %>% 
+    summarise(
+      popmkt = sum(population*marketFraction),
+      newCases = sum(newCases*marketFraction),
+      newSympto = sum(newSympto * marketFraction),
+      PopSympto = sum(PopSympto*marketFraction),
+      PopInfection = sum(PopInfection*marketFraction),
+      fracInfection = PopInfection / popmkt,
+      PopCumulInfection = sum(PopCumulInfection*marketFraction),
+      fracCumulInfection = PopCumulInfection/popmkt
+    ) %>%
+    ungroup()
+  dt <- totalUVA$time + day_zero
+  dateout <- dt + as.Date('2020-01-01')
+  mutate(totalUVA, time=dt, date=dateout)
+}
+
+sample_runs <- 
+  lapply(seq(1,Nsamp), 
+         function(i) {
+           parms <- parmsamps[i,]
+           runparms(parms, as.character(i))
+         }) %>%
+  bind_rows()
+
+ev_run <- runparms(EV(warmups), 'EV')
+map_run <- runparms(MAP(warmups), 'MAP')
+```
+
+
+```{r modobs}
+mapev <- rbind(EV(warmups), MAP(warmups))
+viscounties <- c('AlbemarleCounty', 'Charlottesvillecity', 'NelsonCounty',  ## Thomas Jefferson district
+                 'FairfaxCounty', 'ArlingtonCounty', 'PrinceWilliamCounty',  ## Northern Virginia
+                 'Richmondcity', 'HenricoCounty', 'ChesterfieldCounty'      ## Richmond area
+)
+plt_modobs(mapev, c('EV', 'MAP'), counties = viscounties, default_parms=list(day_zero=30)) + scale_color_solarized()
+plt_projections(mapev, c('EV', 'MAP'), what='PopInfection') + scale_color_solarized()
+```
+
+```{r ribbonplot}
+strtdate <- as.Date('2020-07-01')
+enddate <- as.Date('2020-10-01')
+ci_by_date <- 
+  filter(sample_runs, date >= strtdate, date < enddate) %>%
+  #mutate(time = as.numeric(date-strtdate)) %>%
+  group_by(date) %>%
+  summarise(nslo = quantile(newSympto, 0.1), nshi = quantile(newSympto, 0.9)) %>%
+  ungroup()
+
+pltev <- filter(ev_run, date >= strtdate, date < enddate)
+
+rplt <- 
+  ggplot(data=pltev, aes(x=date)) + 
+  geom_line(aes(y=newSympto), size=1.2) +
+  geom_ribbon(data=ci_by_date, aes(ymin=nslo, ymax=nshi), alpha=0.5) +
+  theme_bw()
+print(rplt)
+```
 
 ## Improving the sampling
 
@@ -51,66 +135,19 @@ large enough that the chains might be able to mix, but that may give us an
 acceptance rate that is too low, but it's worth a try.
 
 ```{r cor}
-allsamps <- getsamples(warmups, thinto=1600)
 covm <- cov(allsamps)
 signif(covm,3)
 ```
 
-Let's try sampling with this covariance matrix and see how we do.
-```{r samptest}
-
-lpost <- gen_post()
-
-p0 <- warmups[[1]]$plast
-ms1 <- metrosamp(lpost, p0, 1000, 1, covm)
-ms1$accept
-neff(ms1$samples)
+```{r genscen}
+pltdata <- basescens %>%
+  dplyr::group_by(time, scenario) %>%
+  dplyr::summarise(
+    newCases = sum(newCases*marketFraction),
+    PopSympto = sum(PopSympto*marketFraction),
+    PopInfection = sum(PopInfection*marketFraction),
+    PopCumulInfection = sum(PopCumulInfection*marketFraction),
+    PopCumulFrac = sum(PopCumulInfection)/sum(population*marketFraction),
+    popTotal = sum(population*marketFraction)
+  )
 ```
-
-We're only accepting one out of every thousand proposals, which is a bit low, but
-this is a very large proposal distribution.  We can shrink the distribution down
-quite a bit and potentially still get some good mixing.  The covariance matrix
-is effectiely the square of the scale, so dividing by 10 reduces the scale by 3.
-
-```{r samptest2}
-ms2 <- metrosamp(lpost, ms1, 1000, 1, covm/10)
-ms2$accept
-neff(ms2)
-```
-
-The acceptance rate is still pretty low, as is the sampling efficiency, but we may
-just have to live with it, if we want to have any kind of decent mixing.  Here is
-the range of values we are trying to cover.  
-
-```{r densplots}
-pltdata <- pivot_longer(as.data.frame(allsamps), everything(), names_to = 'parameter')
-ggplot(data=pltdata, aes(x=value)) + geom_density(fill='LightGrey', alpha=0.5) + facet_wrap(~parameter, scales='free') +
-  theme_bw()
-
-```
-
-```{r samptest3}
-ms3 <- metrosamp(lpost, ms1, 1000, 1, covm/5)
-ms3$accept
-neff(ms3)
-cat('Proposal distribution scale:\n')
-sqrt(diag(covm/5))
-```
-
-This is pretty good, but the size of the T0_lo and T0_ulo proposal steps look 
-rather large.  The outlier values for these two parameters don't have great pdf
-values, so even with a smaller step they should be able to find their way into
-more reasonable ranges.
-
-```{r newscl}
-scl <- sqrt(diag(covm/5))
-scl[3:4] <- 10
-sclmat <- cor2cov(cor(allsamps), scl)
-ms4 <- metrosamp(lpost, ms3, 1000, 1, sclmat)
-ms4$accept
-neff(ms4)
-cat('Proposal distribution scale:\n')
-sqrt(diag(sclmat))
-```
-
-
