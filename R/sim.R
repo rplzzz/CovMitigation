@@ -103,8 +103,8 @@ param_defaults <-
     ## day-zero parameter
     day_zero = NULL,
     
-    ## Counties subject to high growth rate (none by default)
-    hg_counties      = character(0),
+    ## future mobility scenario
+    mobility_scenario = NULL,
     
     ## Selection and filtering parameters
     typeAMCDRG = "fractionAllUVA"   # other valid values are "fractionAllVCU"  "fractionRespUVA" "fractionRespVCU" "fractionAllUVA"
@@ -287,7 +287,7 @@ run_single_county <- function(locality, mktshare, timevals, params)
     beta_schedule <- beta0
   }
   
-  mobility_table <- local_mobility(locality)
+  mobility_table <- local_mobility(locality, params[['mobility_scenario']])
   
   epsilon <- 1/params$Ts
   

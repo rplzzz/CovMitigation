@@ -257,13 +257,24 @@ mobility_adjust <- function(t, zeta, mobility_table)
 #' column as the default and disable the set-by-option capability
 #' 
 #' @param locality Name of the locality to extract
+#' @param scenario Future mobility scenario to use.  If \code{NULL}, then use the
+#' base scenario (with mobility constant after the last data point).  Otherwise,
+#' the name of the future scenario to use.
 #' @return A list with two vectors, \code{t} and \code{mobility}, in that
 #' order.
-local_mobility <- function(locality)
+local_mobility <- function(locality, scenario=NULL)
 {
-  mobility_col <- getOption('CovMitigation.mobility_column', default='home')
+  mobility_col <- 'home'
+  if(is.null(scenario)) {
+    mobility_base_table <- va_mobility_weekly
+  }
+  else {
+    ## For now we only have one future scenario, so just use that for any non-null
+    ## vaue of scenario
+    mobility_base_table <- va_future_mobility_weekly
+  }
   mobility_table <- 
-    va_mobility_weekly[va_mobility_weekly$locality == locality , 
+    mobility_base_table[mobility_base_table$locality == locality , 
                       c('t', mobility_col)]
   names(mobility_table) <- c('t', 'mobility')
   mobility_table <- mobility_table[!is.na(mobility_table[['mobility']]),]
