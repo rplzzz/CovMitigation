@@ -67,6 +67,15 @@ daily2weekly <- function(dailydata) {
                       function(loc) {
                         ld <- filter(weeklydata, locality==loc)
                         sentinel <- ld[nrow(ld),]
+                        for(col in c('retail', 'grocery', 'parks', 'work','home')) {
+                          if(all(is.na(ld[[col]]))) {
+                            sentinel[1,col] <- 0
+                          }
+                          else {
+                            good <- ld[[col]][!is.na(ld[[col]])]
+                            sentinel[1,col] <- good[length(good)]
+                          }
+                        }
                         sentinel[1,'t'] <- 1e6
                         sentinel[1,'date'] <- 1e6 + as.Date('2020-01-01')
                         sentinel
