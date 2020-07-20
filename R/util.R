@@ -221,21 +221,12 @@ wkagg <- function(weekending, df, cols, aggfun=mean, nday=7)
 #' @param t Days since 2020-01-1
 #' @param zeta Model coefficient for influence of mobility on transmissibility
 #' @param mobility_table Mobility table for the locality being processed (see details)
-#' 
+#' @export
 mobility_adjust <- function(t, zeta, mobility_table)
 {
 
   ttbl <- mobility_table[[1]]
-  imax <- which.max(ttbl)
-  tmax <- ttbl[imax]
-
-  
-  # ival <- 
-  #   ifelse(t > tmax, 
-  #          imax,
-  #          which.max(ttbl >= t))
-
-  ival <- which.max(ttbl >= t)     # sentinel value guarantees that there is at least one value.
+  ival <- which.max(ttbl >= t)     # sentinel value guarantees that there is at least one TRUE in the table.
   mobval <- mobility_table[[2]][ival]
   
   exp(zeta * mobval)  
@@ -262,6 +253,7 @@ mobility_adjust <- function(t, zeta, mobility_table)
 #' the name of the future scenario to use.
 #' @return A list with two vectors, \code{t} and \code{mobility}, in that
 #' order.
+#' @export
 local_mobility <- function(locality, scenario=NULL)
 {
   mobility_col <- 'home'

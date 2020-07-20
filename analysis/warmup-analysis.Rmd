@@ -96,12 +96,15 @@ ev_run <- runparms(EV(warmups), 'EV')
 map_run <- runparms(MAP(warmups), 'MAP')
 ```
 
-
+Comparison to model observation.  Note both Franklin City and Charlottesville City
+are missing their mobility data, which hurts our ability to pick up the July uptick
+in cases in those localities.
 ```{r modobs}
 mapev <- rbind(EV(warmups), MAP(warmups))
 viscounties <- c('AlbemarleCounty', 'Charlottesvillecity', 'NelsonCounty',  ## Thomas Jefferson district
                  'FairfaxCounty', 'ArlingtonCounty', 'PrinceWilliamCounty',  ## Northern Virginia
-                 'Richmondcity', 'HenricoCounty', 'ChesterfieldCounty'      ## Richmond area
+                 'Richmondcity', 'HenricoCounty', 'ChesterfieldCounty',      ## Richmond area
+                 'Franklincity', 'Suffolkcity', 'VirginiaBeachcity'         ## Tidewater
 )
 plt_modobs(mapev, c('EV', 'MAP'), counties = viscounties, default_parms=list(day_zero=30)) + scale_color_solarized()
 plt_projections(mapev, c('EV', 'MAP'), what='PopInfection') + scale_color_solarized()
@@ -139,15 +142,71 @@ covm <- cov(allsamps)
 signif(covm,3)
 ```
 
-```{r genscen}
-pltdata <- basescens %>%
-  dplyr::group_by(time, scenario) %>%
-  dplyr::summarise(
-    newCases = sum(newCases*marketFraction),
-    PopSympto = sum(PopSympto*marketFraction),
-    PopInfection = sum(PopInfection*marketFraction),
-    PopCumulInfection = sum(PopCumulInfection*marketFraction),
-    PopCumulFrac = sum(PopCumulInfection)/sum(population*marketFraction),
-    popTotal = sum(population*marketFraction)
-  )
+## Future scenarios
+
+```{r futscen}
+mapparms <- MAP(warmups)
+mapfut <- c(as.list(mapparms), scenario='future')
+map_fut_run <- runparms(mapfut, 'RTN future')
+jan01 <- as.Date('2020-01-01')
+
+plt <- dplyr::bind_rows(dplyr::mutate(map_run, scenario='Frozen future', date=time+jan01), 
+                        dplyr::mutate(map_fut_run, date=time+jan01))
+
+ggplot(plt, aes(x=date, y=fracInfection, color=scenario)) + geom_line(size=1.2) +
+  ggthemes::scale_color_solarized() +
+  theme_bw()
+```
+
+## Analysis of transmissibility
+
+Why does the infection take a nosedive through July?  Look at Albemarle County
+as a case study.
+
+```{r beta.analysis}
+## Base transmissibility, without mobility modification
+pmap <- MAP(warmups)
+loc <- 'AlbemarleCounty'
+strtdate <- as.Date('2020-04-01')
+enddate <- as.Date('2020-07-31')
+dates <- seq(strtdate, enddate, by=1)
+times <- dates - as.Date('2020-01-01')
+
+basebeta <- localbeta(pmap, loc)
+baser0 <- pmap[['D0']] * basebeta
+
+## Include mobility modifications
+mobtbl <- local_mobility(loc)
+mobfac <- sapply(times, mobility_adjust,
+                 zeta=pmap[['zeta']], mobility_table=mobtbl)
+mobr0 <- mobfac*baser0
+
+## Include mask effect
+mask <- mask_indicator(times)
+maskr0 <- exp(pmap[['mask_effect']] * mask) * mobr0
+
+## Include effects of declining susceptible population
+dayzero <- 30
+modparm <- as.list(pmap[names(pmap) != 'b'])
+modoutput <- run_scenario(seq(0,max(times)+dayzero), modparm, counties = 'AlbemarleCounty')
+modoutput$time <- modoutput$time + dayzero
+modoutput$date <- modoutput$time + as.Date('2020-01-01')
+modoutput$sfrac <- modoutput$S / modoutput$population
+filt <- modoutput$time %in% times
+modoutput_filt <- modoutput[filt,]
+sfrac <- modoutput_filt$sfrac
+rt <- maskr0 * sfrac
+
+pltdata <- tibble(t=times, date=dates, mobr0=mobr0, maskr0=maskr0, 
+                  sfrac=sfrac, rt=rt)
+
+ggplot(pltdata, aes(x=date)) + 
+  geom_line(aes(y=mobr0, color='(b) mobility adjusted R0'),size=1.2) + 
+  geom_line(aes(y=maskr0, color='(c) mask + mob R0'), size=1.2) +
+  geom_hline(mapping=aes(yintercept=baser0, color='(a) base R0'), size=1.0) +
+  geom_line(aes(y=rt, color='(d) Rt'), size=1.2) +
+  ylab('R') +
+  #coord_cartesian(ylim=c(0,1.25)) +
+  ggthemes::scale_color_solarized() +
+  theme_bw()
 ```
