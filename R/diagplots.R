@@ -9,10 +9,11 @@
 #' @param scenarios Names of scenarios
 #' @param counties Counties to include in the plot; if not specified, the top 4
 #' by number of infections will be plotted.
+#' @param cols Number of columns in the grid of miniplots.
 #' @param default_parms Default values to use for parameters not specified in parms
 #' @importFrom dplyr %>%
 #' @export
-plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
+plt_modobs <- function(parms, scenarios=NULL, counties=NULL, cols=3, default_parms=NULL)
 {
   ## silence warnings
   fips <- newcases <- predicted <- NULL
@@ -88,7 +89,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) + 
     ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted', color=scenario), size=1.2) + 
     ggplot2::geom_point(mapping=ggplot2::aes(y=npos, shape='observed')) + 
-    ggplot2::facet_wrap(~locality, scales='free_y') +
+    ggplot2::facet_wrap(~locality, scales='free_y', ncol=cols) +
     ggplot2::guides(
       color=ggplot2::guide_legend('Scenario', order=1),
       shape=ggplot2::guide_legend('',order=3), 

@@ -4,7 +4,13 @@
 \alias{plt_modobs}
 \title{Plot model predictions against data observations}
 \usage{
-plt_modobs(parms, scenarios = NULL, counties = NULL, default_parms = NULL)
+plt_modobs(
+  parms,
+  scenarios = NULL,
+  counties = NULL,
+  cols = 3,
+  default_parms = NULL
+)
 }
 \arguments{
 \item{parms}{Parameters to run model for}
@@ -13,6 +19,8 @@ plt_modobs(parms, scenarios = NULL, counties = NULL, default_parms = NULL)
 
 \item{counties}{Counties to include in the plot; if not specified, the top 4
 by number of infections will be plotted.}
+
+\item{cols}{Number of columns in the grid of miniplots.}
 
 \item{default_parms}{Default values to use for parameters not specified in parms}
 }
