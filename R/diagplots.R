@@ -38,13 +38,12 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, cols=3, default_par
     lapply(seq_along(scenarios),
       function(i) {
         pvals <- fill_defaults(parms[i,], obs[['default_parm_vals']])
-        modpvals <- as.list(pvals[! names(pvals) %in% c('day_zero', 'b')])
+        modpvals <- as.list(pvals[! names(pvals) %in% c('b')])
         
-        day0 <- pvals[['day_zero']]
         b <- pvals[['b']]
         ## get output for every day up to the last in the dataset.
         tmax <- max(obsdata[['time']])
-        tvals <- c(day0, seq(ceiling(day0), tmax))
+        tvals <- seq(infection_t0, tmax)
         modout <- run_scenario(tvals, modpvals, counties=counties)
         modout[['scenario']] <- scenarios[i]
         modout[['bias']] <- pvals[['b']]
@@ -115,7 +114,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, cols=3, default_par
 #' @param marketadjust If \code{TRUE}, adjust projections for UVAHS market share; 
 #' otherwise, show raw totals.
 #' @export
-plt_projections <- function(parms, scenarios, default_parms = c(day_zero=30), tmax=270, what='newSympto', usedate=TRUE, 
+plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, what='newSympto', usedate=TRUE, 
                             counties=NULL, marketadjust=FALSE)
 {
   ## silence warnings
@@ -135,11 +134,8 @@ plt_projections <- function(parms, scenarios, default_parms = c(day_zero=30), tm
       lapply(seq(1, nrow(parms)), 
              function(i) {
                pset <- fill_defaults(parms[i,], default_parms)
-               modparms <- as.list(pset[! names(pset) %in% c('day_zero', 'b')])
+               modparms <- as.list(pset[! names(pset) %in% c('b')])
                modout <- run_scenario(tvals, modparms, scenarioName = scenarios[i])
-               if(!is.na(pset['day_zero'])) {
-                 modout[['time']] <- modout[['time']] + pset['day_zero']
-               }
                if(!is.null(counties)) {
                  modout <- modout[modout$locality %in% counties,]
                }

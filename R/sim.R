@@ -80,6 +80,9 @@ getparam <- function(t, param)
   }
 }
 
+### Constant for the day we start tracking the infection, taken to be day 30 (2020-01-31).
+infection_t0 <- 30
+
 param_defaults <- 
   list(
     ## Epidemiological model parameters
@@ -99,9 +102,6 @@ param_defaults <-
     S0                = 1,    # Fraction initially susceptible (the rest are uninfected but immune)
     E0                = 0,    # Initial number of exposed (number, not fraction)
     I0                = 1,    # Initial number of infected (a number, not a fraction)
-    
-    ## day-zero parameter
-    day_zero = NULL,
     
     ## future mobility scenario
     mobility_scenario = NULL,
@@ -244,18 +244,15 @@ run_single_county <- function(locality, mktshare, timevals, params)
     stop('Cannot find locality:  ',locality)
   }
   
-  if(is.null(params[['day_zero']])) {
-    dzlookup <- va_county_first_case
-  }
-  else {
-    dzlookup <- params[['day_zero']]
-  }
-
+  ## Find the start date for this county.  Each county is delayed from the overall
+  ## start date by a number of days equal to the difference between its first case
+  ## and the first case in the state.
+  dzlookup <- va_county_first_case
   dayzero <- dzlookup$firstDay[dzlookup$Locality == locality]
   if(is.na(dayzero)) {
     dayzero <- 1 + max(dzlookup$firstDay, na.rm=TRUE)  # crude approx for regions where it hasn't started yet
   }
-  dayzero <- dayzero - min(dzlookup$firstDay, na.rm=TRUE)  # Adjust to be relative to first county infected
+  dayzero <- infection_t0 + dayzero - min(dzlookup$firstDay, na.rm=TRUE)
   
   
   ## Calculate derived parameters
@@ -301,26 +298,33 @@ run_single_county <- function(locality, mktshare, timevals, params)
                 Is=0,
                 R=(pop-params$I0-params$E0)*(1-params$S0))
   
-  if(min(timevals) + dayzero > max(timevals)) {
+  
+  ## Silently drop requested output times that are before the start of the infection
+  timevals <- timevals[timevals >= dayzero]
+  if(length(timevals) == 0) {
     ## There won't be any output within the range of observed data for this county,
-    ## so skip.
+    ## so skip it.
     return(NULL)
+  }
+  ## Ensure that the calculation starts on the correct date.
+  if(min(timevals) > dayzero) {
+    timevals <- c(dayzero, timevals)
+    dropfirst <- TRUE                # drop the first row from the results, since it wasn't requested.
+  }
+  else {
+    dropfirst <- FALSE
   }
   
   rslt <- as.data.frame(deSolve::ode(initvals, timevals, seir_equations, ode_params))
-  
-  ## Adjust for day zero.  Remove any times past tmax
-  rslt$time <- rslt$time + dayzero
-  rslt <- rslt[rslt$time <= max(timevals),]
   
   ## Add some identifiers for the locality
   rslt$locality <- locality
   rslt$population <- pop
   rslt$marketFraction <- mktshare
   
-  ## Calculate new cases as lagged difference in S (can't take the difference in I because it is 
-  ## also affected by recoveries)
-  newcases <- -diff(rslt$S)
+  ## Calculate new cases as lagged difference in total infected pop minus lagged
+  ## difference in recovered pop
+  newcases <- diff(rslt$I + rslt$Is) + diff(rslt$R)
   ## This will have one fewer results than the original vector; deem the new cases at t=0 to be 0
   rslt$newCases <- c(0, newcases)
   
@@ -345,6 +349,11 @@ run_single_county <- function(locality, mktshare, timevals, params)
   rslt$PopSuscept <- rslt$S
   rslt$PopCumulInfection <- cumsum(rslt$newCases)
 
+  ## Drop the initial time, if it was not amongst the times requested
+  if(dropfirst) {
+    rslt <- rslt[-c(1),]
+  }
+  
   rslt
 }
 
@@ -367,17 +376,9 @@ run_parms <- function(parms, scenario_name='Scen', tmax=273, aggregate=FALSE)
 {
   seirparms <- parms[c('eta', 'xi', 'zeta', 'D0', 'A0', 'I0', 'Ts', 
                        'mask_effect', 'mobility_scenario')]
-  if('day_zero' %in% names(parms))
-    tstrt <- parms['day_zero']
-  else
-    tstrt <- 30
   
-  tnext <- ceiling(tstrt)
-  if(tnext - tstrt < 1e-3) {
-    tnext <- tnext + 1
-  }
-  
-  tvals <- c(tstrt, seq(tnext, tmax))
+  stopifnot(tmax > infection_t0)
+  tvals <- seq(infection_t0, ceiling(tmax))
   modout <- run_scenario(tvals, as.list(seirparms), scenarioName = scenario_name)
   
   modout <- modout[modout$time - floor(modout$time) < 1e-6,]

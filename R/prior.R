@@ -16,7 +16,7 @@
 #' @export
 gen_prior <- function(hparms, verbose=FALSE)
 {
-  parm_names <- c('eta','xi', 'zeta', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0', 'mask_effect')
+  parm_names <- c('eta','xi', 'zeta', 'D0', 'A0', 'Ts', 'b', 'I0', 'mask_effect')
   function(parms) {
     stopifnot(!is.null(names(parms)))
     if(any(!names(parms) %in% parm_names)) {
@@ -31,7 +31,6 @@ gen_prior <- function(hparms, verbose=FALSE)
       dnorm(parms['eta'], -0.7, 1, log=TRUE),
       dlnorm(parms['xi'], -0.7, 0.5, log=TRUE),
       dgamma(parms['zeta'], 1, 1, log=TRUE),         # mobility effect expected to be positive
-      dnorm(parms['day_zero'], 30, 30, log=TRUE),
       dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
       dlnorm(parms['I0'], 2, 1, log=TRUE),
       dgamma(-parms['mask_effect'], 1, 2, log=TRUE)  # mask effect expected to be negative
@@ -39,7 +38,7 @@ gen_prior <- function(hparms, verbose=FALSE)
     if(verbose) {
       pnames <- c('A0:\t', 'Ts:\t',  'D0:\t', 
                   'eta', 'xi', 'zeta',
-                  'day_zero:\t', 'b:\t', 'I0:\t', 'mask_effect:\t')
+                  'b:\t', 'I0:\t', 'mask_effect:\t')
       prvals <- signif(logps, 3)
       msg <- paste(pnames, prvals, collapse='\n')
       totmsg <- paste('total:\t', signif(sum(logps, na.rm=TRUE), 4))
