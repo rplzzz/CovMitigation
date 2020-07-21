@@ -26,17 +26,36 @@ mkdensplt <- function(samps) {
 set.seed(867-5309)
 ```
 
+## Load MCMC results
+
+These results are from a set of 16 Markov chains, with 10,000 samples each.  The mixing
+on the Markov chains isn't great, so the effective number of samples here is still
+pretty low, but it at least gives an idea of where we're at.  
+
+Also, Markov chain 
+number 9 appears to be sampling some extreme outliers, (log-posterior of about -25000,
+as compared with -15000 for the rest of the chains), so we exclude it from this
+analysis (however, it's still being used as a base for further sampling, in case
+it eventually resolves to something sensible).
+
 ```{r loaddata}
-datadir <- here('analysis', 'mcmc-rslts', 'mcmc-test-v3')
-warmup_files <- list.files(path=datadir, pattern='mcmc-ckpt.*\\.rds', full.names=TRUE)
+datadir <- here('analysis', 'mcmc-rslts', 'mcmc-test-v3a')
+warmup_files <- list.files(path=datadir, pattern='mcmc-v3.*\\.rds', full.names=TRUE)
 
 warmups <- lapply(warmup_files, readRDS)
 warmups <- recover_ckpt(warmups)
+
+warmups <- warmups[-c(9)]
 
 cwarmups <- metrosamp2coda(warmups, 2500)
 ```
 
 ## Expectation value and credible intervals
+
+The acceptance ratio is around 22%, which is pretty reasonable, but in order to 
+get that we had to make the step size rather small, which is why we're not getting
+great sampling efficiency.
+
 ```{r basicanalysis}
 cat('\nAcceptance ratio by chain:\n')
 sapply(warmups, accrate)
@@ -52,6 +71,14 @@ cat('\nRhat statistic:\n')
 coda::gelman.diag(cwarmups)
 ```
 
+The CIs for these runs are _extremely_ narrow.  To me, this is saying that our 
+likelihood function is still overconfident.  I'm not sure exactly why that is 
+happening.  You would think that, with these fits being as rough as they are, there
+would be a wide range of viable fits.  Maybe you get one county right with one set
+of parameters, and a different one right with a different set.  That doesn't seem
+to be happening here, perhaps because the large localities have large enough test 
+samples that they dominate the contributions from smaller localities?
+
 ## Density plots
 
 ```{r densplots}
@@ -63,7 +90,7 @@ mkdensplt(allsamps)
 Nsamp <- 250
 parmsamps <- rsample(warmups, Nsamp)
 runparms <- function(parms, scenname) {
-  modparms <- parms[c('eta','xi','zeta', 'A0', 'D0', 'Ts', 'I0', 'mask_effect')]
+  modparms <- parms[c('eta','xi','zeta', 'A0', 'D0', 'Ts', 'I0', 'mask_effect', 'mobility_scenario')]
   day_zero <- 30
   raw <- run_scenario(270, as.list(modparms), scenarioName = scenname)
   totalUVA <- 
@@ -96,9 +123,25 @@ ev_run <- runparms(EV(warmups), 'EV')
 map_run <- runparms(MAP(warmups), 'MAP')
 ```
 
-Comparison to model observation.  Note both Franklin City and Charlottesville City
-are missing their mobility data, which hurts our ability to pick up the July uptick
-in cases in those localities.
+## Comparison to model observations
+
+The comparison between model output and observations is reasonably good. Both
+the expectation value parameters (EV) and the maximum a posteriori (MAP) are
+plotted, but they are basically indistinguishable.  There are some early outbreaks
+in Henrico and Prince William counties that we don't catch.  
+
+Our biggest miss
+is in Fairfax County, on 10 May.  It's not clear what's happening here.  The positive
+test fraction in Fairfax that week was actually slightly lower than it had been the
+week before, so the spike is due to a larger number of tests.  The nominal count
+of tests performed was only slightly larger than the week before, but the daily
+results were more consistent, so we get a much higher effective number of tests.
+However, the model outputs are being scaled by this same factor, so we should expect
+to see the model track the spike pretty closely.  It's possible that the scales
+are creating a bit of an illusion, and the model is running at about a third of
+the observed number of cases all through that time period, but the difference is
+more stark with 600 observed cases than it was with 150.
+
 ```{r modobs}
 mapev <- rbind(EV(warmups), MAP(warmups))
 viscounties <- c('AlbemarleCounty', 'Charlottesvillecity', 'NelsonCounty',  ## Thomas Jefferson district
@@ -107,8 +150,43 @@ viscounties <- c('AlbemarleCounty', 'Charlottesvillecity', 'NelsonCounty',  ## T
                  'Franklincity', 'Suffolkcity', 'VirginiaBeachcity'         ## Tidewater
 )
 plt_modobs(mapev, c('EV', 'MAP'), counties = viscounties, default_parms=list(day_zero=30)) + scale_color_solarized()
+```
+
+
+There
+were some early outbreaks that we don't account for in our modeling, and in May
+and June there appear to have been some testing surges in late May and early June
+that the model expected to produce a large number of new cases, but which in reality
+did not.
+The counties in the Thomas Jefferson district (first row, below) are a good example
+of the testing surge phenomenon.  There is a spike on 24 May, where the model predicts between 15 and 20
+effective (i.e., adjusted for variability) cases in each of Charlottesville and
+Albemarle; in reality, after adjusting for variability, there were just 1 and 3,
+respectively.  
+
+Another thing that shows up in the data is that the mobility data is missing for
+some localities.  Notably, Charlottesville city and Franklin city are both missing.
+In Charlottesville this causes the model to run a little high through April and May.
+This is most noticeable in the 26-April peak.  In Albemarle county, which does have
+mobility data, that peak is muted; whereas, in Charlottesville the forecast overshoots
+dramatically.  Similarly, the model predicts the upticks in July for Albemarle, Suffolk,
+Chesterfield, and Virginia Beach, but misses them for Charlottesville and Franklin.
+
+## Model projections
+
+We see here model predictions for both the expectation value and maximum a posteriori
+parameter sets.  Because the CIs are so narrow, these two are virtually indistinguishable.
+The models show a peak in late May, followed by a precipitous decline throughout
+July and into the future.  We will look at the decline in more detail further down.
+
+```{r projections}
 plt_projections(mapev, c('EV', 'MAP'), what='PopInfection') + scale_color_solarized()
 ```
+
+Here is a ribbon plot of the uncertainty in the model projections from July onward.
+Because the confidence intervals are very small, and because the projection covers
+the declining part of the curve (causing nearby model trajectories to converge),
+the uncertainty is small.
 
 ```{r ribbonplot}
 strtdate <- as.Date('2020-07-01')
@@ -130,23 +208,22 @@ rplt <-
 print(rplt)
 ```
 
-## Improving the sampling
-
-The acceptance rate is really high, which is contributing to both poor sampling
-efficiency and poor mixing.  Ideally we would want to make the sampling steps
-large enough that the chains might be able to mix, but that may give us an 
-acceptance rate that is too low, but it's worth a try.
-
-```{r cor}
-covm <- cov(allsamps)
-signif(covm,3)
-```
 
 ## Future scenarios
 
+I tried running some future scenarios with different mobility projections, but 
+because the model has the infection in strong decline, they don't make a whole
+lot of difference.  In the plot below we compare a scenario where the mobility is
+frozen at its last recorded value to one where mobility increases to 25% above
+the January baseline by September 1st.  
+
 ```{r futscen}
 mapparms <- MAP(warmups)
-mapfut <- c(as.list(mapparms), scenario='future')
+## XXX diagnostic
+mapparms['zeta'] <- 2
+map_run <- runparms(as.list(mapparms), 'Frozen future')
+## XXX end diagnostic
+mapfut <- c(as.list(mapparms), mobility_scenario='future')
 map_fut_run <- runparms(mapfut, 'RTN future')
 jan01 <- as.Date('2020-01-01')
 
@@ -158,7 +235,7 @@ ggplot(plt, aes(x=date, y=fracInfection, color=scenario)) + geom_line(size=1.2) 
   theme_bw()
 ```
 
-## Analysis of transmissibility
+### Analysis of transmissibility variation
 
 Why does the infection take a nosedive through July?  Look at Albemarle County
 as a case study.
@@ -181,9 +258,16 @@ mobfac <- sapply(times, mobility_adjust,
                  zeta=pmap[['zeta']], mobility_table=mobtbl)
 mobr0 <- mobfac*baser0
 
+## future scenario for mobility
+mobtblfut <- local_mobility(loc, 'future')
+mobfutfac <- sapply(times, mobility_adjust, zeta=pmap[['zeta']],
+                    mobility_table=mobtblfut)
+mobr0fut <- mobfutfac*baser0
+
 ## Include mask effect
 mask <- mask_indicator(times)
 maskr0 <- exp(pmap[['mask_effect']] * mask) * mobr0
+maskr0fut <- exp(pmap[['mask_effect']] * mask) * mobr0fut
 
 ## Include effects of declining susceptible population
 dayzero <- 30
@@ -196,15 +280,18 @@ filt <- modoutput$time %in% times
 modoutput_filt <- modoutput[filt,]
 sfrac <- modoutput_filt$sfrac
 rt <- maskr0 * sfrac
+rtfut <- maskr0fut * sfrac
 
-pltdata <- tibble(t=times, date=dates, mobr0=mobr0, maskr0=maskr0, 
-                  sfrac=sfrac, rt=rt)
+pltdata <- tibble(t=times, date=dates, mobr0=mobr0, maskr0=maskr0, maskr0fut=maskr0fut,
+                  sfrac=sfrac, rt=rt, rtfut=rtfut)
 
 ggplot(pltdata, aes(x=date)) + 
   geom_line(aes(y=mobr0, color='(b) mobility adjusted R0'),size=1.2) + 
   geom_line(aes(y=maskr0, color='(c) mask + mob R0'), size=1.2) +
+  geom_line(aes(y=maskr0fut, color='(ca) mask + futmob R0'), size=1) +
   geom_hline(mapping=aes(yintercept=baser0, color='(a) base R0'), size=1.0) +
   geom_line(aes(y=rt, color='(d) Rt'), size=1.2) +
+  geom_line(aes(y=rtfut, color='(da) Rt futmob'), size=1.0) +
   ylab('R') +
   #coord_cartesian(ylim=c(0,1.25)) +
   ggthemes::scale_color_solarized() +

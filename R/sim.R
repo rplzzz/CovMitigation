@@ -365,7 +365,8 @@ run_single_county <- function(locality, mktshare, timevals, params)
 #' @export
 run_parms <- function(parms, scenario_name='Scen', tmax=273, aggregate=FALSE)
 {
-  seirparms <- parms[c('eta', 'xi', 'zeta', 'D0', 'A0', 'I0', 'Ts')]
+  seirparms <- parms[c('eta', 'xi', 'zeta', 'D0', 'A0', 'I0', 'Ts', 
+                       'mask_effect', 'mobility_scenario')]
   if('day_zero' %in% names(parms))
     tstrt <- parms['day_zero']
   else

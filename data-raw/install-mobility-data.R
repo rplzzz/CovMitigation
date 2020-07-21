@@ -114,12 +114,13 @@ va_future_mobility_daily <-
              else {
                imax <- which.max(gooddata$date)
                y1 <- gooddata[[col]][imax]
-               if(y1 >= 0) {
+               y2 <- 0.25
+               if(y1 >= y2) {
                  fmd[[col]] <- y1
                }
                else {
-                 b <- y1 / (-x1^2/(2*x2) + x1 - x2/2)
-                 c <- -b*x2/2
+                 b <- (y1-y2) / (-x1^2/(2*x2) + x1 - x2/2)
+                 c <- -b*x2/2 + y2
                  a <- -b/(2*x2)
                  fmd[[col]] <- a*ftime^2 + b*ftime + c
                }
