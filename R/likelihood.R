@@ -106,7 +106,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
     parms <- fill_defaults(parms, default_parm_vals)
     
     ## Separate out the parameters that get passed to the SEIR model.
-    seirparms <- as.list(parms[! names(parms) %in% c('b')])
+    seirparms <- as.list(parms[! names(parms) %in% c('b0', 'b1')])
     
     ## get output for every day up to the last in the dataset.
     tmax <- max(obsdata[['time']])
@@ -157,7 +157,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
       cmp$npos[miss] <- 0
       
       ## adjust model outputs for testing fraction and testing bias!
-      b <- parms[['b']]
+      b <- parms[['b0']] - parms[['b1']] * log(cmp$ntest)
       
       ## The model forecast for the number of new cases is the current infection
       ## fraction (fi) times the number of tests performed.  However, we think that

@@ -1,6 +1,6 @@
 Package: CovMitigation
 Title: COVID-19 infection model for Virginia
-Version: 2.0.5.5500
+Version: 3.0.0
 Authors@R:
     person(given = "Robert",
            family = "Link",

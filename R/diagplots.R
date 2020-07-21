@@ -38,19 +38,20 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, cols=3, default_par
     lapply(seq_along(scenarios),
       function(i) {
         pvals <- fill_defaults(parms[i,], obs[['default_parm_vals']])
-        modpvals <- as.list(pvals[! names(pvals) %in% c('b')])
+        modpvals <- as.list(pvals[! names(pvals) %in% c('b0', 'b1')])
         
-        b <- pvals[['b']]
         ## get output for every day up to the last in the dataset.
         tmax <- max(obsdata[['time']])
         tvals <- seq(infection_t0, tmax)
         modout <- run_scenario(tvals, modpvals, counties=counties)
         modout[['scenario']] <- scenarios[i]
-        modout[['bias']] <- pvals[['b']]
         modout[['fi']] <- modout[['PopInfection']] / modout[['population']]
         modout[['date']] <- modout[['time']] + as.Date('2020-01-01')
+        
+        modout[['b0']] <- pvals[['b0']]
+        modout[['b1']] <- pvals[['b1']]
       
-        modout <- modout[,c('scenario','date','time','locality','fi','bias')]
+        modout <- modout[,c('scenario','date','time','locality','fi', 'b0', 'b1')]
         
         lmout <- split(modout, modout$locality, drop=TRUE)
         
@@ -79,6 +80,8 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, cols=3, default_par
     dplyr::left_join(obsdata, by=c('date','time', 'locality'))
   pltdata <- pltdata[pltdata[['fips']] %in% use_fips,]
   pltdata <- pltdata[!is.na(pltdata[['npos']]), ]
+  
+  pltdata[['bias']] <- pltdata[['b0']] - pltdata[['b1']] * log(pltdata[['ntest']])
   
   pltdata[['predicted']] <- 
     padjust(pltdata[['fi']], pltdata[['bias']]) * pltdata[['ntest']]
@@ -134,7 +137,7 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
       lapply(seq(1, nrow(parms)), 
              function(i) {
                pset <- fill_defaults(parms[i,], default_parms)
-               modparms <- as.list(pset[! names(pset) %in% c('b')])
+               modparms <- as.list(pset[! names(pset) %in% c('b0', 'b1')])
                modout <- run_scenario(tvals, modparms, scenarioName = scenarios[i])
                if(!is.null(counties)) {
                  modout <- modout[modout$locality %in% counties,]
