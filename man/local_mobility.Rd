@@ -4,10 +4,14 @@
 \alias{local_mobility}
 \title{Extract the mobility table for a specified locality.}
 \usage{
-local_mobility(locality)
+local_mobility(locality, scenario = NULL)
 }
 \arguments{
 \item{locality}{Name of the locality to extract}
+
+\item{scenario}{Future mobility scenario to use.  If \code{NULL}, then use the
+base scenario (with mobility constant after the last data point).  Otherwise,
+the name of the future scenario to use.}
 }
 \value{
 A list with two vectors, \code{t} and \code{mobility}, in that

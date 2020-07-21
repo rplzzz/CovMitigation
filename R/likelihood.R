@@ -19,9 +19,6 @@
 #' \item{A0}{(real > 0) The average incubation time}
 #' \item{Ts}{(real > 0) The average time from infection to symptom onset.  Note that
 #' this parameter is probably not identifiable with our current data.}
-#' \item{day_zero}{(real > 0) The day on which the infection started in Fairfax County (not
-#' necessarily when it was first observed), given in days since 1Jan2020.
-#' This will be used to line up the observed dataset with model results.}
 #' \item{b}{(real > 0) The testing bias factor.  That is, the positive test rate
 #' divided by the true infection rate.  b can be different from 1 because of false positives
 #' or because testing is targeted to people suspected of having the disease.  (Generally,
@@ -29,7 +26,7 @@
 #' \item{I0}{(real > 0) The initial number of infected people, once the infection starts.
 #' This is taken to be the same in all counties.}
 #' }
-#' For the time being, we only accept a single \code{day_zero} parameter, and 
+#' For the time being, we start tracking the infection in Fairfax county on day 30, and 
 #' all of the counties are delayed relative to Fairfax by a number of days equal
 #' to the difference between their first observed case and the first case observed
 #' in Fairfax.
@@ -109,22 +106,12 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
     parms <- fill_defaults(parms, default_parm_vals)
     
     ## Separate out the parameters that get passed to the SEIR model.
-    seirparms <- as.list(parms[! names(parms) %in% c('day_zero', 'b')])
-    if('day_zero' %in% names(parms)) {
-      day0 <- parms[['day_zero']]
-    }
-    else {
-      day0 <- default_parm_vals[['day_zero']]
-    }
+    seirparms <- as.list(parms[! names(parms) %in% c('b0', 'b1')])
     
     ## get output for every day up to the last in the dataset.
     tmax <- max(obsdata[['time']])
-    t1 <- ceiling(day0)
-    if(t1-day0 < 1e-3) {
-      t1 <- t1 + 1
-    }
-    
-    tvals <- c(day0, seq(t1, tmax))
+    t1 <- infection_t0             # constant defined in sim.R
+    tvals <- seq(t1, tmax)
     
     ## Run the model and do a little post-processing
     modout <- run_scenario(tvals, seirparms)
@@ -170,7 +157,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
       cmp$npos[miss] <- 0
       
       ## adjust model outputs for testing fraction and testing bias!
-      b <- parms[['b']]
+      b <- parms[['b0']] - parms[['b1']] * log(cmp$ntest)
       
       ## The model forecast for the number of new cases is the current infection
       ## fraction (fi) times the number of tests performed.  However, we think that

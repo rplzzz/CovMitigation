@@ -7,7 +7,7 @@
 plt_projections(
   parms,
   scenarios,
-  default_parms = c(day_zero = 30),
+  default_parms = list(),
   tmax = 270,
   what = "newSympto",
   usedate = TRUE,

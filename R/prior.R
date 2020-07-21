@@ -16,7 +16,7 @@
 #' @export
 gen_prior <- function(hparms, verbose=FALSE)
 {
-  parm_names <- c('eta','xi', 'zeta', 'D0', 'A0', 'Ts', 'day_zero', 'b', 'I0', 'mask_effect')
+  parm_names <- c('eta','xi', 'zeta', 'D0', 'A0', 'Ts', 'I0', 'mask_effect', 'b0', 'b1')
   function(parms) {
     stopifnot(!is.null(names(parms)))
     if(any(!names(parms) %in% parm_names)) {
@@ -31,15 +31,15 @@ gen_prior <- function(hparms, verbose=FALSE)
       dnorm(parms['eta'], -0.7, 1, log=TRUE),
       dlnorm(parms['xi'], -0.7, 0.5, log=TRUE),
       dgamma(parms['zeta'], 1, 1, log=TRUE),         # mobility effect expected to be positive
-      dnorm(parms['day_zero'], 30, 30, log=TRUE),
-      dlnorm(parms['b'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
       dlnorm(parms['I0'], 2, 1, log=TRUE),
-      dgamma(-parms['mask_effect'], 1, 2, log=TRUE)  # mask effect expected to be negative
+      dgamma(-parms['mask_effect'], 1, 2, log=TRUE),  # mask effect expected to be negative
+      dlnorm(parms['b0'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
+      dexp(parms['b1'], 10, log=TRUE)
     )
     if(verbose) {
       pnames <- c('A0:\t', 'Ts:\t',  'D0:\t', 
                   'eta', 'xi', 'zeta',
-                  'day_zero:\t', 'b:\t', 'I0:\t', 'mask_effect:\t')
+                  'b:\t', 'I0:\t', 'mask_effect:\t')
       prvals <- signif(logps, 3)
       msg <- paste(pnames, prvals, collapse='\n')
       totmsg <- paste('total:\t', signif(sum(logps, na.rm=TRUE), 4))
@@ -65,7 +65,7 @@ gen_prior <- function(hparms, verbose=FALSE)
 #' @export
 qprior <- function(p, hparms=list()) {
   hparms <- fill_defaults(hparms, default_hparms)
-  parm_names <- c('eta', 'xi', 'zeta', 'D0', 'A0', 'Ts', 'b', 'I0', 'mask_effect')
+  parm_names <- c('eta', 'xi', 'zeta', 'D0', 'A0', 'Ts', 'I0', 'mask_effect', 'b0','b1')
   stopifnot(length(p) == length(parm_names))
   
   ## Return a named vector of parameters
@@ -77,7 +77,8 @@ qprior <- function(p, hparms=list()) {
     A0 = qgamma(p[5], 8, 2),
     Ts = qgamma(p[6], 8, 2),
     I0 = qlnorm(p[7], 2, 1),
-    b = qlnorm(p[8], hparms[['bmulog']], hparms[['bsiglog']]),
-    mask_effect = -qgamma(p[9], 1, 2)
+    mask_effect = -qgamma(p[8], 1, 2),
+    b0 = qlnorm(p[9], hparms[['bmulog']], hparms[['bsiglog']]),
+    b1 = qexp(p[10], 10)
   )
 }

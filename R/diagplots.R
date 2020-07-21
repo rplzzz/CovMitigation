@@ -9,10 +9,11 @@
 #' @param scenarios Names of scenarios
 #' @param counties Counties to include in the plot; if not specified, the top 4
 #' by number of infections will be plotted.
+#' @param cols Number of columns in the grid of miniplots.
 #' @param default_parms Default values to use for parameters not specified in parms
 #' @importFrom dplyr %>%
 #' @export
-plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
+plt_modobs <- function(parms, scenarios=NULL, counties=NULL, cols=3, default_parms=NULL)
 {
   ## silence warnings
   fips <- newcases <- predicted <- NULL
@@ -37,20 +38,20 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
     lapply(seq_along(scenarios),
       function(i) {
         pvals <- fill_defaults(parms[i,], obs[['default_parm_vals']])
-        modpvals <- as.list(pvals[! names(pvals) %in% c('day_zero', 'b')])
+        modpvals <- as.list(pvals[! names(pvals) %in% c('b0', 'b1')])
         
-        day0 <- pvals[['day_zero']]
-        b <- pvals[['b']]
         ## get output for every day up to the last in the dataset.
         tmax <- max(obsdata[['time']])
-        tvals <- c(day0, seq(ceiling(day0), tmax))
+        tvals <- seq(infection_t0, tmax)
         modout <- run_scenario(tvals, modpvals, counties=counties)
         modout[['scenario']] <- scenarios[i]
-        modout[['bias']] <- pvals[['b']]
         modout[['fi']] <- modout[['PopInfection']] / modout[['population']]
         modout[['date']] <- modout[['time']] + as.Date('2020-01-01')
+        
+        modout[['b0']] <- pvals[['b0']]
+        modout[['b1']] <- pvals[['b1']]
       
-        modout <- modout[,c('scenario','date','time','locality','fi','bias')]
+        modout <- modout[,c('scenario','date','time','locality','fi', 'b0', 'b1')]
         
         lmout <- split(modout, modout$locality, drop=TRUE)
         
@@ -80,6 +81,8 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
   pltdata <- pltdata[pltdata[['fips']] %in% use_fips,]
   pltdata <- pltdata[!is.na(pltdata[['npos']]), ]
   
+  pltdata[['bias']] <- pltdata[['b0']] - pltdata[['b1']] * log(pltdata[['ntest']])
+  
   pltdata[['predicted']] <- 
     padjust(pltdata[['fi']], pltdata[['bias']]) * pltdata[['ntest']]
   
@@ -88,7 +91,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) + 
     ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted', color=scenario), size=1.2) + 
     ggplot2::geom_point(mapping=ggplot2::aes(y=npos, shape='observed')) + 
-    ggplot2::facet_wrap(~locality, scales='free_y') +
+    ggplot2::facet_wrap(~locality, scales='free_y', ncol=cols) +
     ggplot2::guides(
       color=ggplot2::guide_legend('Scenario', order=1),
       shape=ggplot2::guide_legend('',order=3), 
@@ -114,7 +117,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, default_parms=NULL)
 #' @param marketadjust If \code{TRUE}, adjust projections for UVAHS market share; 
 #' otherwise, show raw totals.
 #' @export
-plt_projections <- function(parms, scenarios, default_parms = c(day_zero=30), tmax=270, what='newSympto', usedate=TRUE, 
+plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, what='newSympto', usedate=TRUE, 
                             counties=NULL, marketadjust=FALSE)
 {
   ## silence warnings
@@ -134,11 +137,8 @@ plt_projections <- function(parms, scenarios, default_parms = c(day_zero=30), tm
       lapply(seq(1, nrow(parms)), 
              function(i) {
                pset <- fill_defaults(parms[i,], default_parms)
-               modparms <- as.list(pset[! names(pset) %in% c('day_zero', 'b')])
+               modparms <- as.list(pset[! names(pset) %in% c('b0', 'b1')])
                modout <- run_scenario(tvals, modparms, scenarioName = scenarios[i])
-               if(!is.na(pset['day_zero'])) {
-                 modout[['time']] <- modout[['time']] + pset['day_zero']
-               }
                if(!is.null(counties)) {
                  modout <- modout[modout$locality %in% counties,]
                }
