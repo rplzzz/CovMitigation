@@ -131,7 +131,7 @@ va_future_mobility_daily <-
          }) %>%
   dplyr::bind_rows()
 
-va_future_mobility_weekly <- daily2weekly(future_mobility_daily)
+va_future_mobility_weekly <- daily2weekly(va_future_mobility_daily)
 
 usethis::use_data(va_mobility_daily, va_mobility_weekly, 
                   va_future_mobility_daily, va_future_mobility_weekly,

@@ -90,8 +90,7 @@ mkdensplt(allsamps)
 Nsamp <- 250
 parmsamps <- rsample(warmups, Nsamp)
 runparms <- function(parms, scenname) {
-  modparms <- parms[c('eta','xi','zeta', 'A0', 'D0', 'Ts', 'I0', 'mask_effect', 'mobility_scenario')]
-  day_zero <- 30
+  modparms <- parms[names(parms) != 'b']
   raw <- run_scenario(270, as.list(modparms), scenarioName = scenname)
   totalUVA <- 
     group_by(raw, time, scenario) %>% 
@@ -106,9 +105,8 @@ runparms <- function(parms, scenname) {
       fracCumulInfection = PopCumulInfection/popmkt
     ) %>%
     ungroup()
-  dt <- totalUVA$time + day_zero
-  dateout <- dt + as.Date('2020-01-01')
-  mutate(totalUVA, time=dt, date=dateout)
+  dateout <- totalUVA$time + as.Date('2020-01-01')
+  mutate(totalUVA, date=dateout)
 }
 
 sample_runs <- 
@@ -149,7 +147,7 @@ viscounties <- c('AlbemarleCounty', 'Charlottesvillecity', 'NelsonCounty',  ## T
                  'Richmondcity', 'HenricoCounty', 'ChesterfieldCounty',      ## Richmond area
                  'Franklincity', 'Suffolkcity', 'VirginiaBeachcity'         ## Tidewater
 )
-plt_modobs(mapev, c('EV', 'MAP'), counties = viscounties, default_parms=list(day_zero=30)) + scale_color_solarized()
+plt_modobs(mapev, c('EV', 'MAP'), counties = viscounties) + scale_color_solarized()
 ```
 
 
@@ -219,10 +217,6 @@ the January baseline by September 1st.
 
 ```{r futscen}
 mapparms <- MAP(warmups)
-## XXX diagnostic
-mapparms['zeta'] <- 2
-map_run <- runparms(as.list(mapparms), 'Frozen future')
-## XXX end diagnostic
 mapfut <- c(as.list(mapparms), mobility_scenario='future')
 map_fut_run <- runparms(mapfut, 'RTN future')
 jan01 <- as.Date('2020-01-01')
