@@ -157,7 +157,9 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
       cmp$npos[miss] <- 0
       
       ## adjust model outputs for testing fraction and testing bias!
-      b <- parms[['b0']] - parms[['b1']] * log(cmp$ntest)
+      ## Assume that the enrichment factor is never less than 1 (i.e., we never
+      ## select *against* infection)
+      b <- pmax(parms[['b0']] - parms[['b1']] * log(cmp$ntest), 1)
       
       ## The model forecast for the number of new cases is the current infection
       ## fraction (fi) times the number of tests performed.  However, we think that
