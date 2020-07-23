@@ -39,7 +39,7 @@ analysis (however, it's still being used as a base for further sampling, in case
 it eventually resolves to something sensible).
 
 ```{r loaddata}
-datadir <- here('analysis', 'mcmc-rslts', 'mcmc-test-v3a')
+datadir <- here('analysis', 'mcmc-rslts', 'mcmc-test-v3b')
 warmup_files <- list.files(path=datadir, pattern='mcmc-v3.*\\.rds', full.names=TRUE)
 
 warmups <- lapply(warmup_files, readRDS)
@@ -90,7 +90,7 @@ mkdensplt(allsamps)
 Nsamp <- 250
 parmsamps <- rsample(warmups, Nsamp)
 runparms <- function(parms, scenname) {
-  modparms <- parms[names(parms) != 'b']
+  modparms <- parms[!(names(parms) %in% c('b0','b1'))]
   raw <- run_scenario(270, as.list(modparms), scenarioName = scenname)
   totalUVA <- 
     group_by(raw, time, scenario) %>% 
@@ -265,9 +265,9 @@ maskr0fut <- exp(pmap[['mask_effect']] * mask) * mobr0fut
 
 ## Include effects of declining susceptible population
 dayzero <- 30
-modparm <- as.list(pmap[names(pmap) != 'b'])
-modoutput <- run_scenario(seq(0,max(times)+dayzero), modparm, counties = 'AlbemarleCounty')
-modoutput$time <- modoutput$time + dayzero
+modparm <- as.list(pmap[!(names(pmap) %in% c('b0','b1'))])
+modoutput <- run_scenario(seq(dayzero,max(times)), modparm, counties = 'AlbemarleCounty')
+modoutput$time <- modoutput$time
 modoutput$date <- modoutput$time + as.Date('2020-01-01')
 modoutput$sfrac <- modoutput$S / modoutput$population
 filt <- modoutput$time %in% times
@@ -280,10 +280,10 @@ pltdata <- tibble(t=times, date=dates, mobr0=mobr0, maskr0=maskr0, maskr0fut=mas
                   sfrac=sfrac, rt=rt, rtfut=rtfut)
 
 ggplot(pltdata, aes(x=date)) + 
-  geom_line(aes(y=mobr0, color='(b) mobility adjusted R0'),size=1.2) + 
+  #geom_line(aes(y=mobr0, color='(b) mobility adjusted R0'),size=1.2) + 
   geom_line(aes(y=maskr0, color='(c) mask + mob R0'), size=1.2) +
   geom_line(aes(y=maskr0fut, color='(ca) mask + futmob R0'), size=1) +
-  geom_hline(mapping=aes(yintercept=baser0, color='(a) base R0'), size=1.0) +
+  #geom_hline(mapping=aes(yintercept=baser0, color='(a) base R0'), size=1.0) +
   geom_line(aes(y=rt, color='(d) Rt'), size=1.2) +
   geom_line(aes(y=rtfut, color='(da) Rt futmob'), size=1.0) +
   ylab('R') +

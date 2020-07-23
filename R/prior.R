@@ -29,12 +29,12 @@ gen_prior <- function(hparms, verbose=FALSE)
              c(8,8, 14), 
              c(2,2, 2), log=TRUE),
       dnorm(parms['eta'], -0.7, 1, log=TRUE),
-      dlnorm(parms['xi'], -0.7, 0.5, log=TRUE),
+      dlnorm(parms['xi'], -0.5, 2, log=TRUE),
       dgamma(parms['zeta'], 1, 1, log=TRUE),         # mobility effect expected to be positive
       dlnorm(parms['I0'], 2, 1, log=TRUE),
       dgamma(-parms['mask_effect'], 1, 2, log=TRUE),  # mask effect expected to be negative
       dlnorm(parms['b0'], hparms[['bmulog']], hparms[['bsiglog']], log=TRUE),
-      dexp(parms['b1'], 10, log=TRUE)
+      dexp(parms['b1'], 1, log=TRUE)
     )
     if(verbose) {
       pnames <- c('A0:\t', 'Ts:\t',  'D0:\t', 
@@ -71,7 +71,7 @@ qprior <- function(p, hparms=list()) {
   ## Return a named vector of parameters
   c(
     eta = qnorm(p[1], -0.7, 1),
-    xi = qlnorm(p[2], -0.7, 0.5),
+    xi = qlnorm(p[2], -0.5, 2),
     zeta = qgamma(p[3], 1, 1),
     D0 = qlnorm(p[4], 2, 0.5),
     A0 = qgamma(p[5], 8, 2),
@@ -79,6 +79,6 @@ qprior <- function(p, hparms=list()) {
     I0 = qlnorm(p[7], 2, 1),
     mask_effect = -qgamma(p[8], 1, 2),
     b0 = qlnorm(p[9], hparms[['bmulog']], hparms[['bsiglog']]),
-    b1 = qexp(p[10], 10)
+    b1 = qexp(p[10], 1)
   )
 }
