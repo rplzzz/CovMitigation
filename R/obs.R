@@ -11,13 +11,15 @@
 #'   own defaults)}
 #' }
 #' 
+#' @param maxdate Maximum date to include in the comparison data.
 #' @keywords internal
-get_obsdata <- function()
+get_obsdata <- function(maxdate = as.Date('2020-12-31'))
 {
   ntesteff <- nposeff <- NULL
   obsdata <- vdhcovid::va_weekly_ntest_county
   obsdata$time <- as.numeric(obsdata$date - as.Date('2020-01-01'))
   obsdata <- dplyr::rename(obsdata, ntest=ntesteff, npos=nposeff)
+  obsdata <- obsdata[obsdata$date <= maxdate, ]
   
   ## Ordinarily I would arrange the obs in the same order that the output comes
   ## from the model, but in this case we can't be guaranteed that we will have
