@@ -17,7 +17,7 @@ Imports:
   foreach (>= 1.4),
   doParallel (>= 1.0),
   nleqslv (>= 3.3),
-  vdhcovid (>= 1.6.1),
+  vdhcovid (>= 1.11),
   dplyr (>= 0.7)
 Suggests:
     here (>= 0.1),

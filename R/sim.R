@@ -37,9 +37,8 @@
 seir_equations <- function(t, variables, parameters)
 {
   beta <- getparam(t, parameters[['beta']])
-  mobadjust <- mobility_adjust(t, parameters[['zeta']], parameters[['mobility_table']])
   maskadjust <- exp(parameters[['mask_effect']] * mask_indicator.default(t))
-  beta <- beta * mobadjust * maskadjust
+  beta <- beta * maskadjust
   gamma <- getparam(t, parameters[['gamma']])
   alpha <- getparam (t, parameters[['alpha']])
   epsilon <- parameters[['epsilon']]
@@ -86,14 +85,10 @@ infection_t0 <- 30
 param_defaults <- 
   list(
     ## Epidemiological model parameters
-    ## transmissivity log(beta) = eta + xi*popdens
-    eta               = -0.6,    # pop density independent component of log baseline transmissibility
-    xi                = 0,       # pop density dependent coefficient of log baseline transmissibility
-    zeta              = 0,       # mobility dependent coefficient of log transmissibility
     D0                = 4,       # contagious period - this will be turned into a recovery rate
     A0                = 3,       # base incubation time - this will be turned into a progression rate
     Ts                = 3,       # average time to symptom onset, once progressed to infectious state
-    beta_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection rate
+    betaSchedule = data.frame(time=0, value=1), # schedule for relative changes in infection rate
     duration_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection duration
     prog_schedule = data.frame(time=0, value=1),  # schedule for relative changes in progression rate
     mask_effect       = 0,       # log-mask effect on transmission
@@ -120,7 +115,7 @@ param_defaults <-
 #' @keywords internal
 complete_params <- function(params)
 {
-  c(params, param_defaults[!(names(param_defaults) %in% names(params))])[names(param_defaults)]
+  c(params, param_defaults[!(names(param_defaults) %in% names(params))])
 }
 
 #' Check that a parameter vector has no unknown parameters
@@ -131,10 +126,22 @@ complete_params <- function(params)
 #' @keywords internal
 validate_params <- function(params)
 {
-  iunknown <- !(names(params) %in% names(param_defaults))
+  isbeta <- extract_beta_parms(names(params), 'logical')
+  betas <- names(params)[isbeta]
+  commons <- names(params[!isbeta])
+  iunknown <- !(commons %in% names(param_defaults))
+  
   if(any(iunknown)) {
-    unknowns <- paste(names(params)[iunknown], collapse=', ')
+    unknowns <- paste(commons[iunknown], collapse=', ')
     warning('Parameter list contained these unknown parameters: ', unknowns)
+  }
+  
+  beta_counties <- beta_parm_loc_extract(betas)
+  iunknowncounties <- !(beta_counties %in% va_county_first_case$Locality)
+  if(any(iunknowncounties)) {
+    unknown_counties <- paste(beta_counties[iunknowncounties], collapse=', ')
+    warning('Parameter list contained betas for these unknown counties: ', 
+            unknown_counties)
   }
   
   ## Check that parameters have valid values.  These checks aren't comprehensive, just trying to catch
@@ -202,7 +209,10 @@ run_scenario <- function(timevals, params=list(), counties = NULL,
                                    TypeAMCDRG == params[['typeAMCDRG']])
   countySelection$Locality <- as.character(countySelection$Locality)
   if(is.null(counties)) {
-    counties <- countySelection$Locality
+    ## If no counties specified, pick all of the ones for which we have supplied
+    ## beta values.
+    betas <- extract_beta_parms(names(params))
+    counties <- beta_parm_loc_extract(betas)
   }
   
   ## Map the single-county function onto our list of counties
@@ -213,12 +223,13 @@ run_scenario <- function(timevals, params=list(), counties = NULL,
                         timevals, params)
   }
 
-  bdt <- calct0(1/params$A0, exp(params$eta), 1/params$D0)
+  beta <- localbeta(params, inpatientEstimates$locality)
+  bdt <- calct0(1/params$A0, beta, 1/params$D0)
   ## Add some identifiers for the scenario
   ## TODO: update these identifiers to include time-dependent effects.
   dplyr::mutate(inpatientEstimates,
                 scenario=scenarioName, 
-                beta=localbeta(params, locality),
+                beta=beta,
                 popfactor=params$xi,
                 baseDoublingTime=bdt,
                 recoveryTime=params$D0,
@@ -278,18 +289,18 @@ run_single_county <- function(locality, mktshare, timevals, params)
   beta0 <- localbeta(params, locality)
   #message('\tbeta0= ', beta0)
   
-  beta_schedule <- params$beta_schedule
-  beta_schedule$value <- beta_schedule$value * beta0
-  if(nrow(beta_schedule) == 1) {
-    beta_schedule <- beta0
+  betaSchedule <- params$betaSchedule
+  betaSchedule$value <- betaSchedule$value * beta0
+  if(nrow(betaSchedule) == 1) {
+    betaSchedule <- beta0
   }
   
   mobility_table <- local_mobility(locality, params[['mobility_scenario']])
   
   epsilon <- 1/params$Ts
   
-  #message('\tbeta= ', beta_schedule)
-  ode_params <- list(beta=beta_schedule, gamma=gamma_schedule, alpha=alpha_schedule,
+  #message('\tbeta= ', betaSchedule)
+  ode_params <- list(beta=betaSchedule, gamma=gamma_schedule, alpha=alpha_schedule,
                      epsilon=epsilon, mobility_table=mobility_table, zeta=params$zeta,
                      mask_effect=params$mask_effect)
   initvals <- c(S=(N-params$E0-params$I0)*params$S0,

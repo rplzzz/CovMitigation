@@ -75,6 +75,23 @@ calcbeta <- function(parms)
   solv$x
 }
 
+
+extract_beta_parms <- function(pnames, rtn='names')
+{
+  isbeta <- grepl('^beta_', pnames)
+  
+  switch(rtn,
+         logical=isbeta,
+         indices = which(isbeta),
+         pnames[isbeta])
+}
+
+beta_parm_loc_extract <- function(bpnames)
+{
+  ## parameter names are of the form beta_localityName (e.g., beta_AlbemarleCounty)
+  substring(bpnames, 6)
+}
+
 #' Calculate the local value of beta from population density
 #' 
 #' Our formula is \eqn{\beta = \exp(\eta + \xi d)}, where \eqn{d} is the 
@@ -85,9 +102,12 @@ calcbeta <- function(parms)
 #' @export
 localbeta <- function(parms, localities)
 {
-  idx <- match(localities, vdhcovid::valocalities$locality)
+  default_beta_val <- 1.0/3.0      # default for any counties unspecified.
+  idx <- match(paste0('beta_', localities), names(parms))
   
-  exp(parms[['eta']] + parms[['xi']]*vdhcovid::valocalities[['stdpopdens']][idx])
+  betavals <- parms[idx]
+  betavals[is.na(betavals)] <- default_beta_val
+  simplify2array(betavals)
 }
 
 #' @describeIn coefs Calculate effective reproduction number \eqn{R_e} from model parameters.

@@ -46,6 +46,18 @@ test_that("Week aggregation works", {
   weekending <- c(as.Date('2019-01-01'), weekending)
   dfwkmean <- wkagg(weekending, df, c('time','x'))
   expect_equal(dfwkmean, cmpdata_mean)
+})
+
+test_that('beta parameter names can be extracted',{
+  pn <- c('beta_AlbemarleCounty', '_beta_NotRealBeta', 'beta_Charlottesvillecity', 
+          'randomParm')
+  expect_equal(extract_beta_parms(pn, 'logical'),
+               c(TRUE, FALSE, TRUE, FALSE))
+  expect_equal(extract_beta_parms(pn, 'indices'),
+               c(1,3))
+  expect_equal(extract_beta_parms(pn),
+               pn[c(1,3)])
   
-  
+  expect_equal(beta_parm_loc_extract(extract_beta_parms(pn)),
+               c('AlbemarleCounty', 'Charlottesvillecity'))
 })

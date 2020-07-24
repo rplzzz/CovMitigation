@@ -5,6 +5,7 @@ library(readr)
 library(vdhcovid)
 library(here)
 
+
 va_county_first_case <-
   filter(vadailycases, cases > 0) %>%
   group_by(fips, locality) %>%
