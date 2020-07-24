@@ -256,7 +256,7 @@ mobility_adjust <- function(t, zeta, mobility_table)
 #' @export
 local_mobility <- function(locality, scenario=NULL)
 {
-  mobility_col <- 'home'
+  mobility_col <- 'work'
   if(is.null(scenario)) {
     mobility_base_table <- va_mobility_weekly
   }
