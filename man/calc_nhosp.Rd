@@ -23,6 +23,6 @@ fraction of symptomatic patients that eventually go to the hospital.
 \details{
 To make this calculation, we have to convert this probability to a rate.  If
 the recovery rate is \eqn{\gamma = 1/D0}, then the hospitalization rate \eqn{r_h} that gives
-the desired probability \eqn{P_h} is 
+the desired probability \eqn{P_h} is
 \deqn{r_h = \gamma \frac{P_h}{1-P_h}}
 }

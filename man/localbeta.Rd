@@ -7,7 +7,7 @@
 localbeta(parms, localities)
 }
 \description{
-Our formula is \eqn{\beta = \exp(\eta + \xi d)}, where \eqn{d} is the 
+Our formula is \eqn{\beta = \exp(\eta + \xi d)}, where \eqn{d} is the
 standardized population density.
 }
 \details{
