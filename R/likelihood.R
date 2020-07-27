@@ -71,6 +71,7 @@
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
+#' @param maxdate Last date to use in the calibration.  Default is 2020-05-31
 #' @param verbose If \code{TRUE}, print additional diagnostic information.
 #' @param waicmode If \code{TRUE}, generate a function that returns the likelihood
 #' contributions from each data point.
@@ -79,13 +80,16 @@
 #' output of the function returned.
 #' @importFrom dplyr %>%
 #' @export
-gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FALSE)
+gen_likelihood <- function(hparms, fixed_parms=NULL, maxdate=NULL, verbose=FALSE, waicmode=FALSE)
 {
   ## silence warnings
   fips <- ntest <- biased_fi <- locality <- npos <- expected <-
     x <- m <- n <- k <- NULL
 
-  obs <- get_obsdata()
+  if(is.null(maxdate)) {
+    maxdate <- as.Date('2020-05-31')
+  }
+  obs <- get_obsdata(maxdate = maxdate)
   obsdata <- obs$obsdata
 
   if(!is.null(fixed_parms)) {
@@ -256,18 +260,19 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, verbose=FALSE, waicmode=FAL
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
+#' @param maxdate Latest date to use in the calibration.  
 #' @param hparms Named vector of hyperparameters for the likelihood.  See details
 #' for supported hyperparameters.
 #' @param verbose If \code{TRUE}, have the prior and likelihood print additional
 #' diagnostic information.
 #' @export
-gen_post <- function(prior_weight=10, fixed_parms=NULL, hparms=list(), verbose=FALSE)
+gen_post <- function(prior_weight=10, fixed_parms=NULL, maxdate = NULL, hparms=list(), verbose=FALSE)
 {
 
   hparms <- fill_defaults(as.list(hparms), default_hparms)
 
   lprior <- gen_prior(hparms, verbose=verbose)
-  llik <- gen_likelihood(hparms, fixed_parms, verbose=verbose)
+  llik <- gen_likelihood(hparms, fixed_parms, maxdate=maxdate, verbose=verbose)
 
   if(is.null(prior_weight)) {
     prior_weight <- sum(!is.na(va_county_first_case$firstDay))
