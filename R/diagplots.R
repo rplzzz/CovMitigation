@@ -122,7 +122,7 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
 {
   ## silence warnings
   newCases <- marketFraction <- PopSympto <- PopInfection <- PopCumulInfection <-
-    newSympto <- population <- scenario <- value <- NULL
+    newSympto <- population <- popTotal <- scenario <- value <- NULL
   
   if(!is.matrix(parms)) {
     parms <- t(as.matrix(parms))
@@ -158,7 +158,8 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
                        PopInfection = sum(PopInfection*marketFraction),
                        PopCumulInfection = sum(PopCumulInfection*marketFraction),
                        PopCumulFrac = sum(PopCumulInfection)/sum(population*marketFraction),
-                       popTotal = sum(population*marketFraction))
+                       popTotal = sum(population*marketFraction)) %>%
+      dplyr::mutate(PopPrevalence = PopInfection / popTotal)
   }
   else {
     pltdata <-
@@ -169,8 +170,8 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
                        PopInfection = sum(PopInfection),
                        PopCumulInfection = sum(PopCumulInfection),
                        PopCumulFrac = sum(PopCumulInfection)/sum(population),
-                       popTotal = sum(population))
-    
+                       popTotal = sum(population)) %>%
+      dplyr::mutate(PopPrevalence = PopInfection / popTotal)
   }
   
   pltdata[['value']] <- pltdata[[what]]
