@@ -45,7 +45,7 @@ seir_equations <- function(t, variables, parameters)
   S <- variables['S']; E <- variables['E']; I <- variables['I']; Is <- variables['Is']; R <- variables['R']
   N <- S + E + I + Is + R
   Itot <- I + Is
-  expos <- beta * Itot * S / N + parameters[['import_cases']]
+  expos <- beta * Itot * S / N + if(t > 195) {parameters[['import_cases']]} else {0}
   dS <- -expos
   dE <- expos  - alpha*E
   dI <-  alpha*E - gamma * I - epsilon*I

@@ -7,7 +7,7 @@ hprior <- list(
     I0lmu = 2, I0lsig = 1,
     MEgshp = 1, MEgrate = 2,
     b0lmu = 4, b0lsig = 0.5,
-    b1exprate = 1,
+    b1exprate = 1, ICexprate = 0.1,
 
     betalmu = -0.7, betalsig = 1
 )
@@ -29,7 +29,7 @@ hprior <- list(
 #' @export
 gen_prior <- function(hparms, verbose=FALSE)
 {
-  common_parm_names <- c('D0', 'A0', 'Ts', 'I0', 'mask_effect', 'b0', 'b1')
+  common_parm_names <- c('D0', 'A0', 'Ts', 'I0', 'mask_effect', 'b0', 'b1', 'import_cases')
   function(parms) {
     stopifnot(!is.null(names(parms)))
 
@@ -50,13 +50,14 @@ gen_prior <- function(hparms, verbose=FALSE)
       dlnorm(common_parms['I0'], hprior$I0lmu, hprior$I0lsig, log=TRUE),
       dgamma(-common_parms['mask_effect'], hprior$MEgshp, hprior$MEgrate, log=TRUE),  # mask effect expected to be negative
       dlnorm(common_parms['b0'], hprior$b0lmu, hprior$b0lsig, log=TRUE),
-      dexp(common_parms['b1'], hprior$b1exprate, log=TRUE)
+      dexp(common_parms['b1'], hprior$b1exprate, log=TRUE),
+      dexp(common_parms['import_cases'], hprior$ICexprate, log=TRUE)
     )
     if(verbose) {
         pnames <- c(paste0(names(beta_parms),'\t'),
                     'A0:\t', 'Ts:\t',  'D0:\t',
                     'I0:\t', 'mask_effect:\t',
-                    'b0:\t', 'b1:\t')
+                    'b0:\t', 'b1:\t', 'import_cases:\t')
         prvals <- signif(logps, 3)
         msg <- paste(pnames, prvals, collapse='\n')
         totmsg <- paste('total:\t', signif(sum(logps, na.rm=TRUE), 4))
@@ -82,6 +83,8 @@ gen_prior <- function(hparms, verbose=FALSE)
 #' @export
 qprior <- function(p, hparms=list()) {
   hparms <- fill_defaults(hparms, default_hparms)
+  ## Note that we have deliberately not included import_cases here, since we will
+  ## normally not be calibrating that parameter with MCMC.
   common_parm_names <- c('D0', 'A0', 'Ts', 'I0', 'mask_effect', 'b0','b1')
 
   lbeta <- extract_beta_parms(names(p), 'logical')
