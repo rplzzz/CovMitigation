@@ -45,7 +45,7 @@ seir_equations <- function(t, variables, parameters)
   S <- variables['S']; E <- variables['E']; I <- variables['I']; Is <- variables['Is']; R <- variables['R']
   N <- S + E + I + Is + R
   Itot <- I + Is
-  expos <- beta * Itot * S / N
+  expos <- beta * Itot * S / N + parameters[['import_cases']]
   dS <- -expos
   dE <- expos  - alpha*E
   dI <-  alpha*E - gamma * I - epsilon*I
@@ -92,6 +92,7 @@ param_defaults <-
     duration_schedule = data.frame(time=0, value=1), # schedule for relative changes in infection duration
     prog_schedule = data.frame(time=0, value=1),  # schedule for relative changes in progression rate
     mask_effect       = 0,       # log-mask effect on transmission
+    import_cases      = 0,       # number of imported cases per day.
     
     ## Initial state parameters
     S0                = 1,    # Fraction initially susceptible (the rest are uninfected but immune)
@@ -302,7 +303,7 @@ run_single_county <- function(locality, mktshare, timevals, params)
   #message('\tbeta= ', betaSchedule)
   ode_params <- list(beta=betaSchedule, gamma=gamma_schedule, alpha=alpha_schedule,
                      epsilon=epsilon, mobility_table=mobility_table, zeta=params$zeta,
-                     mask_effect=params$mask_effect)
+                     mask_effect=params$mask_effect, import_cases=params$import_cases)
   initvals <- c(S=(N-params$E0-params$I0)*params$S0,
                 E=params$E0, 
                 I=params$I0,
