@@ -71,7 +71,7 @@
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
-#' @param maxdate Last date to use in the calibration.  Default is 2020-05-31
+#' @param maxdate Last date to use in the calibration.  Default is 2020-06-30
 #' @param verbose If \code{TRUE}, print additional diagnostic information.
 #' @param waicmode If \code{TRUE}, generate a function that returns the likelihood
 #' contributions from each data point.
@@ -87,7 +87,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, maxdate=NULL, verbose=FALSE
     x <- m <- n <- k <- NULL
 
   if(is.null(maxdate)) {
-    maxdate <- as.Date('2020-05-31')
+    maxdate <- as.Date('2020-06-30')
   }
   obs <- get_obsdata(maxdate = maxdate)
   obsdata <- obs$obsdata

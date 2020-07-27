@@ -19,7 +19,7 @@ gen_likelihood(
 not passed to the likelihood function.  Note these "fixed" parameters can still
 be overridden by passing an explicit value.}
 
-\item{maxdate}{Last date to use in the calibration.  Default is 2020-05-31}
+\item{maxdate}{Last date to use in the calibration.  Default is 2020-06-30}
 
 \item{verbose}{If \code{TRUE}, print additional diagnostic information.}
 
