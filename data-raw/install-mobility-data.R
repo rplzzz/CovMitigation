@@ -54,11 +54,12 @@ va_mobility_daily <-
 
 daily2weekly <- function(dailydata) {
   strt <- as.Date('2019-12-30')
+  wk0date <- as.Date('2020-01-05')           # Date for week==0.
   t <- as.numeric(dailydata$date - strt)
   dailydata$week <- as.integer(floor(t/7))
   weeklydata <- 
     group_by(dailydata, fips, locality, week) %>%
-    summarise(date = week[1]*7 + strt, retail=mean(retail), grocery=mean(grocery), parks=mean(parks), work=mean(work),
+    summarise(date = week[1]*7 + wk0date, retail=mean(retail), grocery=mean(grocery), parks=mean(parks), work=mean(work),
               home=mean(home)) %>%
     ungroup() %>%
     mutate(t = as.numeric(date - as.Date('2020-01-01')))
