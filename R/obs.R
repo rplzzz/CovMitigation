@@ -35,3 +35,46 @@ get_obsdata <- function(maxdate = as.Date('2020-12-31'))
   
   list(obsdata=obsdata, default_parm_vals=default_parm_vals)
 }
+
+
+#' Create simulated observations from a scenario run
+#' 
+#' Given a matrix of simulation outputs and a function of time for the number
+#' of tests, create simulated observations.  
+#' 
+#' @param rundata Matrix of run data returned from an integration of 
+#' \code{\link{seir_equations}}
+#' @param bparms Vector containing the b0 and b1 parameters.
+#' @param ntestfn Function of time that returns the number of daily tests performed.
+#' @export
+simobs <- function(rundata, bparms, ntestfn=linear_ntest)
+{
+  timecol <- which(colnames(rundata) == 'time')
+  mdata <- rundata[ , -c(timecol)]
+  totpop <- round(apply(mdata, 1, sum))
+  totinfct <- round(mdata[,'I'] + mdata[,'Is'])
+  fi <- totinfct / totpop
+  
+  time <- rundata[, timecol]
+  ntest <- round(ntestfn(time))
+  b <- bparms[['b0']] - bparms[['b1']]*log(ntest)
+  biasedfi <- padjust(fi, b)
+  
+  N <- length(ntest)
+  npos <- rbinom(N, ntest, biasedfi)
+  
+  d <- tibble::tibble(time=time, ntest=ntest, npos=npos)
+  d$week <- ceiling(d$time / 7)
+  d <- dplyr::group_by(d, week) %>%
+    dplyr::summarise(time = max(time), ntest=sum(ntest), npos=sum(npos))
+  
+  d$locality <- 'simulated'  
+  d$fips <- 99999
+  
+  d
+}
+
+## Linear ramp up of effective tests, starting 
+linear_ntest <- function(t) {
+  1 + t/10
+}
