@@ -45,9 +45,10 @@ get_obsdata <- function(maxdate = as.Date('2020-12-31'))
 #' @param rundata Matrix of run data returned from an integration of 
 #' \code{\link{seir_equations}}
 #' @param bparms Vector containing the b0 and b1 parameters.
+#' @param population Total population for the simulated entity
 #' @param ntestfn Function of time that returns the number of daily tests performed.
 #' @export
-simobs <- function(rundata, bparms, ntestfn=linear_ntest)
+simobs <- function(rundata, bparms, population=100000, ntestfn=linear_ntest)
 {
   timecol <- which(colnames(rundata) == 'time')
   mdata <- rundata[ , -c(timecol)]
@@ -70,6 +71,7 @@ simobs <- function(rundata, bparms, ntestfn=linear_ntest)
   
   d$locality <- 'simulated'  
   d$fips <- 99999
+  d$population <- population
   
   d
 }

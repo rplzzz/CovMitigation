@@ -16,7 +16,7 @@
 #' be called consecutively for several weeks, running, it will save some time to
 #' do the filtering once and pass the table in.
 #'
-#' @param initstates Vector of initial state and parameter samples (see details).
+#' @param initstates Matrix of initial states and parameter samples (see details).
 #' @param tinit Time corresponding to the initial states.
 #' @param tfin End time for the forecast.
 #' @param prior Prior PDF function.  It should take a vector of five parameters:  start and end
@@ -38,7 +38,7 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
   dt <- tfin - tinit
   timevals <- seq(tinit, tfin)
   sampscale <- c(0.1, 20)
-  statevars <- c('S','E','I','Is','R')
+  statevars <- c('time', 'S','E','I','Is','R')
   parmvars <- c('beta', 'import_cases', 'D0', 'A0', 'Ts',
                 'mask_effect', 'b0', 'b1')  # Note that we don't need I0.
 
@@ -141,7 +141,8 @@ run_parmset <- function(parms, istate, timevals)
 {
   ode_parms <- c(alpha=1/parms[['A0']], beta=parms[['beta']],
                  gamma=1/parms[['D0']], epsilon=1/parms[['Ts']],
-                 mask_effect=parms[['mask_effect']])
+                 mask_effect=parms[['mask_effect']],
+                 import_cases=parms[['import_cases']])
 
   istate <- istate[-c(1)]       # First column is time
   ## Run the ODE solver and drop the initial state (first row)
@@ -179,4 +180,146 @@ bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
 
 
   as.numeric(dnorm(beta1, beta0, betasig, log=TRUE) + dexp(imp1, imprate, log=TRUE))
+}
+
+
+#' Fit a Bayesian filter over time
+#'
+#' This function calls \code{\link{bayesian_filter}} repeatedly to fit an
+#' evolving set of parameters to a dataset.  The result is organized into a
+#' table of model state and parameters over time.
+#'
+#' The \code{history} argument allows us to optionally keep detailed histories
+#' for the individual ensemble members, including beta, imports, I, Is, and
+#' Itot.  Otherwise, the only history you get is is summary statistics (median
+#' and 95% confidence bounds) for those quantities.  To get the full history,
+#' either pass in the history output from a previous run (the new history will
+#' be appended), or if earlier history is not available, set to any non-null
+#' value (the new history will be returned).
+#'
+#' If history is being kept, then we need to assign serial numbers to the
+#' ensemble members.  By default, these are assigned sequentially, but there are
+#' reasons why they might need to be specified explicitly.  One is if the
+#' ensemble matrix is reordered for some reason.  The other is if some ensemble
+#' members are dropped or replaced.
+#'
+#' @param initstates Matrix containing ensemble of initial states and parameter
+#'   values (see description in \code{\link{bayesian_filter}}.
+#' @param tinit Initial time corresponding to the states provided in
+#'   \code{initstates}
+#' @param tfin Final time (i.e., the time of the last observation to use in
+#'   fitting the filter)
+#' @param obsdata Observed data to use in the fit
+#' @param history Detailed history for the individual ensemble members (see
+#'   details).
+#' @param ids List of serial numbers for the ensemble members.  This is only
+#'   used if we are keeping history.  See details for why you might want to
+#'   specify this explicitly.
+#' @export
+fit_filter <- function(initstates, obsdata, tinit, tfinal,
+                       history = NULL, ids = NULL)
+{
+  ## Filter to just the times requested
+  time <- obsdata[['time']]
+  obsdata <- obsdata[time >= tinit & time <= tfinal, ]
+  time <- obsdata[['time']]
+
+  ## Vectors for start and end times for filter steps
+  strttimes <- time[time < tfinal]
+  endtimes <- time[time > tinit]
+  ntime <- length(strttimes)
+  stopifnot(length(endtimes) == ntime)
+
+  ## loop over times.  This loop is necessarily sequential
+  rslt <- list()
+  length(rslt) <- ntime
+  locality <- obsdata[['locality']][[1]]
+  for(i in seq_along(strttimes)) {
+    if(i == 1) {
+      ist <- initstates
+    }
+    else {
+      ist <- rslt[[i-1]]
+    }
+
+    rslt[[i]] <- bayesian_filter(ist, locality, strttimes[i], endtimes[i],
+                                 obsdata)
+  }
+  finalstate <- rslt[[length(rslt)]]
+
+  ## Figure out the total population
+  timecol <- which(colnames(initstates) == 'time')
+  totpop <- sum(initstates[1,-c(timecol)])
+
+  ## Convert to df and add a column for prevalence
+  addprev <- function(r) {
+    r <- as.data.frame(r)
+    r[['fi']] <- (r[['I']] + r[['Is']]) / totpop
+    r
+  }
+  rslt <- lapply(rslt, addprev)
+
+  ## If detailed history was requested, add it now.
+  if(!is.null(history)) {
+    histvars <- c('I','Is','Itot','fi','beta','import_cases', 'id')
+    if(is.data.frame(history)) {
+      stopifnot(setequal(names(history), histvars))
+    }
+    else {
+      history <- tibble::tibble(I=numeric(0), Is=numeric(0), Itot=numeric(0),
+                                fi=numeric(0), beta=numeric(0),
+                                import_cases=numeric(0), id=integer(0))
+    }
+    if(is.null(ids)) {
+      ids <- seq(1,nrow(initstates))
+    }
+    dplyr::bind_rows(history,
+                     lapply(rslt, function(r) {
+                       ## fi was added, but we didn't keep Itot
+                       r$Itot <- r$I + r$Is
+                       r$id=as.integer(ids)
+                       r[ , histvars]
+                     }))
+  }
+
+  ## Gather results into a table.  The times for the results are the end times
+  ## of each run.
+  fit_table <- collate_results(rslt, endtimes)
+
+  ## Return the result, including both final state and the table of fit values
+  structure(list(finalstate=finalstate, time=endtimes[length(endtimes)],
+                 modelfit=fit_table, history=history),
+            class = c('filter-fit','list'))
+}
+
+
+#### Helper functions used in fit_filter
+### Produce median and confidence interval values for a given variable and name
+### appropriately.
+statcols <- function(tbl, colname)
+{
+  probs=c(0.025, 0.5, 0.975)
+  stats <- quantile(tbl[[colname]], probs, names=FALSE)
+  names(stats) <- paste0(colname, c('lo','','hi'))
+  stats
+}
+
+### Collate a list of results into a single data frame.
+collate_results <- function(rsltlist, timevals)
+{
+  rlist <- lapply(seq_along(rsltlist),
+                  function(i) {
+                    t <- timevals[i]
+                    rslt <- rsltlist[[i]]
+                    probs <- c(0.025, 0.5, 0.975)
+                    betastats <- statcols(rslt, 'beta')
+                    impstats <- statcols(rslt, 'import_cases')
+                    fistats <- statcols(rslt, 'fi')
+                    row <- c(time=t, betastats, impstats, fistats)
+                    m <- matrix(row, nrow=1)
+                    d <- as.data.frame(m)
+                    colnames(d) <- names(row)
+                    d
+                  })
+  dplyr::bind_rows(rlist)
 }

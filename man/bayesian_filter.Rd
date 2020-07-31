@@ -15,7 +15,7 @@ bayesian_filter(
 )
 }
 \arguments{
-\item{initstates}{Vector of initial state and parameter samples (see details).}
+\item{initstates}{Matrix of initial states and parameter samples (see details).}
 
 \item{tinit}{Time corresponding to the initial states.}
 

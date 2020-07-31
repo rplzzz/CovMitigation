@@ -4,13 +4,15 @@
 \alias{simobs}
 \title{Create simulated observations from a scenario run}
 \usage{
-simobs(rundata, bparms, ntestfn = linear_ntest)
+simobs(rundata, bparms, population = 1e+05, ntestfn = linear_ntest)
 }
 \arguments{
 \item{rundata}{Matrix of run data returned from an integration of 
 \code{\link{seir_equations}}}
 
 \item{bparms}{Vector containing the b0 and b1 parameters.}
+
+\item{population}{Total population for the simulated entity}
 
 \item{ntestfn}{Function of time that returns the number of daily tests performed.}
 }

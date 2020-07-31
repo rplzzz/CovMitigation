@@ -55,3 +55,6 @@ analysis/old-istreams
 analysis/*.html
 analysis/*.pdf
 
+# Emacs backup files
+*~
+
