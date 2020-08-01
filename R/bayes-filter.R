@@ -163,6 +163,8 @@ average_weekly_prevalence <- function(runout, obsdata)
   data.frame(time=obsdata[['time']][unique(weeks)], fi=avgprev)
 }
 
+
+### Default prior for filter models
 bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
 {
   ## each week the change in beta is <= .1, 95% of the time (normally distributed)
@@ -179,9 +181,9 @@ bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
   imprate <- 1/pmax(imp0, 10) * wk
 
 
-  as.numeric(dnorm(beta1, beta0, betasig, log=TRUE) + dexp(imp1, imprate, log=TRUE))
+  as.numeric(dnorm(beta1, beta0, betasig, log=TRUE) + dexp(imp1, imprate, log=TRUE) +
+             dgamma(beta1, 5, 15, log=TRUE))
 }
-
 
 #' Fit a Bayesian filter over time
 #'
@@ -323,3 +325,5 @@ collate_results <- function(rsltlist, timevals)
                   })
   dplyr::bind_rows(rlist)
 }
+
+

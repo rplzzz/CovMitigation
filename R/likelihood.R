@@ -260,7 +260,7 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, maxdate=NULL, verbose=FALSE
 #' @param fixed_parms A named vector of parameters to use as fixed values for parameters
 #' not passed to the likelihood function.  Note these "fixed" parameters can still
 #' be overridden by passing an explicit value.
-#' @param maxdate Latest date to use in the calibration.  
+#' @param maxdate Latest date to use in the calibration.
 #' @param hparms Named vector of hyperparameters for the likelihood.  See details
 #' for supported hyperparameters.
 #' @param verbose If \code{TRUE}, have the prior and likelihood print additional
@@ -381,4 +381,127 @@ nhosp_likelihood <- function(alpha, beta, modout)
 
 
   log(integrate(llvector, 0,1)$value)
+}
+
+
+#' Generate a likelihood function for single-county simulated data
+#'
+#' This likelihood function is greatly simplified from the one produced by
+#' \code{\link{gen_likelihood}}.  It contains none of the adjustments for
+#' hospitalizaton fraction (since simulated data has no hospitalization to
+#' compare to), and it doesn't (yet) distinguish between symptomatic and
+#' asymptomatic cases.
+#'
+#' The parameters to this model are beta, A0, D0, Ts, I0, b0, b1, mask_effect,
+#' and import_cases.  Mask effect can be omitted; if so, it is fixed at
+#' zero.
+#'
+#' The scenario runs are assumed to start at the earliest time in the observed
+#' dataset, even if the time range for comparing to data starts later.  The
+#' population is initialized to \code{I0} exposures at that time with the rest
+#' of the population initialized as susceptible.
+#'
+#' Another change in this function is that we use the binomial distribution
+#' instead of the hypergeometric.  This saves us some mucking about with
+#' ensuring that the susceptible population is greater than the number of
+#' positive observations.
+#'
+#' @param simobs Simulated observations, as returned by \code{\link{simobs}}.
+#' @param timerange Length-2 vector giving the earliest and latest dates to use
+#'   in the calculation.  If not specified, use all times in the dataset.
+#' @param verbose If \code{TRUE}, output additional diagnostic information to
+#'   console.
+#' @export
+gen_simobs_likelihood <- function(simobs, timerange, verbose=FALSE)
+{
+  t0 <- min(simobs$time)
+  pop <- simobs$population[1]
+
+  if(!missing(timerange)) {
+    stopifnot(is.numeric(timerange))
+    stopifnot(length(timerange == 2))
+
+    simobs <- simobs[simobs$time >= timerange[1] & simobs$time <= timerange[2], ]
+  }
+
+  timevals <- simobs$time
+  if(timevals[1] != t0) {
+    timevals <- c(t0, timevals)
+  }
+
+  ## Return this function
+  function(p) {
+    if(! 'mask_effect' %in% names(p)) {
+      p['mask_effect'] <- 0
+    }
+    stopifnot(setequal(names(p), c('beta','A0','D0','Ts','I0','b0','b1',
+                                   'mask_effect', 'import_cases')))
+    S0 <- pop-p[['I0']]
+    istate <- c(t=t0, S=S0, E=p[['I0']], I=0, Is=0, R=0)
+    runout <- run_parmset(p, istate, timevals)
+    prevalence <- average_weekly_prevalence(runout, obsdata)
+
+    cmp <- dplyr::left_join(prevalence, obsdata, by=c('time'))
+    if (!all(!is.na(cmp$fi) & !is.na(cmp$ntest))) {
+      stop('simobs_likelihood:  Bad values in model output.')
+    }
+    ## b value declines with more tests, but only to a minimum of 1
+    b <- pmax(p[['b0']] - p[['b1']] * log(cmp$ntest), 1)
+    cmp$biased_fi <- pmax(padjust(cmp$fi, b), 0)
+
+    x <- cmp$npos
+    k <- cmp$ntest
+    logl <- dbinom(x, k, cmp$biased_fi, log=TRUE)
+    if(any(is.nan(logl))) {
+      stop('simobs_likelihood:  Bad output from dbinom')
+    }
+    sum(logl)
+  }
+}
+
+#' Generate log-posterior function for filter model
+#'
+#' @param simobs Simulated observations (see
+#'   \code{\link{gen_simobs_likelihood}})
+#' @param timerange Time range to use in comparing to observations
+#' @param verbose Flag to turn on verbose mode.
+#' @export
+gen_simobs_posterior <- function(simobs, timerange, verbose=FALSE)
+{
+  ## default prior function
+  logpfun <- default_simobs_prior
+
+  loglfun <-
+    if(missing(timerange)) {
+      gen_simobs_likelihood(simobs, verbose=verbose)
+    }
+  else {
+    gen_simobs_likelihood(simobs, timerange, verbose)
+  }
+
+  function(p) {
+    logp <- logpfun(p)
+    if(is.finite(logp)) {
+      logp + loglfun(p)
+    }
+    else {
+      -Inf
+    }
+  }
+}
+
+### Default prior for parameters in single-locality models.
+default_simobs_prior <- function(p) {
+  logp <- c(
+      dgamma(p['beta'], 10, 30, log=TRUE),
+      dgamma(p['A0'], 8, 2, log=TRUE),
+      dgamma(p['D0'], 8, 2, log=TRUE),
+      dgamma(p['Ts'], 8, 2, log=TRUE),
+      dlnorm(p['b0'], 4, 0.2, log=TRUE),
+      dlnorm(p['b1'], 0, 1, log=TRUE),
+      dlnorm(-p['mask_effect'], -1, 1, log=TRUE),
+      dexp(p['import_cases'], 1/50, log=TRUE),
+      dexp(p['I0'], 1/50, log=TRUE)
+    )
+  sum(logp, na.rm=TRUE)
 }

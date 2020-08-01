@@ -4,24 +4,27 @@
 source(here::here('analysis','bayesian-filter-tests','simulated-obs.R'))
 
 ### 1. Generate ensemble parameters and initial states.  
-## parameters for the ensemble
+## parameters for the ensemble:  Start with an initial guess and optimize
+pinit <- c(beta=0.25, A0=3, D0=4, Ts=4, b0=50, b1=1, import_cases=0, I0=30)
+lpost_base <- gen_simobs_posterior(obsdata_base)
+opt_filter_base <- optim(pinit, lpost_base, control=list(fnscale=-1, maxit=2000))
+
+## data for diagnostic plots
+popt_base <- opt_filter_base$par
+popt_base['mask_effect'] <- 0
+vars <- c(time=0, S=obsdata$population[1]-popt_base[['I0']], E=popt_base[['I0']],
+          I=0, Is=0, R=0)
+opt_filter_base_df <- as.data.frame(run_parmset(popt_base, vars, obsdata_base$time))
+opt_filter_base_df$fi <- (opt_filter_base_df$I + opt_filter_base_df$Is) / obsdata$population[1]
+
 Nens <- 100  # Ensemble size
-R0 <- rnorm(Nens, 1.32, 0.1)
-A0 <- rnorm(Nens, 4, 0.5)  # Should probably do these as gamma dist. to ensure nonnegative.
-D0 <- rnorm(Nens, 4.5, 0.5)
-Ts <- rnorm(Nens, 4, 1)
-b_nt1 <- rlnorm(Nens, 4, 0.2)    # b value when nsamples == 1
-b_nt100 <- rlnorm(Nens, 3.5, 0.2)   # b value when nsamples == 100
-mask_effect <- rep(0, Nens)
-import_cases <- rep(0, Nens)
-## Convert these to the parameters used in our model
-beta <- R0 / D0
-b0 <- b_nt1
-b1 <- (b0 - b_nt100)/log(100)
-## create the parameter matrix
-parms <- matrix(c(beta, A0, D0, Ts, b0, b1, mask_effect, import_cases), 
-                nrow=Nens)
-colnames(parms) <- c('beta','A0','D0','Ts','b0','b1','mask_effect','import_cases')
+Nsamp <- 10000 # Number of MCMC samples to use to generate the ensemble
+scl <- c(beta=0.01, A0=0.25, D0=0.25, Ts=0.25, b0=5, b1=0.1, import_cases=1, I0=5)
+ms_base <- metrosamp::metrosamp(lpost_base, opt_filter_base$par, Nsamp, 1, scl)
+parms <- cbind(metrosamp::getsamples(ms_base, Nens), mask_effect=0)
+## Rearrange the columns to the order we used before.
+parms <- parms[ ,c('beta','A0','D0','Ts','b0','b1', 'I0', 'mask_effect','import_cases')]
+
 ### 2. Run the parameter sets up to the start of the filtering.
 ## We don't really know when the infection started or how much initial exposure
 ## there was.  The dataset has 1/20 positive tests at t=21, so start with that
