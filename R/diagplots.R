@@ -195,31 +195,44 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
 #' Generate diagnostic plots for filter models
 #'
 #' @param modelfit Modelfit element of the filter-fit structure
+#' @param obsrun Optional data frame or matrix of results from the run that generated
+#' the data.
 #' @return A list of ggplot objects
 #' @export
-filter_model_diagnositc_plots <- function(modelfit)
+filter_model_diagnositc_plots <- function(modelfit, obsrun=NULL)
 {
   prevplot <-
     ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
-    ggplot2::geom_line(ggplot2::aes(y=fi), size=1.2) +
+    ggplot2::geom_line(ggplot2::aes(y=fi, color='model fit'), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=filo, ymax=fihi), alpha=0.5) +
-    ylab('prevalence') +
-    theme_bw()
+    ggplot2::ylab('prevalence') +
+    ggplot2::theme_bw()
 
   betaplot <-
     ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
     ggplot2::geom_line(ggplot2::aes(y=beta), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=betalo, ymax=betahi), alpha=0.5) +
-    ylab('beta') +
-    theme_bw()
+    ggplot2::ylab('beta') +
+    ggplot2::theme_bw()
 
   importplot <-
     ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
     ggplot2::geom_line(ggplot2::aes(y=import_cases), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=import_caseslo, ymax=import_caseshi),
                          alpha=0.5) +
-    ylab('Import cases') +
-    theme_bw()
+    ggplot2::ylab('Import cases') +
+    ggplot2::theme_bw()
 
+  if(!is.null(obsrun)) {
+    if(!is.data.frame(obsrun)) {
+      stopifnot(is.matrix(obsrun))
+      obsrun <- as.data.frame(obsrun)
+    }
+    totpop <- obsrun$S + obsrun$E + obsrun$I + obsrun$Is + obsrun$R
+    obsrun$fi <- (obsrun$I + obsrun$Is) / totpop
+    prevplot <- prevplot + 
+      ggplot2::geom_line(data=obsrun, ggplot2::aes(y=fi, color='simulated run'), size=1.2)
+  }
+  
   list(prevalence=prevplot, beta=betaplot, import=importplot)
 }
