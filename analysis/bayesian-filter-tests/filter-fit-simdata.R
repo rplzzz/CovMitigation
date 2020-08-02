@@ -30,22 +30,14 @@ parms <- parms[ ,c('beta','A0','D0','Ts','b0','b1', 'I0', 'mask_effect','import_
 ## there was.  The dataset has 1/20 positive tests at t=21, so start with that
 ## as a guess, adjusting for our enrichment factor
 obsdata <- obsdata_base
-i0 <- which.max(obsdata$npos > 0)
-t0 <- obsdata$time[i0]
-fib <- obsdata$npos[i0] / obsdata$ntest[i0]
-fi_odds <- fib/(1-fib) / (b0 - b1*log(obsdata$ntest[i0]))
-fi <- fi_odds / (1+fi_odds)
-E0 <- fi * obsdata_base$population
-S0 <- obsdata_base$population - E0
-vars0 <- cbind(t=t0, S=S0, E=E0, I=0, Is=0, R=0)
-
 t1 <- 70
-timevals <- seq(t0,t1)
 vars1 <- t(sapply(seq(1,Nens), 
                    function(i) {
-                     x <- run_parmset(parms[i,], vars0[i,], timevals)
+                     x <- initialize_parmset(parms[i,], obsdata, t1)
                      x[nrow(x),]
                    }))
 state1 <- cbind(vars1, parms)
 fit_base <- fit_filter(state1, obsdata, t1, max(obsdata$time), history = TRUE)
 
+## 2a. Run the filtering on the ramped beta data set
+## TODO:  refactor this so that we can put in any data w want

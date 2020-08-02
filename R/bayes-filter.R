@@ -164,6 +164,33 @@ average_weekly_prevalence <- function(runout, obsdata)
 }
 
 
+#' Run compartment model from an initial state
+#'
+#' This is a wrapper for \code{\link{run_parmset}} for cases where we have a set
+#' of parameters including an initial infection level, and we want to run it
+#' from the start of a scenario to a specified time.
+#'
+#' @param parms Named vector of model parameters: beta, A0, D0, Ts, I0, and
+#'   mask_effect.
+#' @param obsdata Data frame of observed data.  The only columns used in this
+#'   case are time and total population.
+#' @param t1 End time for the scenario.
+#' @param dt Time step for scenario output.  Default is dt=1.  Note that if
+#'   \code{dt > 1}, the end time \code{t1} might not be included in the output.
+#' @export
+initialize_parmset <- function(parms, obsdata, t1, dt=1)
+{
+  t0 <- min(obsdata$time)                    # Start at the beginning of the observations
+  totpop <- obsdata$population[1]            # Assumed to be constant over time
+
+  timevals <- seq(t0, t1, dt)
+  E0 <- parms[['I0']]
+  S0 <- totpop - E0
+  istate <- c(time=t0, S=S0, E=E0, I=0, Is=0, R=0)
+  run_parmset(parms, istate, timevals)
+}
+
+
 ### Default prior for filter models
 bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
 {
