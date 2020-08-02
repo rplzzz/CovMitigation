@@ -439,9 +439,9 @@ gen_simobs_likelihood <- function(simobs, timerange, verbose=FALSE)
     S0 <- pop-p[['I0']]
     istate <- c(t=t0, S=S0, E=p[['I0']], I=0, Is=0, R=0)
     runout <- run_parmset(p, istate, timevals)
-    prevalence <- average_weekly_prevalence(runout, obsdata)
+    prevalence <- average_weekly_prevalence(runout, simobs)
 
-    cmp <- dplyr::left_join(prevalence, obsdata, by=c('time'))
+    cmp <- dplyr::left_join(prevalence, simobs, by=c('time'))
     if (!all(!is.na(cmp$fi) & !is.na(cmp$ntest))) {
       stop('simobs_likelihood:  Bad values in model output.')
     }
