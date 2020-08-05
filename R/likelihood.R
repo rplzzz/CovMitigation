@@ -59,7 +59,7 @@
 #' \item{Hypergeometric parameters x, m, n, and k}
 #' \item{log likelihood}
 #' }
-#' Additionally, the hospitalization fraction and symptomatic fraction corrections
+#' Additionally, the antibody prevalence and symptomatic fraction corrections
 #' will be attached to the data frame as attributes (\code{hfadjust} and
 #' \code{fsadjust}).
 #'
@@ -105,6 +105,10 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, maxdate=NULL, verbose=FALSE
   fips_table <- unique(dplyr::select(obs$obsdata, locality, fips))
   jan01 <- as.Date('2020-01-01')
 
+  tantibody <- hparms[['tantibody']]
+  fantibody <- hparms[['fantibody']]
+  sigantibody <- hparms[['sigantibody']]
+
   function(parms) {
     ## complete the parameters from the defaults
     parms <- fill_defaults(parms, default_parm_vals)
@@ -112,8 +116,10 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, maxdate=NULL, verbose=FALSE
     ## Separate out the parameters that get passed to the SEIR model.
     seirparms <- as.list(parms[! names(parms) %in% c('b0', 'b1')])
 
-    ## get output for every day up to the last in the dataset.
-    tmax <- max(obsdata[['time']])
+    ## get output for every day up to the last in the dataset.  Also, we need
+    ## output at least up through the end of July to apply the antibody
+    ## prevalence constraint
+    tmax <- pmax(max(obsdata[['time']]), tantibody)
     t1 <- infection_t0             # constant defined in sim.R
     tvals <- seq(t1, tmax)
 
@@ -125,11 +131,27 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, maxdate=NULL, verbose=FALSE
       return(-Inf)
     }
     fs <- fsympto(modout)
-    mdata <- modout[c('time', 'locality','I','Is','population')]
+    mdata <- modout[c('time', 'locality','S', 'I','Is','population')]
     mdata$Itot <- mdata$I + mdata$Is
     mdata$fi <- mdata$Itot / mdata$population
     mdata <- dplyr::left_join(mdata, fips_table, by='locality')
     mdata$date <- mdata$time + jan01
+
+    ## Compute the adjustment for antibody fraction
+    antibody_data <- mdata[mdata$time == tantibody, c('locality', 'S', 'population')]
+    fa <- 1 - antibody_data$S / antibody_data$population
+    fa <- pmin(1, pmax(0, fa))          # fa sometimes gets out of the 0-1
+                                        # interval by about 1e-8.
+    correction <- losig(fa, fantibody, sigantibody)
+    antibody_adjust <- sum(correction)
+
+    if(verbose) {
+      msg <- paste('\t',antibody_data$locality, ':\t',
+                   signif(fa,3), '\t', signif(correction,4),
+                   collapse='\n')
+      message('Antibody prevalence adjustments:\n \tLocality \t\t fa \t correction\n',
+              msg)
+    }
 
     ## Aggregate the data by week.  For model outputs we want the average over
     ## the week.
@@ -210,19 +232,11 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, maxdate=NULL, verbose=FALSE
         (max(obsdata$time) - min(obsdata$time)) *
         dbeta(fs, hparms[['fsalpha']], hparms[['fsbeta']], log=TRUE)
 
-      ## Compute another adjustment for the hospitalization fraction.  Basically,
-      ## if the model says that a significant portion of the community is infected,
-      ## but we're only getting a trickle of hospital cases, then we don't believe
-      ## that.
-      hospadjust <- hparms[['nhosp_weight']] *
-        nhosp_likelihood(hparms[['nhosp_alpha']], hparms[['nhosp_beta']], modout)
-
       if(verbose) {
         suml <- signif(sum(logl), 5)
         fsa <- signif(fsadjust, 5)
-        hsa <- signif(hospadjust, 5)
-        msg <- paste(c('logl:\t', 'fsadjust:\t', 'hospadjust:\t', 'dhpenalty:\t'),
-                     c(suml, fsa, hsa, dhpenalty), collapse='\n')
+        msg <- paste(c('logl:\t', 'fsadjust:\t', 'antibody_adjust:\t', 'dhpenalty:\t'),
+                     c(suml, fsa, antibody_adjust, dhpenalty), collapse='\n')
         message('Likelihood contributions:\n', msg)
       }
 
@@ -232,11 +246,11 @@ gen_likelihood <- function(hparms, fixed_parms=NULL, maxdate=NULL, verbose=FALSE
           dplyr::select(date, fips, locality, npos, ntest, expected,
                         x, m, n, k, logl)
         attr(rslt, 'fsadjust') <- fsadjust
-        attr(rslt, 'hfadjust') <- hospadjust
+        attr(rslt, 'antibody_adjust') <- antibody_adjust
         rslt
       }
       else {
-        sum(logl, na.rm=TRUE) + fsadjust + hospadjust + dhpenalty
+        sum(logl, na.rm=TRUE) + fsadjust + dhpenalty + antibody_adjust
       }
     }
   }

@@ -348,3 +348,39 @@ gen_parm_vec <- function(localities=NULL, beta=NULL, common_parms=NULL)
   c(betavals, cpvals)
 }
 
+#' Compute a sigmoid function of the log-odds of a probability
+#'
+#' This function serves as a likelihood adjustment for probabilities where we
+#' believe that the value should be greater than (or less than) some cutoff, but
+#' we don't have a preference for where within the range above (or below) the
+#' threshold the value should be.
+#'
+#' Let \eqn{l = \log(\frac{p}{1-p})}, land let \eqn{l_0 = \frac{p_0}{1-p_0}}.
+#' Then \eqn{s = \frac{\exp((l-l_0)\sigma)}{\exp((l-l_0)\sigma) +
+#' \exp(-(l-l_0)\sigma)}.
+#'
+#' Note that as implemented this is not a properly normalized likelihood
+#' function.  This will not pose a problem, so long as \eqn{p_0} and
+#' \eqn{\sigma} are not being used as parameters in the Monte Carlo.
+#'
+#' @param p Vector of probabilities \eqn{0 \le p \le 1}.
+#' @param p0 Threshold probability value.
+#' @param sig Steepness of the cliff at the threshold.  Higher values produce a
+#'   steeper dropoff.  Values greater than zero favor probabilities above the
+#'   threshold; values less than zero favor probabilities below the threshold.
+#' @param log If \code{TRUE}, return the log penalty.  Unlike probability
+#'   density functions, this flag is set \code{TRUE} by default.
+#' @export
+losig <- function(p, p0=0.5, sig=5, log=TRUE)
+{
+  ## compute difference of log odds
+  x = log(p/p0 * (1-p0)/(1-p)) * sig
+
+  lv = -log1p(exp(-2*x))
+  if(log) {
+    lv
+  }
+  else {
+    exp(lv)
+  }
+}

@@ -196,7 +196,8 @@ validate_params <- function(params)
 #' @importFrom foreach %do% %dopar%
 #' @export
 run_scenario <- function(timevals, params=list(), counties = NULL,
-                         scenarioName = 'communityInfection') {
+                         scenarioName = 'communityInfection')
+{
   ## Check the parameters and supply defaults as required.
   validate_params(params)
   params <- complete_params(params)
@@ -288,7 +289,7 @@ run_single_county <- function(locality, mktshare, timevals, params)
 
   ## Ugly text matching on every call.  Devise a better way to look this up.
   beta0 <- localbeta(params, locality)
-  #message('\tbeta0= ', beta0)
+  #message('\tlocality: ', locality,'\tbeta0= ', beta0)
 
   betaSchedule <- params$betaSchedule
   betaSchedule$value <- betaSchedule$value * beta0
