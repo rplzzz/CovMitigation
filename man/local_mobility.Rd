@@ -25,10 +25,10 @@ The mobility data currently in use is the Google mobility data, stored in the
 The mobility dataset has columns for retail, grocery, parks, transit, work, and
 home categories.  (The latter is actually inversely related to mobility, since
 it represents staying at home.)  The default is to use the 'home' column, but
-this can be changed by setting the option \code{CovMitigation.mobility_column}.  
+this can be changed by setting the option \code{CovMitigation.mobility_column}.
 
 Setting the mobility category via an option is manifestly a terrible idea, since
 the mobility column used is not recorded anywhere in the output.  Once we decide
-which category best captures the effect that we are after, we will set that 
+which category best captures the effect that we are after, we will set that
 column as the default and disable the set-by-option capability
 }
