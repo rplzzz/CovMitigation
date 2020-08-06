@@ -163,7 +163,6 @@ average_weekly_prevalence <- function(runout, obsdata)
   data.frame(time=obsdata[['time']][unique(weeks)], fi=avgprev)
 }
 
-
 #' Run compartment model from an initial state
 #'
 #' This is a wrapper for \code{\link{run_parmset}} for cases where we have a set
@@ -254,7 +253,7 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
   time <- obsdata[['time']]
 
   ## Vectors for start and end times for filter steps
-  strttimes <- time[time < tfinal]
+  strttimes <- time[time < max(time)]
   endtimes <- time[time > tinit]
   ntime <- length(strttimes)
   stopifnot(length(endtimes) == ntime)
@@ -290,25 +289,27 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
 
   ## If detailed history was requested, add it now.
   if(!is.null(history)) {
-    histvars <- c('I','Is','Itot','fi','beta','import_cases', 'id')
+    histvars <- c('time', 'S', 'E', 'I','Is','Itot', 'R', 'fi','beta','import_cases', 'id')
     if(is.data.frame(history)) {
       stopifnot(setequal(names(history), histvars))
     }
     else {
-      history <- tibble::tibble(I=numeric(0), Is=numeric(0), Itot=numeric(0),
+      history <- tibble::tibble(time=numeric(0), S=numeric(0), E=numeric(0),
+                                I=numeric(0), Is=numeric(0), Itot=numeric(0),
+                                R=numeric(0),
                                 fi=numeric(0), beta=numeric(0),
                                 import_cases=numeric(0), id=integer(0))
     }
     if(is.null(ids)) {
       ids <- seq(1,nrow(initstates))
     }
-    dplyr::bind_rows(history,
-                     lapply(rslt, function(r) {
-                       ## fi was added, but we didn't keep Itot
-                       r$Itot <- r$I + r$Is
-                       r$id=as.integer(ids)
-                       r[ , histvars]
-                     }))
+    history <- dplyr::bind_rows(history,
+                                lapply(rslt, function(r) {
+                                  ## fi was added, but we didn't keep Itot
+                                  r$Itot <- r$I + r$Is
+                                  r$id=as.integer(ids)
+                                  r[ , histvars]
+                                }))
   }
 
   ## Gather results into a table.  The times for the results are the end times
@@ -317,8 +318,84 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
 
   ## Return the result, including both final state and the table of fit values
   structure(list(finalstate=finalstate, time=endtimes[length(endtimes)],
-                 modelfit=fit_table, history=history),
+                 modelfit=fit_table, history=history, ids=ids),
             class = c('filter-fit','list'))
+}
+
+
+#' Continue a run from a fitted filter model.
+#'
+#' Unlike \code{\link{fit_filter}}, this function just continues running the
+#' model forward in time, with no parameter updates.  Final state and summary
+#' statistics are computed and appended to the ones computed for the original
+#' fit.  History is appended if it is present in the original fit.
+#'
+#' @param filterfit Structure of class filter-fit returned by
+#'   \code{\link{fit_filter}}.
+#' @param tfinal Final time for the projection.
+#' @param dt Time step in days.  Note that if \code{dt > 1}, then \code{tfinal}
+#'   will not necessarily be in the final output.
+#' @param tvintage1 Time for the first projection vintage.  Having multiple
+#'   vintages is only possible if history information was included in
+#'   \code{filterfit}.
+#' @param dtvintage Time step between vintages.
+#' @return Data frame with projections in it.
+#' @export
+project_filter_model <- function(filterfit, tfinal, dt=1, tvintage1=NA, dtvintage=7)
+{
+  stopifnot(inherits(filterfit, 'filter-fit'))
+  tlast <- filterfit[['time']]          # Last time of the model fit.
+  if(is.na(tvintage1)) {
+    tvintage1 <- tlast
+  }
+  stopifnot(tvintage1 == tlast || (is.data.frame(filterfit[['history']]) &&
+                                   tvintage1 <= max(filterfit[['history']][['time']])))
+
+  vintages <- seq(tvintage1, tlast, dtvintage)
+
+
+  finalstate <- filterfit[['finalstate']]
+  if(is.data.frame(filterfit[['history']])) {
+    allstates <- filterfit[['history']]
+  }
+  else {
+    allstates <- as.data.frame(finalstate)
+    allstates[['id']] <- seq(1,nrow(allstates))
+  }
+
+  totpop <- sum(finalstate[1,c('S','E','I','Is','R')])
+
+  statevars <- c('S','E','I','Is','R')
+  parmvars <- c('beta','import_cases')
+  parmconst <- c('D0','A0','Ts','mask_effect')
+
+  vintage_runs <-
+    foreach::foreach(tinit=vintages, .combine=rbind) %do% {
+      timevals <- seq(tinit, tfinal, dt)
+
+      istates <- allstates[allstates[['time']] == tinit, ]
+
+      foreach::foreach(iid=istates[['id']], .combine=rbind) %dopar% {
+        irow <- which(istates[['id']] == iid)
+        istate <- as.matrix(istates[irow, ])
+        vars <- c(tinit, istate[1, statevars])
+        parms <- c(istate[1, parmvars], finalstate[irow, parmconst])
+        runout <- run_parmset(parms, vars, timevals)
+        vintage <- rep(tinit, nrow(runout))
+        id <- rep(iid, nrow(runout))
+        cbind(id, runout, vintage)
+      }
+    }
+  ## convert to df and summarize.
+  vintage_tbl <- as.data.frame(vintage_runs)
+  vintage_tbl[['Itot']] <- vintage_tbl[['I']] + vintage_tbl[['Is']]
+  vintage_tbl[['fi']] <- vintage_tbl[['Itot']] / totpop
+  dplyr::group_by(vintage_tbl, vintage, time) %>%
+    dplyr::group_modify(function(df, grp) {
+      as.data.frame(rbind(c(statcols(df, 'S'), statcols(df, 'I'),
+                            statcols(df, 'Is'), statcols(df, 'Itot'),
+                            statcols(df, 'fi'))))
+    })
 }
 
 

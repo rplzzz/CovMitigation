@@ -92,7 +92,7 @@ data frame containing
 \item{Hypergeometric parameters x, m, n, and k}
 \item{log likelihood}
 }
-Additionally, the hospitalization fraction and symptomatic fraction corrections
+Additionally, the antibody prevalence and symptomatic fraction corrections
 will be attached to the data frame as attributes (\code{hfadjust} and
 \code{fsadjust}).
 
