@@ -39,7 +39,7 @@ gen_ensemble <- function(icounty)
 
   scl <- c(0.01, 0.05, 0.05, 0.05, 0.05, 1.0, 0.05)
   names(scl) <- names(p0)
-  ms <- metrosamp(lpost, opt_uncons$par, 5000, 1, scl)
+  ms <- metrosamp(lpost, opt_uncons$par, 50000, 1, scl)
 
   outfilename <- paste0('filter-ensemble-candidates-',county, '.rds')
   saveRDS(ms, outfilename)

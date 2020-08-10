@@ -1,5 +1,5 @@
 #!/bin/zsh
-#SBATCH -t 2500
+#SBATCH -t 60
 #SBATCH -n 1
 #SBATCH -c 1
 #SBATCH -A clinical_analytics_lab
