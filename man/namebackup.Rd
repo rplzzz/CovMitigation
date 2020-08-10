@@ -11,6 +11,6 @@ namebackup(name)
 }
 \description{
 The backup name is formed by first cutting off the extension (everything after
-the final '.') and adding the tag ```_NNN_```, where N counts up from the 
+the final '.') and adding the tag ```_NNN_```, where N counts up from the
 number of the last backup.  Then the extension is added back.
 }

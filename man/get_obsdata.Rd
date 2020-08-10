@@ -4,7 +4,10 @@
 \alias{get_obsdata}
 \title{Prepare the observed data for use in the likelihood function}
 \usage{
-get_obsdata()
+get_obsdata(maxdate = as.Date("2020-12-31"))
+}
+\arguments{
+\item{maxdate}{Maximum date to include in the comparison data.}
 }
 \value{
 List of observations used in the likelihood function.  This includes

@@ -5,19 +5,23 @@
 \title{Prepare a posterior log-pdf function for use in Bayesian calibration}
 \usage{
 gen_post(
-  prior_weight = NULL,
+  prior_weight = 10,
   fixed_parms = NULL,
+  maxdate = NULL,
   hparms = list(),
   verbose = FALSE
 )
 }
 \arguments{
-\item{prior_weight}{Factor to multiply the prior by.  Default is to make it equal
+\item{prior_weight}{Factor to multiply the prior by.  Default is 10.  If set
+  to \code{NULL}, make it equal
 to the number of counties for which we have confirmed COVID-19 cases.}
 
 \item{fixed_parms}{A named vector of parameters to use as fixed values for parameters
 not passed to the likelihood function.  Note these "fixed" parameters can still
 be overridden by passing an explicit value.}
+
+\item{maxdate}{Latest date to use in the calibration.}
 
 \item{hparms}{Named vector of hyperparameters for the likelihood.  See details
 for supported hyperparameters.}

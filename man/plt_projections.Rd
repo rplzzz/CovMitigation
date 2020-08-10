@@ -24,7 +24,7 @@ plt_projections(
 
 \item{tmax}{Maximum time to run to}
 
-\item{what}{What output to plot.  Options are 
+\item{what}{What output to plot.  Options are
 newCases, newSympto, PopSympto, PopInfection, PopCumulInfection, PopCumulFrac, popTotal}
 
 \item{usedate}{If \code{TRUE}, display date on the x-axis; otherwise, display model
@@ -33,7 +33,7 @@ time.}
 \item{counties}{If specified, filter to just the requested counties.  Otherwise,
 include the whole state.}
 
-\item{marketadjust}{If \code{TRUE}, adjust projections for UVAHS market share; 
+\item{marketadjust}{If \code{TRUE}, adjust projections for UVAHS market share;
 otherwise, show raw totals.}
 }
 \description{

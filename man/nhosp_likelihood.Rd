@@ -14,7 +14,7 @@ nhosp_likelihood(alpha, beta, modout)
 \item{modout}{Model output from \code{\link{run_scenario}}}
 }
 \description{
-The adjustment is 
+The adjustment is
 \deqn{L_h = \log(\int dp_h Beta(\alpha_h, \beta_h) \prod Pois(N_h, \lambda(p_h)))}
 }
 \keyword{internal}

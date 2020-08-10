@@ -12,12 +12,12 @@ padjust(p, b)
 \item{b}{Bias factor}
 }
 \description{
-Given a vector of probabilities and a bias factor (or vector of bias factors), 
+Given a vector of probabilities and a bias factor (or vector of bias factors),
 compute the new probabilities adjusted for the bias factor.
 }
 \details{
-The bias factor acts as a multiplier on the odds ratio, so 
-\deqn{\frac{p'}{1-p'} = b \frac{p}{1-p}.}  Thus, for example, if \eqn{p=0.1}, 
+The bias factor acts as a multiplier on the odds ratio, so
+\deqn{\frac{p'}{1-p'} = b \frac{p}{1-p}.}  Thus, for example, if \eqn{p=0.1},
 the odds ratio is \eqn{r=1/9}.  A bias factor of 10 would produce \eqn{r'=10/9},
 for an ajusted probability of \eqn{p' \approx 0.53}.
 }

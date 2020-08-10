@@ -4,7 +4,13 @@
 \alias{gen_likelihood}
 \title{Prepare a likelihood function for use in Bayesian calibration}
 \usage{
-gen_likelihood(hparms, fixed_parms = NULL, verbose = FALSE, waicmode = FALSE)
+gen_likelihood(
+  hparms,
+  fixed_parms = NULL,
+  maxdate = NULL,
+  verbose = FALSE,
+  waicmode = FALSE
+)
 }
 \arguments{
 \item{hparms}{Hyperparameters for the calculation, as described in \code{\link{gen_post}}}
@@ -13,18 +19,20 @@ gen_likelihood(hparms, fixed_parms = NULL, verbose = FALSE, waicmode = FALSE)
 not passed to the likelihood function.  Note these "fixed" parameters can still
 be overridden by passing an explicit value.}
 
+\item{maxdate}{Last date to use in the calibration.  Default is 2020-06-30}
+
 \item{verbose}{If \code{TRUE}, print additional diagnostic information.}
 
-\item{waicmode}{If \code{TRUE}, generate a function that returns the likelihood 
+\item{waicmode}{If \code{TRUE}, generate a function that returns the likelihood
 contributions from each data point.}
 }
 \value{
 A function that takes a named list of model parameters and returns
-a log-likelihood value.  See details for the parameters recognized and the 
+a log-likelihood value.  See details for the parameters recognized and the
 output of the function returned.
 }
 \description{
-Build a function that given a set of model parameters runs the model and 
+Build a function that given a set of model parameters runs the model and
 computes the log-likelihood for the model.
 }
 \details{
@@ -50,12 +58,12 @@ we expect b>1, but we don't require this.)}
 \item{I0}{(real > 0) The initial number of infected people, once the infection starts.
 This is taken to be the same in all counties.}
 }
-For the time being, we start tracking the infection in Fairfax county on day 30, and 
+For the time being, we start tracking the infection in Fairfax county on day 30, and
 all of the counties are delayed relative to Fairfax by a number of days equal
 to the difference between their first observed case and the first case observed
 in Fairfax.
 
-To compute the likelihood, our assumption is that the output of the model 
+To compute the likelihood, our assumption is that the output of the model
 represents an average infection rate.  The average observation rate is then
 \deqn{\bar{N}_o = \bar{N}_I f_t b,} where \eqn{f_t} is the fraction of the total
 population tested.  We then assume that the actual observations are distributed
@@ -66,7 +74,7 @@ as \deqn{N_o \sim Pois(\bar{N}_o).}
 
 By default, the function produced will return a single value, which is the sum of
 \itemize{
-\item{The log-likelihood function, summed over all data points} 
+\item{The log-likelihood function, summed over all data points}
 \item{A correction for the hospitalization fraction}
 \item{A correction for the symptomatic fraction}
 }
@@ -84,8 +92,8 @@ data frame containing
 \item{Hypergeometric parameters x, m, n, and k}
 \item{log likelihood}
 }
-Additionally, the hospitalization fraction and symptomatic fraction corrections
-will be attached to the data frame as attributes (\code{hfadjust} and 
+Additionally, the antibody prevalence and symptomatic fraction corrections
+will be attached to the data frame as attributes (\code{hfadjust} and
 \code{fsadjust}).
 
 The default mode output can be used in optimizations or Markov chain Monte Carlo.

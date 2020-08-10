@@ -35,7 +35,7 @@ calct0(alpha, beta, gamma)
 \item{gamma}{SEIR gamma parameter}
 }
 \description{
-We parameterize the model SEIR in terms of initial doubling time, incubation period, 
+We parameterize the model SEIR in terms of initial doubling time, incubation period,
 and recovery time.  The model equations are given in terms of rates,
 \eqn{\alpha}, \eqn{\beta}, and \eqn{\gamma}.  Also of interest is the basic
 reproduction parameter \eqn{R_0}.
@@ -49,8 +49,8 @@ periods:
 Beta is calculated from \eqn{\alpha}, \eqn{\gamma}, and \eqn{t_d} as
 \deqn{\beta = \gamma + \ln 2 \frac{(\alpha+\gamma)}{\alpha t_d}}
 
-\eqn{R_0} is calculated from \eqn{\beta} and \eqn{\gamma}.  Note that in the 
-absence of mortality during the exposed period, \eqn{R_0} is independent of 
+\eqn{R_0} is calculated from \eqn{\beta} and \eqn{\gamma}.  Note that in the
+absence of mortality during the exposed period, \eqn{R_0} is independent of
 \eqn{\alpha}.
 \deqn{R_0 = \frac{\beta}{\gamma}}
 }

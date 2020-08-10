@@ -11,13 +11,15 @@
 #'   own defaults)}
 #' }
 #' 
+#' @param maxdate Maximum date to include in the comparison data.
 #' @keywords internal
-get_obsdata <- function()
+get_obsdata <- function(maxdate = as.Date('2020-12-31'))
 {
   ntesteff <- nposeff <- NULL
   obsdata <- vdhcovid::va_weekly_ntest_county
   obsdata$time <- as.numeric(obsdata$date - as.Date('2020-01-01'))
   obsdata <- dplyr::rename(obsdata, ntest=ntesteff, npos=nposeff)
+  obsdata <- obsdata[obsdata$date <= maxdate, ]
   
   ## Ordinarily I would arrange the obs in the same order that the output comes
   ## from the model, but in this case we can't be guaranteed that we will have
@@ -32,4 +34,49 @@ get_obsdata <- function()
   )
   
   list(obsdata=obsdata, default_parm_vals=default_parm_vals)
+}
+
+
+#' Create simulated observations from a scenario run
+#' 
+#' Given a matrix of simulation outputs and a function of time for the number
+#' of tests, create simulated observations.  
+#' 
+#' @param rundata Matrix of run data returned from an integration of 
+#' \code{\link{seir_equations}}
+#' @param bparms Vector containing the b0 and b1 parameters.
+#' @param population Total population for the simulated entity
+#' @param ntestfn Function of time that returns the number of daily tests performed.
+#' @export
+simobs <- function(rundata, bparms, population=100000, ntestfn=linear_ntest)
+{
+  timecol <- which(colnames(rundata) == 'time')
+  mdata <- rundata[ , -c(timecol)]
+  totpop <- round(apply(mdata, 1, sum))
+  totinfct <- round(mdata[,'I'] + mdata[,'Is'])
+  fi <- totinfct / totpop
+  
+  time <- rundata[, timecol]
+  ntest <- round(ntestfn(time))
+  b <- bparms[['b0']] - bparms[['b1']]*log(ntest)
+  biasedfi <- padjust(fi, b)
+  
+  N <- length(ntest)
+  npos <- rbinom(N, ntest, biasedfi)
+  
+  d <- tibble::tibble(time=time, ntest=ntest, npos=npos)
+  d$week <- ceiling(d$time / 7)
+  d <- dplyr::group_by(d, week) %>%
+    dplyr::summarise(time = max(time), ntest=sum(ntest), npos=sum(npos))
+  
+  d$locality <- 'simulated'  
+  d$fips <- 99999
+  d$population <- population
+  
+  d
+}
+
+## Linear ramp up of effective tests, starting 
+linear_ntest <- function(t) {
+  1 + t/10
 }

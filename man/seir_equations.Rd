@@ -18,25 +18,25 @@ A list, as described in \code{\link[deSolve]{ode}}.  In this case we provide onl
 the first element of the list, which is a vector of derivative values.
 }
 \description{
-Computes the derivatives of the susceptible (S), exposed (E), infected (I), 
-symptomatic (Is), and recovered (R) 
+Computes the derivatives of the susceptible (S), exposed (E), infected (I),
+symptomatic (Is), and recovered (R)
 populations.  This version of the model omits the population birth and death rates.
 }
 \details{
 The variables for this model are S, E, I, Is, and R, the susceptible, infected
-asymptomatic, infected symptomatic, and recovered 
+asymptomatic, infected symptomatic, and recovered
 populations.  They should be passed as a named vector, in that order.  (The order
 is important because the ODE solver ignores names.)
 
 The parameters for the model are:
 \describe{
   \item{alpha}{Progression rate parameter (i.e., the rate at which people move from exposed to infected)}
-  \item{beta}{Infection rate parameter:  relative rate at which infected people infect susceptible people.} 
+  \item{beta}{Infection rate parameter:  relative rate at which infected people infect susceptible people.}
   \item{gamma}{Recovery rate parameter:  relative rate at which infected people recover (whether symptomatic or not)}
   \item{epsilon}{Symptom rate parameter:  relative rate at which asymptomatic people develop symptoms.}
 }
 These should be passed in as a named vector; the order doesn't matter.  Also,
-note that previous versions absorbed the 1/N factor into beta, but this one 
+note that previous versions absorbed the 1/N factor into beta, but this one
 does not.
 
 Optionally, instead of a number, alpha, beta and/or gamma may be data frames with two columns,
