@@ -8,6 +8,7 @@ plt_modobs(
   parms,
   scenarios = NULL,
   counties = NULL,
+  maxdate = NULL,
   cols = 3,
   default_parms = NULL
 )
@@ -19,6 +20,9 @@ plt_modobs(
 
 \item{counties}{Counties to include in the plot; if not specified, the top 4
 by number of infections will be plotted.}
+
+\item{maxdate}{Maximum date to include in plots.  Can be either a character
+string or a date object.}
 
 \item{cols}{Number of columns in the grid of miniplots.}
 

@@ -9,11 +9,15 @@
 #' @param scenarios Names of scenarios
 #' @param counties Counties to include in the plot; if not specified, the top 4
 #' by number of infections will be plotted.
+#' @param maxdate Maximum date to include in plots.  Can be either a character
+#'   string or a date object.
 #' @param cols Number of columns in the grid of miniplots.
 #' @param default_parms Default values to use for parameters not specified in parms
 #' @importFrom dplyr %>%
 #' @export
-plt_modobs <- function(parms, scenarios=NULL, counties=NULL, cols=3, default_parms=NULL)
+plt_modobs <- function(parms, scenarios=NULL, counties=NULL,
+                       maxdate = NULL,
+                       cols=3, default_parms=NULL)
 {
   ## silence warnings
   fips <- newcases <- predicted <- NULL
@@ -32,6 +36,13 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL, cols=3, default_par
 
 
   obsdata <- obs[['obsdata']]
+  if(!is.null(maxdate)) {
+    if(!inherits(maxdate, 'Date')) {
+      maxdate <- as.Date(maxdate)
+    }
+    obsdata <- obsdata[obsdata$date <= maxdate, ]
+  }
+
   wkdates <- unique(obsdata$date)
 
   modrslts <-
@@ -230,9 +241,42 @@ filter_model_diagnositc_plots <- function(modelfit, obsrun=NULL)
     }
     totpop <- obsrun$S + obsrun$E + obsrun$I + obsrun$Is + obsrun$R
     obsrun$fi <- (obsrun$I + obsrun$Is) / totpop
-    prevplot <- prevplot + 
+    prevplot <- prevplot +
       ggplot2::geom_line(data=obsrun, ggplot2::aes(y=fi, color='simulated run'), size=1.2)
   }
-  
+
   list(prevalence=prevplot, beta=betaplot, import=importplot)
+}
+
+
+#' Plot uncertainty ranges by vintage
+#'
+#' @param vintagedata Output from \code{\link{project_filter_model}}.
+#' @param what Variable to plot.  S, I, Is, Itot, and fi are available.
+#' @export
+vintage_plot <- function(vintagedata, what)
+{
+  nvintmax <- 5
+
+  locol <- paste0(what, 'lo')
+  hicol <- paste0(what, 'hi')
+
+  pltdata <- vintagedata[ , c('vintage','time', what, locol, hicol)]
+  names(pltdata) <- c('vintage','time','y', 'ylo', 'yhi')
+
+  vintages <- unique(pltdata[['vintage']])
+  ## If there are too many to plot easily, pick a subset as evenly distributed as possible.
+  if(length(vintages) > nvintmax) {
+    vintages <- vintages[round(seq(1, length(vintages), length.out=nvintmax))]
+    pltdata <- pltdata[pltdata[['vintage']] %in% vintages, ]
+  }
+  pltdata[['vintage']] <- as.factor(pltdata[['vintage']])
+
+  ggplot2::ggplot(pltdata, ggplot2::aes(x=time, color=vintage, fill=vintage)) +
+    ggplot2::geom_line(mapping=ggplot2::aes(y=y), size=1.2) +
+    ggplot2::geom_ribbon(mapping=ggplot2::aes(ymin=ylo, ymax=yhi), alpha=0.25) +
+    ggplot2::theme_bw() +
+    ggplot2::ylab(what) +
+    ggthemes::scale_color_solarized() +
+    ggthemes::scale_fill_solarized()
 }
