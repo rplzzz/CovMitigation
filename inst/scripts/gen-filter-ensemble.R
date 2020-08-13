@@ -17,7 +17,7 @@ gen_ensemble <- function(icounty)
 
   county <- counties[icounty]
 
-  common_parms <- c(D0=5.5, A0=2, Ts=5.5, mask_effect=-0.5, b0=100, b1=1)
+  common_parms <- c(D0=5.5, A0=2, I0=30, Ts=5.5, mask_effect=-0.5, b0=100, b1=1)
   beta <-
     if(county %in% high_beta_counties) {
       0.25
@@ -37,7 +37,7 @@ gen_ensemble <- function(icounty)
 
   set.seed(867-5309)
 
-  scl <- c(0.01, 0.05, 0.05, 0.05, 0.05, 1.0, 0.05)
+  scl <- c(0.01, 0.05, 0.5, 0.05, 0.05, 0.05, 1.0, 0.05)
   names(scl) <- names(p0)
   ms <- metrosamp(lpost, opt_uncons$par, 50000, 1, scl)
 
