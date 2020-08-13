@@ -37,7 +37,7 @@ gen_ensemble <- function(icounty)
 
   set.seed(867-5309)
 
-  scl <- c(0.01, 0.05, 0.5, 0.05, 0.05, 0.05, 1.0, 0.05)
+  scl <- c(0.01, 0.05, 0.05, 0.5, 0.05, 0.05, 1.0, 0.05)
   names(scl) <- names(p0)
   ms <- metrosamp(lpost, opt_uncons$par, 50000, 1, scl)
 
