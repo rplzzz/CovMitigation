@@ -4,13 +4,15 @@
 \alias{filter_model_diagnositc_plots}
 \title{Generate diagnostic plots for filter models}
 \usage{
-filter_model_diagnositc_plots(modelfit, obsrun = NULL)
+filter_model_diagnositc_plots(filterfit, simrun = NULL, obsdata = NULL)
 }
 \arguments{
-\item{modelfit}{Modelfit element of the filter-fit structure}
+\item{filterfit}{A filter-fit structure returned by \code{\link{fit_filter}}}
 
-\item{obsrun}{Optional data frame or matrix of results from the run that generated
-the data.}
+\item{simrun}{Optional data frame or matrix of results from the run that generated
+the input data.}
+
+\item{obsdata}{Optional data frame of observed data used to fit the model.}
 }
 \value{
 A list of ggplot objects

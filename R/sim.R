@@ -260,13 +260,7 @@ run_single_county <- function(locality, mktshare, timevals, params)
   ## Find the start date for this county.  Each county is delayed from the overall
   ## start date by a number of days equal to the difference between its first case
   ## and the first case in the state.
-  dzlookup <- va_county_first_case
-  dayzero <- dzlookup$firstDay[dzlookup$Locality == locality]
-  if(is.na(dayzero)) {
-    dayzero <- 1 + max(dzlookup$firstDay, na.rm=TRUE)  # crude approx for regions where it hasn't started yet
-  }
-  dayzero <- infection_t0 + dayzero - min(dzlookup$firstDay, na.rm=TRUE)
-
+  dayzero <- locality_startdate(locality)
 
   ## Calculate derived parameters
   N <- (pop-params$I0) * params$S0

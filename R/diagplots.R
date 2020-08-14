@@ -205,13 +205,15 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
 
 #' Generate diagnostic plots for filter models
 #'
-#' @param modelfit Modelfit element of the filter-fit structure
-#' @param obsrun Optional data frame or matrix of results from the run that generated
-#' the data.
+#' @param filterfit A filter-fit structure returned by \code{\link{fit_filter}}
+#' @param simrun Optional data frame or matrix of results from the run that generated
+#' the input data.
+#' @param obsdata Optional data frame of observed data used to fit the model.
 #' @return A list of ggplot objects
 #' @export
-filter_model_diagnositc_plots <- function(modelfit, obsrun=NULL)
+filter_model_diagnositc_plots <- function(filterfit, simrun=NULL, obsdata=NULL)
 {
+  modelfit <- filterfit[['modelfit']]
   prevplot <-
     ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
     ggplot2::geom_line(ggplot2::aes(y=fi, color='model fit'), size=1.2) +
@@ -234,15 +236,28 @@ filter_model_diagnositc_plots <- function(modelfit, obsrun=NULL)
     ggplot2::ylab('Import cases') +
     ggplot2::theme_bw()
 
-  if(!is.null(obsrun)) {
-    if(!is.data.frame(obsrun)) {
-      stopifnot(is.matrix(obsrun))
-      obsrun <- as.data.frame(obsrun)
+  if(!is.null(simrun)) {
+    if(!is.data.frame(simrun)) {
+      stopifnot(is.matrix(simrun))
+      simrun <- as.data.frame(simrun)
     }
-    totpop <- obsrun$S + obsrun$E + obsrun$I + obsrun$Is + obsrun$R
-    obsrun$fi <- (obsrun$I + obsrun$Is) / totpop
+    totpop <- simrun$S + simrun$E + simrun$I + simrun$Is + simrun$R
+    simrun$fi <- (simrun$I + simrun$Is) / totpop
     prevplot <- prevplot +
-      ggplot2::geom_line(data=obsrun, ggplot2::aes(y=fi, color='simulated run'), size=1.2)
+      ggplot2::geom_line(data=simrun, ggplot2::aes(y=fi, color='simulated run'), size=1.2)
+  }
+  
+  if(!is.null(obsdata)) {
+    b0 <- median(filterfit$finalstate[ , 'b0'])
+    b1 <- median(filterfit$finalstate[ , 'b1'])
+    b <- b0 - b1*log(obsdata$ntest)
+    
+    fpos <- obsdata$npos / obsdata$ntest
+    biased_odds <- fpos / (1-fpos)
+    unbiased_odds <- biased_odds / b
+    obsdata$fi <- unbiased_odds / (1+unbiased_odds)
+    prevplot <- prevplot +
+      ggplot2::geom_point(data=obsdata, ggplot2::aes(y=fi), size=2)
   }
 
   list(prevalence=prevplot, beta=betaplot, import=importplot)
@@ -253,8 +268,9 @@ filter_model_diagnositc_plots <- function(modelfit, obsrun=NULL)
 #'
 #' @param vintagedata Output from \code{\link{project_filter_model}}.
 #' @param what Variable to plot.  S, I, Is, Itot, and fi are available.
+#' @param usedate If \code{TRUE}, plot by date instead of time
 #' @export
-vintage_plot <- function(vintagedata, what)
+vintage_plot <- function(vintagedata, what, usedate=TRUE)
 {
   nvintmax <- 5
 
@@ -270,9 +286,19 @@ vintage_plot <- function(vintagedata, what)
     vintages <- vintages[round(seq(1, length(vintages), length.out=nvintmax))]
     pltdata <- pltdata[pltdata[['vintage']] %in% vintages, ]
   }
-  pltdata[['vintage']] <- as.factor(pltdata[['vintage']])
 
-  ggplot2::ggplot(pltdata, ggplot2::aes(x=time, color=vintage, fill=vintage)) +
+  if(usedate) {
+    pltdata[['date']] <- pltdata[['time']] + as.Date('2020-01-01')
+    pltdata[['vintage']] <- pltdata[['vintage']] + as.Date('2020-01-01')
+    pltdata[['vintage']] <- as.factor(pltdata[['vintage']])
+    baseplt <- ggplot2::ggplot(pltdata, ggplot2::aes(x=date, color=vintage, fill=vintage))
+  }
+  else {
+    pltdata[['vintage']] <- as.factor(pltdata[['vintage']])
+    baseplt <- ggplot2::ggplot(pltdata, ggplot2::aes(x=time, color=vintage, fill=vintage))
+  }
+  
+  baseplt +
     ggplot2::geom_line(mapping=ggplot2::aes(y=y), size=1.2) +
     ggplot2::geom_ribbon(mapping=ggplot2::aes(ymin=ylo, ymax=yhi), alpha=0.25) +
     ggplot2::theme_bw() +

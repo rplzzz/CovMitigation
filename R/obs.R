@@ -12,6 +12,7 @@
 #' }
 #' 
 #' @param maxdate Maximum date to include in the comparison data.
+#' @export
 #' @keywords internal
 get_obsdata <- function(maxdate = as.Date('2020-12-31'))
 {

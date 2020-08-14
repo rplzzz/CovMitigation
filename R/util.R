@@ -384,3 +384,25 @@ losig <- function(p, p0=0.5, sig=5, log=TRUE)
     exp(lv)
   }
 }
+
+#' Compute start of the infection for a locality.
+#'
+#' The infection is deemed to start in each locality at a fixed date (set by the
+#' \code{infection_t0} constant) plus an offest equal to the difference in days
+#' between the first observed case in the locality and the first observed case
+#' statewide.
+#'
+#' @param localities Names of localities to get dates for.
+#' @export
+locality_startdate <- function(localities)
+{
+  state_firstcase <- min(va_county_first_case$firstDay, na.rm=TRUE)
+  idx <- match(localities, va_county_first_case$Locality)
+  locality_firstcase <- va_county_first_case$firstDay[idx]
+  miss <- is.na(locality_firstcase)
+  if(any(miss)) {
+    locality_firstcase[miss] <- max(va_county_first_case$firstDay) + 1
+  }
+
+  infection_t0 + locality_firstcase - state_firstcase
+}
