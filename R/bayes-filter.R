@@ -279,17 +279,28 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
   timecol <- which(colnames(initstates) == 'time')
   totpop <- sum(initstates[1,-c(timecol)])
 
-  ## Convert to df and add a column for prevalence
+  ## Convert to df and add columns for prevalence and expected observations
   addprev <- function(r) {
     r <- as.data.frame(r)
-    r[['fi']] <- (r[['I']] + r[['Is']]) / totpop
+
+    ## prevalence
+    fi <- (r[['I']] + r[['Is']]) / totpop
+    r[['fi']] <- fi
+
+    ## expected number of cases
+    t <- r[['time']][1] # all the times are the same value, so we just need one.
+    iobs <- match(t, obsdata[['time']])
+    ntest <- obsdata[['ntest']][iobs]
+    b <- r[['b0']] - r[['b1']]*log(ntest)
+    ro_biased <- b * fi/(1-fi)
+    r[['ncase']] <- ntest * ro_biased/(1+ro_biased)
     r
   }
   rslt <- lapply(rslt, addprev)
 
   ## If detailed history was requested, add it now.
   if(!is.null(history)) {
-    histvars <- c('time', 'S', 'E', 'I','Is','Itot', 'R', 'fi','beta','import_cases', 'id')
+    histvars <- c('time', 'S', 'E', 'I','Is','Itot', 'R', 'fi', 'ncase','beta','import_cases', 'id')
     if(is.data.frame(history)) {
       stopifnot(setequal(names(history), histvars))
     }
@@ -422,10 +433,10 @@ collate_results <- function(rsltlist, timevals)
                     impstats <- statcols(rslt, 'import_cases')
                     fistats <- statcols(rslt, 'fi')
                     row <- c(time=t, betastats, impstats, fistats)
-                    m <- matrix(row, nrow=1)
-                    d <- as.data.frame(m)
-                    colnames(d) <- names(row)
-                    d
+                    if('ncase' %in% names(rslt)) {
+                      row <- c(row, statcols(rslt, 'ncase'))
+                    }
+                    as.data.frame(rbind(row))
                   })
   dplyr::bind_rows(rlist)
 }
