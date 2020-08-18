@@ -329,7 +329,7 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
 
   ## Return the result, including both final state and the table of fit values
   structure(list(finalstate=finalstate, time=endtimes[length(endtimes)],
-                 modelfit=fit_table, history=history, ids=ids),
+                 modelfit=fit_table, history=history, ids=ids, obsdata=obsdata),
             class = c('filter-fit','list'))
 }
 
@@ -401,12 +401,16 @@ project_filter_model <- function(filterfit, tfinal, dt=1, tvintage1=NA, dtvintag
   vintage_tbl <- as.data.frame(vintage_runs)
   vintage_tbl[['Itot']] <- vintage_tbl[['I']] + vintage_tbl[['Is']]
   vintage_tbl[['fi']] <- vintage_tbl[['Itot']] / totpop
+
+  rslt <-
   dplyr::group_by(vintage_tbl, vintage, time) %>%
-    dplyr::group_modify(function(df, grp) {
-      as.data.frame(rbind(c(statcols(df, 'S'), statcols(df, 'I'),
-                            statcols(df, 'Is'), statcols(df, 'Itot'),
-                            statcols(df, 'fi'))))
-    })
+  dplyr::group_modify(function(df, grp) {
+    as.data.frame(rbind(c(statcols(df, 'S'), statcols(df, 'I'),
+                          statcols(df, 'Is'), statcols(df, 'Itot'),
+                          statcols(df, 'fi'))))
+  })
+  attr(rslt, 'locality') <- filterfit[['obsdata']][['locality']][1]
+  rslt
 }
 
 

@@ -357,7 +357,7 @@ gen_parm_vec <- function(localities=NULL, beta=NULL, common_parms=NULL)
 #'
 #' Let \eqn{l = \log(\frac{p}{1-p})}, land let \eqn{l_0 = \frac{p_0}{1-p_0}}.
 #' Then \eqn{s = \frac{\exp((l-l_0)\sigma)}{\exp((l-l_0)\sigma) +
-#' \exp(-(l-l_0)\sigma)}.
+#' \exp(-(l-l_0)\sigma)}}.
 #'
 #' Note that as implemented this is not a properly normalized likelihood
 #' function.  This will not pose a problem, so long as \eqn{p_0} and

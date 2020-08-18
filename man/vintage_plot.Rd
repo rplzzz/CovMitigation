@@ -4,12 +4,15 @@
 \alias{vintage_plot}
 \title{Plot uncertainty ranges by vintage}
 \usage{
-vintage_plot(vintagedata, what, usedate = TRUE)
+vintage_plot(vintagedata, what, firstvintage = NULL, usedate = TRUE)
 }
 \arguments{
 \item{vintagedata}{Output from \code{\link{project_filter_model}}.}
 
 \item{what}{Variable to plot.  S, I, Is, Itot, and fi are available.}
+
+\item{firstvintage}{Earliest vintage to plot.  Default is the earliest one in
+the input data.}
 
 \item{usedate}{If \code{TRUE}, plot by date instead of time}
 }

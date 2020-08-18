@@ -21,7 +21,7 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL,
 {
   ## silence warnings
   fips <- newcases <- predicted <- NULL
-  
+
   obs <- get_obsdata()
   if(!is.null(default_parms)) {
     obs$default_parm_vals <- fill_defaults(default_parms, obs$default_parms_vals)
@@ -32,9 +32,9 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL,
   if(is.null(scenarios)) {
     scenarios <- paste0('s', seq(1,nrow(parms)))
   }
-  
-  
-  
+
+
+
   obsdata <- obs[['obsdata']]
   if(!is.null(maxdate)) {
     if(!inherits(maxdate, 'Date')) {
@@ -42,15 +42,15 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL,
     }
     obsdata <- obsdata[obsdata$date <= maxdate, ]
   }
-  
+
   wkdates <- unique(obsdata$date)
-  
+
   modrslts <-
     lapply(seq_along(scenarios),
            function(i) {
              pvals <- fill_defaults(parms[i,], obs[['default_parm_vals']])
              modpvals <- as.list(pvals[! names(pvals) %in% c('b0', 'b1')])
-             
+
              ## get output for every day up to the last in the dataset.
              tmax <- max(obsdata[['time']])
              tvals <- seq(infection_t0, tmax)
@@ -58,47 +58,47 @@ plt_modobs <- function(parms, scenarios=NULL, counties=NULL,
              modout[['scenario']] <- scenarios[i]
              modout[['fi']] <- modout[['PopInfection']] / modout[['population']]
              modout[['date']] <- modout[['time']] + as.Date('2020-01-01')
-             
+
              modout[['b0']] <- pvals[['b0']]
              modout[['b1']] <- pvals[['b1']]
-             
+
              modout <- modout[,c('scenario','date','time','locality','fi', 'b0', 'b1')]
-             
+
              lmout <- split(modout, modout$locality, drop=TRUE)
-             
+
              dplyr::bind_rows(
                lapply(lmout, function(df) {wkagg(wkdates, df, 'fi')})
              )
-             
+
            })
-  
+
   if (is.null(counties)){
     ncounty <- 4
     ncases <- dplyr::group_by(obsdata, fips) %>%
       dplyr::summarise(ncases = sum(newcases)) %>%
       dplyr::ungroup() %>%
       dplyr::arrange(dplyr::desc(ncases))
-    
+
     use_fips <- ncases[['fips']][seq(1,ncounty)]
   }
   else {
     use_fips <-
       va_county_first_case$FIPS[va_county_first_case$Locality %in% counties]
   }
-  
+
   pltdata <-
     dplyr::bind_rows(modrslts) %>%
     dplyr::left_join(obsdata, by=c('date','time', 'locality'))
   pltdata <- pltdata[pltdata[['fips']] %in% use_fips,]
   pltdata <- pltdata[!is.na(pltdata[['npos']]), ]
-  
+
   pltdata[['bias']] <- pltdata[['b0']] - pltdata[['b1']] * log(pltdata[['ntest']])
-  
+
   pltdata[['predicted']] <-
     padjust(pltdata[['fi']], pltdata[['bias']]) * pltdata[['ntest']]
-  
+
   pltdata[['locality']] <- ordered(pltdata[['locality']], levels = counties)
-  
+
   ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date)) +
     ggplot2::geom_line(mapping=ggplot2::aes(y=predicted, linetype='predicted', color=scenario), size=1.2) +
     ggplot2::geom_point(mapping=ggplot2::aes(y=npos, shape='observed')) +
@@ -134,15 +134,15 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
   ## silence warnings
   newCases <- marketFraction <- PopSympto <- PopInfection <- PopCumulInfection <-
     newSympto <- population <- popTotal <- scenario <- value <- NULL
-  
+
   if(!is.matrix(parms)) {
     parms <- t(as.matrix(parms))
   }
-  
+
   stopifnot(nrow(parms) == length(scenarios))
-  
+
   tvals <- seq(0, tmax)
-  
+
   modouts <-
     dplyr::bind_rows(
       lapply(seq(1, nrow(parms)),
@@ -156,10 +156,10 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
                modout
              })
     )
-  
-  
+
+
   modouts <- dplyr::group_by(modouts, time, scenario)
-  
+
   if(marketadjust) {
     pltdata <-
       dplyr::summarise(modouts,
@@ -184,10 +184,10 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
                        popTotal = sum(population)) %>%
       dplyr::mutate(PopPrevalence = PopInfection / popTotal)
   }
-  
+
   pltdata[['value']] <- pltdata[[what]]
   pltdata[['date']] <- pltdata[['time']] + as.Date('2020-01-01')
-  
+
   if(usedate) {
     ggplot2::ggplot(data=pltdata, ggplot2::aes(x=date, y=value, color=scenario)) +
       ggplot2::geom_line(size=1.2) +
@@ -208,41 +208,47 @@ plt_projections <- function(parms, scenarios, default_parms = list(), tmax=270, 
 #' @param filterfit A filter-fit structure returned by \code{\link{fit_filter}}
 #' @param simrun Optional data frame or matrix of results from the run that generated
 #' the input data.
-#' @param obsdata Optional data frame of observed data used to fit the model.
 #' @return A list of ggplot objects
 #' @export
-filter_model_diagnositc_plots <- function(filterfit, simrun=NULL, obsdata=NULL)
+filter_model_diagnositc_plots <- function(filterfit, simrun=NULL)
 {
+  obsdata <- filterfit[['obsdata']]
+  name <- obsdata[['locality']][1]
+
   modelfit <- filterfit[['modelfit']]
   prevplot <-
     ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
     ggplot2::geom_line(ggplot2::aes(y=fi, color='model fit'), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=filo, ymax=fihi), alpha=0.5) +
     ggplot2::ylab('prevalence') +
+    ggplot2::ggtitle(name) +
     ggplot2::theme_bw()
-  
+
   caseplot <-
     ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
     ggplot2::geom_line(ggplot2::aes(y=ncase), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=ncaselo, ymax=ncasehi), alpha=0.4) +
     ggplot2::ylab('Expected cases') +
+    ggplot2::ggtitle(name) +
     ggplot2::theme_bw()
-  
+
   betaplot <-
     ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
     ggplot2::geom_line(ggplot2::aes(y=beta), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=betalo, ymax=betahi), alpha=0.5) +
     ggplot2::ylab('beta') +
+    ggplot2::ggtitle(name) +
     ggplot2::theme_bw()
-  
+
   importplot <-
     ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
     ggplot2::geom_line(ggplot2::aes(y=import_cases), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=import_caseslo, ymax=import_caseshi),
                          alpha=0.5) +
     ggplot2::ylab('Import cases') +
+    ggplot2::ggtitle(name) +
     ggplot2::theme_bw()
-  
+
   if(!is.null(simrun)) {
     if(!is.data.frame(simrun)) {
       stopifnot(is.matrix(simrun))
@@ -253,12 +259,10 @@ filter_model_diagnositc_plots <- function(filterfit, simrun=NULL, obsdata=NULL)
     prevplot <- prevplot +
       ggplot2::geom_line(data=simrun, ggplot2::aes(y=fi, color='simulated run'), size=1.2)
   }
-  
-  if(!is.null(obsdata)) {
-    caseplot <- caseplot + 
+
+  caseplot <- caseplot +
       ggplot2::geom_point(data=obsdata, mapping=ggplot2::aes(y=npos), size=2)
-  }
-  
+
   list(prevalence=prevplot, beta=betaplot, import=importplot, cases=caseplot)
 }
 
@@ -267,25 +271,31 @@ filter_model_diagnositc_plots <- function(filterfit, simrun=NULL, obsdata=NULL)
 #'
 #' @param vintagedata Output from \code{\link{project_filter_model}}.
 #' @param what Variable to plot.  S, I, Is, Itot, and fi are available.
+#' @param firstvintage Earliest vintage to plot.  Default is the earliest one in
+#'   the input data.
 #' @param usedate If \code{TRUE}, plot by date instead of time
 #' @export
-vintage_plot <- function(vintagedata, what, usedate=TRUE)
+vintage_plot <- function(vintagedata, what, firstvintage=NULL, usedate=TRUE)
 {
   nvintmax <- 5
-  
+
   locol <- paste0(what, 'lo')
   hicol <- paste0(what, 'hi')
-  
+
   pltdata <- vintagedata[ , c('vintage','time', what, locol, hicol)]
+  if(!is.null(firstvintage)) {
+    pltdata <- pltdata[pltdata[['vintage']] >= firstvintage, ]
+  }
   names(pltdata) <- c('vintage','time','y', 'ylo', 'yhi')
-  
+  locality <- attr(vintagedata, 'locality')
+
   vintages <- unique(pltdata[['vintage']])
   ## If there are too many to plot easily, pick a subset as evenly distributed as possible.
   if(length(vintages) > nvintmax) {
     vintages <- vintages[round(seq(1, length(vintages), length.out=nvintmax))]
     pltdata <- pltdata[pltdata[['vintage']] %in% vintages, ]
   }
-  
+
   if(usedate) {
     pltdata[['date']] <- pltdata[['time']] + as.Date('2020-01-01')
     pltdata[['vintage']] <- pltdata[['vintage']] + as.Date('2020-01-01')
@@ -296,12 +306,40 @@ vintage_plot <- function(vintagedata, what, usedate=TRUE)
     pltdata[['vintage']] <- as.factor(pltdata[['vintage']])
     baseplt <- ggplot2::ggplot(pltdata, ggplot2::aes(x=time, color=vintage, fill=vintage))
   }
-  
+
   baseplt +
     ggplot2::geom_line(mapping=ggplot2::aes(y=y), size=1.2) +
     ggplot2::geom_ribbon(mapping=ggplot2::aes(ymin=ylo, ymax=yhi), alpha=0.25) +
     ggplot2::theme_bw() +
     ggplot2::ylab(what) +
+    ggplot2::ggtitle(locality) +
     ggthemes::scale_color_solarized() +
     ggthemes::scale_fill_solarized()
+}
+
+
+#' Compare filter model fits in various localities
+#'
+#' @param filterfits List of filter-fit objects
+#' @param what Name of the variable to plot (fi, beta, ncase, import_cases)
+#' @export
+filter_model_comparison_plot <- function(filterfits, what='fi')
+{
+  extract_pltdata <- function(filterfit) {
+    modelfit <- filterfit[['modelfit']]
+    locality <- filterfit[['obsdata']][['locality']][1]
+    rslt <- modelfit[ , c('time', what)]
+    rslt[['locality']] <- locality
+    rslt
+  }
+
+  pltdata <- dplyr::bind_rows(lapply(filterfits, extract_pltdata))
+  pltdata[['date']] <- as.Date('2020-01-01') + pltdata[['time']]
+  pltdata[['value']] <- pltdata[[what]]
+
+  ggplot2::ggplot(pltdata, ggplot2::aes(x=date, y=value, color=locality)) +
+      ggplot2::geom_line(size=1.2) +
+      ggplot2::ylab(what) +
+      ggthemes::scale_color_solarized() +
+      ggplot2::theme_bw()
 }
