@@ -198,13 +198,13 @@ bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
   betasig1wk <- 0.05
   betasig <- betasig1wk * sqrt(wk)
 
-  ## Not sure what the best prior is for importation.  I was thinking
-  ## exponential with a scale length of the previous weekly importation rate
-  ## (per week, minimum of 10/wk), but I don't think we want to treat multiple
-  ## weeks as a sum (which would give us a very narrow result for a
-  ## multiple-week jump).  Instead, we just multiply the scale length by the
-  ## number of weeks.
-  imprate <- 1/pmax(imp0, 10) * wk
+  ## Not sure what the best prior is for importation.
+  ## For now we'll just go with an exponential distribution with an average of
+  ## 2.5/day.
+  ## We won't treat multiple weeks as a sum (which would give us a very narrow
+  ## result for a multiple-week jump).  Instead, we just multiply the scale
+  ## length by the number of weeks.
+  imprate <- 1/2.5 * wk
 
 
   as.numeric(dnorm(beta1, beta0, betasig, log=TRUE) + dexp(imp1, imprate, log=TRUE) +
