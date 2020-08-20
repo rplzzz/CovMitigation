@@ -216,8 +216,10 @@ filter_model_diagnositc_plots <- function(filterfit, simrun=NULL)
   name <- obsdata[['locality']][1]
 
   modelfit <- filterfit[['modelfit']]
+  modelfit[['date']] <- modelfit[['time']] + as.Date('2020-01-01')
+
   prevplot <-
-    ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
+    ggplot2::ggplot(modelfit, ggplot2::aes(x=date)) +
     ggplot2::geom_line(ggplot2::aes(y=fi, color='model fit'), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=filo, ymax=fihi), alpha=0.5) +
     ggplot2::ylab('prevalence') +
@@ -225,7 +227,7 @@ filter_model_diagnositc_plots <- function(filterfit, simrun=NULL)
     ggplot2::theme_bw()
 
   caseplot <-
-    ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
+    ggplot2::ggplot(modelfit, ggplot2::aes(x=date)) +
     ggplot2::geom_line(ggplot2::aes(y=ncase), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=ncaselo, ymax=ncasehi), alpha=0.4) +
     ggplot2::ylab('Expected cases') +
@@ -233,7 +235,7 @@ filter_model_diagnositc_plots <- function(filterfit, simrun=NULL)
     ggplot2::theme_bw()
 
   betaplot <-
-    ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
+    ggplot2::ggplot(modelfit, ggplot2::aes(x=date)) +
     ggplot2::geom_line(ggplot2::aes(y=beta), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=betalo, ymax=betahi), alpha=0.5) +
     ggplot2::ylab('beta') +
@@ -241,13 +243,25 @@ filter_model_diagnositc_plots <- function(filterfit, simrun=NULL)
     ggplot2::theme_bw()
 
   importplot <-
-    ggplot2::ggplot(modelfit, ggplot2::aes(x=time)) +
+    ggplot2::ggplot(modelfit, ggplot2::aes(x=date)) +
     ggplot2::geom_line(ggplot2::aes(y=import_cases), size=1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=import_caseslo, ymax=import_caseshi),
                          alpha=0.5) +
     ggplot2::ylab('Import cases') +
     ggplot2::ggtitle(name) +
     ggplot2::theme_bw()
+
+  rtplot <-
+    ggplot2::ggplot(modelfit, ggplot2::aes(x=date)) +
+    ggplot2::geom_line(ggplot2::aes(y=R0, color='Basic (R0)'), size=1.2) +
+    ggplot2::geom_line(ggplot2::aes(y=Rt, color='Effective (Rt)'), size=1.2) +
+    ggplot2::geom_ribbon(ggplot2::aes(ymin=Rtlo, ymax=Rthi), alpha=0.4) +
+    ggplot2::geom_hline(yintercept=1, color='blue') +
+    ggplot2::ylab('Reproduction number') +
+    ggplot2::ggtitle(name) +
+    ggplot2::theme_bw()
+
+
 
   if(!is.null(simrun)) {
     if(!is.data.frame(simrun)) {
@@ -263,7 +277,7 @@ filter_model_diagnositc_plots <- function(filterfit, simrun=NULL)
   caseplot <- caseplot +
       ggplot2::geom_point(data=obsdata, mapping=ggplot2::aes(y=npos), size=2)
 
-  list(prevalence=prevplot, beta=betaplot, import=importplot, cases=caseplot)
+  list(prevalence=prevplot, beta=betaplot, import=importplot, cases=caseplot, rtplot=rtplot)
 }
 
 
@@ -304,7 +318,7 @@ vintage_plot <- function(vintagedata, what, firstvintage=NULL, usedate=TRUE)
   }
   else {
     pltdata[['vintage']] <- as.factor(pltdata[['vintage']])
-    baseplt <- ggplot2::ggplot(pltdata, ggplot2::aes(x=time, color=vintage, fill=vintage))
+    baseplt <- ggplot2::ggplot(pltdata, ggplot2::aes(x=date, color=vintage, fill=vintage))
   }
 
   baseplt +
@@ -342,4 +356,48 @@ filter_model_comparison_plot <- function(filterfits, what='fi')
       ggplot2::ylab(what) +
       ggthemes::scale_color_solarized() +
       ggplot2::theme_bw()
+}
+
+
+#' Plot traces for ensemble members in a filter model fit
+#'
+#' This plot requires that the history was kept in the filter fit.
+#'
+#' @param filterfit Filter-fit object
+#' @param what Variable to plot.  Default is \code{fi}.
+#' @param Nplot Number of ensemble members (randomly selected) to plot.  Default
+#'   is to plot 50.  If \code{NULL}, then plot all.
+#' @param highlight List of ensemble member ids to overplot in a highlight
+#'   color.  Default is none.
+#' @export
+filter_model_ensemble_plot <- function(filterfit, what='fi', Nplot=50, highlight=NULL)
+{
+  if(is.null(filterfit$history)) {
+    stop('Must have history recorded to make this plot.')
+  }
+  else {
+    name <- filterfit$obsdata$locality[1]
+    hist <- filterfit$history
+    hist[['value']] <- hist[[what]]
+    hist[['date']] <- hist[['time']] + as.Date('2020-01-01')
+  }
+  if(!is.null(Nplot)) {
+    ids <- sample(unique(hist[['id']]), Nplot)
+    hist <- hist[hist$id %in% ids, ]
+  }
+
+  plt <- ggplot2::ggplot(hist, ggplot2::aes(x=date, y=value, group=id)) +
+     ggplot2::geom_line(color='blue', alpha=0.25) +
+     ggplot2::ggtitle(name) + ylab(what) +
+     ggplot2::theme_bw()
+
+  if(!is.null(highlight)) {
+    hl <- filterfit$history
+    hl <- hl[hl$id %in% highlight, ]
+    hl[['value']] <- hl[[what]]
+    hl[['date']] <- hl[['time']] + as.Date('2020-01-01')
+    plt <- plt + ggplot2::geom_line(data=hl, color='red', alpha=0.75)
+  }
+
+  plt
 }

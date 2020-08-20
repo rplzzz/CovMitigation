@@ -294,20 +294,30 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
     b <- r[['b0']] - r[['b1']]*log(ntest)
     ro_biased <- b * fi/(1-fi)
     r[['ncase']] <- ntest * ro_biased/(1+ro_biased)
+
+    ## R0 and Rt values
+    r0 <- r[['beta']] * r[['D0']]
+    rt <- r0 * r[['S']] / totpop
+    r[['R0']] <- r0
+    r[['Rt']] <- rt
+
     r
   }
   rslt <- lapply(rslt, addprev)
 
   ## If detailed history was requested, add it now.
   if(!is.null(history)) {
-    histvars <- c('time', 'S', 'E', 'I','Is','Itot', 'R', 'fi', 'ncase','beta','import_cases', 'id')
+    histvars <- c('time', 'S', 'E', 'I','Is','Itot', 'R',
+                  'fi', 'ncase', 'R0', 'Rt',
+                  'beta','import_cases', 'id')
     if(is.data.frame(history)) {
       stopifnot(setequal(names(history), histvars))
     }
     else {
       history <- tibble::tibble(time=numeric(0), S=numeric(0), E=numeric(0),
                                 I=numeric(0), Is=numeric(0), Itot=numeric(0),
-                                R=numeric(0),
+                                R=numeric(0), ncase=numeric(0),
+                                R0=numeric(0), Rt=numeric(0),
                                 fi=numeric(0), beta=numeric(0),
                                 import_cases=numeric(0), id=integer(0))
     }
@@ -436,7 +446,9 @@ collate_results <- function(rsltlist, timevals)
                     betastats <- statcols(rslt, 'beta')
                     impstats <- statcols(rslt, 'import_cases')
                     fistats <- statcols(rslt, 'fi')
-                    row <- c(time=t, betastats, impstats, fistats)
+                    R0stats <- statcols(rslt, 'R0')
+                    Rtstats <- statcols(rslt, 'Rt')
+                    row <- c(time=t, betastats, impstats, fistats, R0stats, Rtstats)
                     if('ncase' %in% names(rslt)) {
                       row <- c(row, statcols(rslt, 'ncase'))
                     }
