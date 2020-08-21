@@ -298,6 +298,12 @@ vintage_plot <- function(vintagedata, what, firstvintage=NULL, usedate=TRUE)
 
   pltdata <- vintagedata[ , c('vintage','time', what, locol, hicol)]
   if(!is.null(firstvintage)) {
+    if(is.character(firstvintage)) {
+      firstvintage <- as.Date(firstvintage)
+    }
+    if(inherits(firstvintage, 'Date')) {
+      firstvintage <- as.numeric(firstvintage - as.Date('2020-01-01'))
+    }
     pltdata <- pltdata[pltdata[['vintage']] >= firstvintage, ]
   }
   names(pltdata) <- c('vintage','time','y', 'ylo', 'yhi')
