@@ -429,7 +429,7 @@ project_filter_model <- function(filterfit, tfinal, dt=1, tvintage1=NA, dtvintag
 ### appropriately.
 statcols <- function(tbl, colname)
 {
-  probs=c(0.025, 0.5, 0.975)
+  probs=pnorm(c(-1,0,1))
   stats <- quantile(tbl[[colname]], probs, names=FALSE)
   names(stats) <- paste0(colname, c('lo','','hi'))
   stats
