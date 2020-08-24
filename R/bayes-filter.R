@@ -245,7 +245,7 @@ bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
 #'   specify this explicitly.
 #' @export
 fit_filter <- function(initstates, obsdata, tinit, tfinal,
-                       history = NULL, ids = NULL)
+                       history = TRUE, ids = NULL)
 {
   ## Filter to just the times requested
   time <- obsdata[['time']]
