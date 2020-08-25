@@ -15,7 +15,7 @@ run_filter_fit_loc <- function(i, N=100)
 {
   ## Assume that the directory for filter ensemble candidates is a subdir of the
   ## directory we are running from
-  inputdir <- normalizePath('./ensemble-candidates')
+  inputdir <- normalizePath('./harmonized-ensemble')
   i <- as.integer(i)
   locality <- int2locality(i)
   N <- as.integer(N)
