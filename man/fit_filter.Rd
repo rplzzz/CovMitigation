@@ -4,7 +4,7 @@
 \alias{fit_filter}
 \title{Fit a Bayesian filter over time}
 \usage{
-fit_filter(initstates, obsdata, tinit, tfinal, history = NULL, ids = NULL)
+fit_filter(initstates, obsdata, tinit, tfinal, history = TRUE, ids = NULL)
 }
 \arguments{
 \item{initstates}{Matrix containing ensemble of initial states and parameter

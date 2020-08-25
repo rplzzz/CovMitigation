@@ -70,18 +70,20 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
 
       cmp <- dplyr::left_join(prevalence, obsdata, by=c('time'))
       stopifnot(all(!is.na(cmp$fi) & !is.na(cmp$ntest))) # All data must be present
-      b <- pmax(oldparms[['b0']] - oldparms[['b1']] * log(cmp$ntest), 1)
+      nt <- pmax(1, cmp$ntest)                         # Avoid bad values when ntest == 0
+      b <- pmax(oldparms[['b0']] - oldparms[['b1']] * log(nt), 1)
       cmp$biased_fi <- padjust(cmp$fi, b)
 
       x <- cmp$npos
       m <- ceiling(cmp$biased_fi * cmp$population)
       n <- ceiling((1-cmp$biased_fi) * cmp$population)
-      k <- cmp$ntest
+      k <- cmp$nt
 
       dhpenalty <- -1000 * sum(x > m)
       x <- pmin(x, m)
 
-      logl <- dhyper(x, m, n, k, log=TRUE)
+      ## Hypergeometric likelihood.  Ignore if ntest == 0.
+      logl <- ifelse(cmp$ntest > 0, dhyper(x, m, n, k, log=TRUE),0)
       sum(logl)
     }
 
@@ -290,7 +292,7 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
     ## expected number of cases
     t <- r[['time']][1] # all the times are the same value, so we just need one.
     iobs <- match(t, obsdata[['time']])
-    ntest <- obsdata[['ntest']][iobs]
+    ntest <- pmax(1, obsdata[['ntest']][iobs])
     b <- r[['b0']] - r[['b1']]*log(ntest)
     ro_biased <- b * fi/(1-fi)
     r[['ncase']] <- ntest * ro_biased/(1+ro_biased)
