@@ -19,7 +19,7 @@ run_filter_fit_loc <- function(i, N=100)
   i <- as.integer(i)
   locality <- int2locality(i)
   N <- as.integer(N)
-  fit <- filter_fit_locality(locality, inputdir, N)
+  fit <- filter_fit_locality(locality, inputdir, N, 'filter-ensemble-')
   
   outfilename <- paste0('filter-fit-', locality, '.rds')
   saveRDS(fit, outfilename)

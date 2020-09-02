@@ -42,6 +42,7 @@ filter_fit_locality <- function(locality,
 
   ensemble_filename <-
     file.path(inputdir, paste0(inputpfx, locality, inputsfx))
+  message('filename:  ', ensemble_filename)
   stopifnot(file.exists(ensemble_filename))
   ensemble_ms <- readRDS(ensemble_filename)
 
@@ -92,3 +93,4 @@ filter_fit_locality <- function(locality,
 
   fit_filter(initstates, obsdata, t1, max(obsdata$time), history = TRUE)
 }
+
