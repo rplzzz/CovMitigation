@@ -4,15 +4,35 @@
 \alias{census_model_output}
 \title{Compute input for the hospital census model from a filter model}
 \usage{
-census_model_output(fitdir, tfinal, mktmin = 0.1)
+census_model_output(
+  fitdir,
+  tfinal,
+  scenario_name = "BAU",
+  mktmin = 0.1,
+  scenario = NULL,
+  tstrt = NULL
+)
 }
 \arguments{
 \item{fitdir}{Name of directory with saved filter fit objects}
 
 \item{tfinal}{Max run time for the projections}
 
+\item{scenario_name}{Name of the scenario.  Defaults to "BAU" (business as
+usual).}
+
 \item{mktmin}{Market share threshold.  Counties where we have a market share
 below the threshold will not be run.}
+
+\item{scenario}{Scenario data structure returned from
+\code{\link{Scenario}}.  If a data frame is passed, it will be converted
+with a call to \code{\link{Scenario}}.}
+
+\item{tstrt}{Start of the projection period.  If omitted, the projection will
+start at the end of the model fit.  Otherwise, the projection will start at
+the last historical time step prior to the requested start time.  Since the
+model fitting is done at weekly intervals, this may not be exactly equal to
+\code{tstrt}.}
 }
 \value{
 Data frame suitable for input into census model. All case counts are
@@ -41,6 +61,25 @@ weighted by market share.
 \details{
 If the model history is included, it will be prepended onto the projection.
 If not, the output will start with the projection.
+
+The scenario structure, if present, should be a data frame that describes a
+schedule of hypothetical parameter changes in the future.  Changes for
+times in the past (prior to the start of the projection) are ignored;
+however, the most recent such change will take
+effect in the first future time step.  The format for the scenario structure
+is a data frame with the following columns:
+\describe{
+\item{locality}{The locality the change applies to.  A \code{NA} value here
+means the change is a default that will apply to any locality without a
+specified change.}
+\item{time}{The time at which a change in a parameter occurs.  The parameter
+will remain at its changed value until another change is imposed.}
+\item{parm}{Parameter affected by the change}
+\item{value}{The change factor.  This will be treated as a multiplier on the
+parameter's value at the end of the historical period.  For example, a value
+of 1.2 will produce a 20% increase over the parameter's value in the last
+historical week.}
+}
 }
 \section{TODO}{
 

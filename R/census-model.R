@@ -6,6 +6,25 @@
 #' If the model history is included, it will be prepended onto the projection.
 #' If not, the output will start with the projection.
 #'
+#' The scenario structure, if present, should be a data frame that describes a
+#' schedule of hypothetical parameter changes in the future.  Changes for
+#' times in the past (prior to the start of the projection) are ignored;
+#' however, the most recent such change will take
+#' effect in the first future time step.  The format for the scenario structure
+#' is a data frame with the following columns:
+#' \describe{
+#' \item{locality}{The locality the change applies to.  A \code{NA} value here
+#' means the change is a default that will apply to any locality without a
+#' specified change.}
+#' \item{time}{The time at which a change in a parameter occurs.  The parameter
+#' will remain at its changed value until another change is imposed.}
+#' \item{parm}{Parameter affected by the change}
+#' \item{value}{The change factor.  This will be treated as a multiplier on the
+#' parameter's value at the end of the historical period.  For example, a value
+#' of 1.2 will produce a 20% increase over the parameter's value in the last
+#' historical week.}
+#' }
+#'
 #' @section TODO:
 #'
 #' * Refactor common code between this and \code{\link{project_filter_model}}.
@@ -13,8 +32,18 @@
 #'
 #' @param fitdir Name of directory with saved filter fit objects
 #' @param tfinal Max run time for the projections
+#' @param scenario_name Name of the scenario.  Defaults to "BAU" (business as
+#'   usual).
 #' @param mktmin Market share threshold.  Counties where we have a market share
 #'   below the threshold will not be run.
+#' @param scenario Scenario data structure returned from
+#'   \code{\link{Scenario}}.  If a data frame is passed, it will be converted
+#'   with a call to \code{\link{Scenario}}.
+#' @param tstrt Start of the projection period.  If omitted, the projection will
+#'   start at the end of the model fit.  Otherwise, the projection will start at
+#'   the last historical time step prior to the requested start time.  Since the
+#'   model fitting is done at weekly intervals, this may not be exactly equal to
+#'   \code{tstrt}.
 #' @return Data frame suitable for input into census model. All case counts are
 #'   market share weighted. Columns:
 #' \describe{
@@ -34,8 +63,13 @@
 #'   value is the same whether or not you weight by market share}
 #' }
 #' @export
-census_model_output <- function(fitdir, tfinal, mktmin=0.1)
+census_model_output <- function(fitdir, tfinal, scenario_name = 'BAU',
+                                mktmin=0.1, scenario=NULL, tstrt=NULL)
 {
+   if(!is.null(tstrt)) {
+     stop('Setting tstrt not yet implemented.')
+   }
+
    mfrac <- marketFractionFinal[marketFractionFinal[['TypeAMCDRG']] ==
                                 'fractionAllUVA', ]
    counties <- mfrac[mfrac[['marketShare']] >= mktmin, 'Locality']
@@ -44,6 +78,13 @@ census_model_output <- function(fitdir, tfinal, mktmin=0.1)
    parmnames <- c('beta', 'import_cases', 'D0','A0','Ts','mask_effect')
 
    run_county <- function(locality) {
+     if(!is.null(scenario)) {
+       localityscen <- scenario_extract_locality(locality, scenario)
+     }
+     else {
+       localityscen <- NULL
+     }
+
      ## load county data
      filename <- file.path(fitdir,paste0('filter-fit-',locality,'.rds'))
      stopifnot(file.exists(filename))
@@ -65,7 +106,7 @@ census_model_output <- function(fitdir, tfinal, mktmin=0.1)
        istate <- finalstates[iens, ]
        vars <- c(istate[varnames])
        parms <- istate[parmnames]
-       rslt <- as.data.frame(run_parmset(parms, vars, timevals))  # columns: time, S, E, I, Is, R
+       rslt <- as.data.frame(run_parmset(parms, vars, timevals, localityscen))  # columns: time, S, E, I, Is, R
 
        ## prepend history if available
        if(!is.null(filterfit[['history']])) {
