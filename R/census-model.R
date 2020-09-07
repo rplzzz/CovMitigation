@@ -79,7 +79,7 @@ census_model_output <- function(fitdir, tfinal, scenario_name = 'BAU',
 
    run_county <- function(locality) {
      if(!is.null(scenario)) {
-       localityscen <- scenario_extract_locality(locality, scenario)
+       localityscen <- localize_scenario(scenario, locality)
      }
      else {
        localityscen <- NULL
@@ -152,12 +152,12 @@ census_model_output <- function(fitdir, tfinal, scenario_name = 'BAU',
        rslt$newCases <- c(0, newcases)
        rslt$PopCumulInfection <- cumsum(rslt$newCases)
 
-       ## Add scenario column
-       rslt[['scenario']] <- ids[iens]
+       ## Add ensemble column
+       rslt[['ensemble']] <- ids[iens]
 
        ## return result.  Drop the first row because the newSympto entry is not
        ## accurate there.
-       rslt[-c(1), c('time', 'scenario', 'newCases', 'newSympto', 'PopSympto', 'PopInfection',
+       rslt[-c(1), c('time', 'ensemble', 'newCases', 'newSympto', 'PopSympto', 'PopInfection',
                      'PopRecovered', 'PopCumulInfection', 'PopSuscept')]
      }
 
@@ -185,7 +185,7 @@ census_model_output <- function(fitdir, tfinal, scenario_name = 'BAU',
 
    ## Aggregate across counties
    aggens <-
-       dplyr::group_by(allensruns, time, scenario) %>%
+       dplyr::group_by(allensruns, time, ensemble) %>%
        dplyr::summarise(popmkt=sum(popmkt), newCases=sum(newCases),
                         newSympto=sum(newSympto), PopSympto=sum(PopSympto),
                         PopInfection=sum(PopInfection),
@@ -196,6 +196,9 @@ census_model_output <- function(fitdir, tfinal, scenario_name = 'BAU',
    aggens[['fracInfection']] <- aggens[['PopInfection']] / aggens[['popmkt']]
    aggens[['fracCumulInfection']] <- aggens[['PopCumulInfection']] / aggens[['popmkt']]
    aggens[['date']] <- aggens[['time']] + as.Date('2020-01-01')
+
+   ## Add scenario column
+   aggens[['scenario']] <- scenario_name
 
    aggens
 }

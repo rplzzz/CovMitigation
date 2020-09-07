@@ -50,6 +50,9 @@ Scenario <- function(scen)
   rsltnames <- c('locality', 'time', 'isrelative', 'value')
   reqdnames <- c(rsltnames, 'parm')
   stopifnot(all(reqdnames %in% names(scen)))
+  stopifnot(is.numeric(scen[['time']]))
+  stopifnot(is.numeric(scen[['value']]))
+  stopifnot(is.logical(scen[['isrelative']]))
 
   ## Split by parameter and drop any unneeded columns.
   rslt <- lapply(split(scen, scen$parm),
@@ -84,6 +87,7 @@ is.Scenario <- function(obj)
 #'   object because it can no longer be used with an arbitrary locality.
 localize_scenario <- function(scen, locality)
 {
+  stopifnot(is.Scenario(scen))
   rslt <- lapply(scen, localize_scenario_parm, loc=locality)
   oldclass <- class(rslt)
   class(rslt) <- c('LocalScen', oldclass[oldclass != 'Scenario'])
@@ -146,3 +150,22 @@ scenario_parm_value <- function(locscen, timevals, parmbase)
                }
              })
 }
+
+
+#' Find the times at which a scenario's parameters change
+#'
+#' Find the change times (i.e., the times at which at least one parameter
+#' changes) across all parameters.
+#'
+#' @param localscen A \code{LocalScen} object
+#' @return Vector of times at which at least one parameter changes.
+scenario_change_times <- function(localscen)
+{
+  skp <- sapply(localscen, is.null)     # variables not present
+  as.numeric(unique(
+    sort(
+      unlist(
+        lapply(localscen[!skp], function(x){x$time})
+      ))))
+}
+

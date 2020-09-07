@@ -134,12 +134,15 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
 #' @param istate Named vector of initial values for state variable: S, E, I, Is, and R
 #' @param timevals Vector of times to output results.  The values of the state
 #' variables will be initialized at the first time in the list.
+#' @param localityscen \code{LocalScen} object returned from
+#'   \code{\link{localize_scenario}}.  If \code{NULL}, then no changes to
+#'   parameters will be applied in the future scenario.
 #' @return Matrix with a column for time and a column for each state variable.
 #' The first row of the matrix (which would contain the initial time) is dropped
 #' so that rbinding the output of several consecutive calls to this function will
 #' not produce any duplicate rows.
 #' @export
-run_parmset <- function(parms, istate, timevals)
+run_parmset <- function(parms, istate, timevals, localityscen=NULL)
 {
   ode_parms <- c(alpha=1/parms[['A0']], beta=parms[['beta']],
                  gamma=1/parms[['D0']], epsilon=1/parms[['Ts']],
@@ -147,9 +150,64 @@ run_parmset <- function(parms, istate, timevals)
                  import_cases=parms[['import_cases']])
 
   istate <- istate[-c(1)]       # First column is time
-  ## Run the ODE solver and drop the initial state (first row)
-  rslt <- deSolve::ode(istate, timevals, seir_equations, ode_parms)
-  rslt[-c(1), ,drop=FALSE]
+  if(is.null(localityscen)) {
+    ## Run the ODE solver and drop the initial state (first row)
+    rslt <- deSolve::ode(istate, timevals, seir_equations, ode_parms)
+    rslt[-c(1), ,drop=FALSE]
+  }
+  else {
+    ## We are going to have parameters changing along the way, so we will need
+    ## to run in steps.
+    tstop <- max(timevals)              # final stop time
+    timebreaks <- scenario_change_times(localityscen)
+    timebreaks <- timebreaks[timebreaks < tstop]
+    parm_sched <- scenario_parm_value(localityscen,
+                                      c(min(timevals), timebreaks),
+                                      ode_parms)
+    if(max(timebreaks) < tstop) {
+      timebreaks <- c(timebreaks, tstop)
+    }
+
+    runs <- list()
+    length(runs) <- length(timebreaks)
+    for(i in seq_along(timebreaks)) {
+      ## Find ODE output times for this segment, and remove them from the list
+      ## of all output times
+      tfin <- timebreaks[i]
+      tv <- timevals[timevals <= tfin]
+      timevals <- timevals[timevals >= tfin]
+      if(max(tv) < tfin) {
+        ## Make sure we run right up to the change time, even if it isn't one of
+        ## the times requested
+        tv <- c(tv, tfin)
+        dropfinal <- TRUE
+      }
+      else {
+        dropfinal <- FALSE
+      }
+
+      ## Set up parameters for this segment
+      for(parm in colnames(parm_sched)) {
+        ode_parms[[parm]] <- parm_sched[i, parm]
+      }
+
+      ## Run ODE solver
+      rr <- deSolve::ode(istate, tv, seir_equations, ode_parms)
+
+      ## Drop first row (it's a repeat of the initial state)
+      rr <- rr[-c(1), , drop=FALSE]
+
+      ## Get the new initial state (last row), and drop the last row if it
+      ## wasn't wanted.
+      istate <- rr[nrow(rr), -c(1)]     # drop the time column.
+      if(dropfinal) {
+        rr <- rr[-c(nrow(rr)), ]
+      }
+
+      runs[[i]] <- rr
+    }
+    do.call(rbind, runs)
+  }
 }
 
 average_weekly_prevalence <- function(runout, obsdata)

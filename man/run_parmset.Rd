@@ -4,7 +4,7 @@
 \alias{run_parmset}
 \title{Run the compartment model for a single set of parameters}
 \usage{
-run_parmset(parms, istate, timevals)
+run_parmset(parms, istate, timevals, localityscen = NULL)
 }
 \arguments{
 \item{parms}{Named vector of model parameters: beta, A0, D0, Ts, and mask_effect}
@@ -13,6 +13,10 @@ run_parmset(parms, istate, timevals)
 
 \item{timevals}{Vector of times to output results.  The values of the state
 variables will be initialized at the first time in the list.}
+
+\item{localityscen}{\code{LocalScen} object returned from
+\code{\link{localize_scenario}}.  If \code{NULL}, then no changes to
+parameters will be applied in the future scenario.}
 }
 \value{
 Matrix with a column for time and a column for each state variable.

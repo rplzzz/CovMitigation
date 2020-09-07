@@ -83,3 +83,16 @@ test_that('scenario parm values are extracted', {
   expect_equal(parmc[ ,'alpha'], c(rep(1, 2), rep(1.5, 5), rep(1,4)))
   expect_equal(parmc[ ,'beta'], rep(2, 11))
 })
+
+test_that('change times are extracted correctly', {
+  scen <- Scenario(scenario_test_input)
+  pb <- c(alpha=1, beta=2)
+  scenA <- localize_scenario(scen, 'A')
+  scenB <- localize_scenario(scen, 'B')
+  scenC <- localize_scenario(scen, 'C')
+
+  expect_equal(scenario_change_times(scenA), c(1,2,4,6,8))
+  expect_equal(scenario_change_times(scenB), c(1,3,5,7,9))
+  expect_equal(scenario_change_times(scenC), c(2, 7))
+})
+
