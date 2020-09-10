@@ -404,6 +404,76 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
 }
 
 
+#' Extend a filter model with new data.
+#'
+#' This function uses the information in a filter model structure to set up
+#' the input for \code{\link{fit_filter}}.  The observed data is supplemented
+#' with a new dataset, and the fit is continued from the final state stored in
+#' the model.
+#'
+#' @param filterfit Structure of class filter-fit returned by
+#'   \code{fit-filter}.
+#' @param newobs Observed dataset to use to extend the fit.  This dataset should
+#'   have some observations at later times than the final time in the input
+#'   model. Data from times earlier than the final time in the input model will
+#'   be ignored.
+#' @param tfin Last time to use to fit the new model.  Default is to use the
+#'   time of the last observation.
+#' @return A \code{filter-fit} structure for which the fit has been extended
+#'   using the new data
+#' @export
+extend_filter_model <- function(filterfit, newobs, tfin=NULL)
+{
+  stopifnot(inherits(filterfit, 'filter-fit'))
+  tinit <- filterfit[['time']]
+  initstate <- filterfit[['finalstate']]
+  ids <- filterfit[['ids']]
+  history <- filterfit[['history']]
+
+  ## Ensure that new observations have a time column
+  if(!('time' %in% names(newobs))) {
+    newobs[['time']] <- newobs[['date']] - as.Date('2020-01-01')
+  }
+  tobsmax <- max(newobs[['time']])
+  ## If the last week is based on incomplete data, drop it
+  lastdata <- pmin(
+                  max(vdhcovid::vadailytests[['date']]),
+                  max(vdhcovid::vadailycases[['date']]))
+  keepwk <- newobs[['date']] <= lastdata
+  newobs <- newobs[keepwk, ]
+
+  if(is.null(tfin)) {
+    tfin <- tobsmax
+  }
+  else {
+    if(tfin > tobsmax) {
+      warning('Requested stop time ', tfin,
+              ' as after the the final time in the data.  Using ', tobsmax,
+              ' as final time.')
+      tfin <- tobsmax
+    }
+  }
+
+  ## Create a new observed dataset using the old observations up through tinit,
+  ## and the new observations subsequently.
+  oldobs <- filterfit[['obsdata']]
+  oldobs <- oldobs[oldobs[['time']] <= tinit, ]
+  newobs <- newobs[newobs[['time']] > tinit, ]
+  obsdata <- dplyr::bind_rows(oldobs, newobs)
+
+  ## Fit the new data
+  newfit <- fit_filter(initstate, obsdata, tinit, tfin, history, ids)
+
+  ## Append the fit summary from the new fit to the old
+  newfit[['modelfit']] <- dplyr::bind_rows(filterfit[['modelfit']],
+                                           newfit[['modelfit']])
+  ## Add the combined observed data
+  newfit[['obsdata']] <- obsdata
+
+  newfit
+}
+
+
 #' Continue a run from a fitted filter model.
 #'
 #' Unlike \code{\link{fit_filter}}, this function just continues running the
