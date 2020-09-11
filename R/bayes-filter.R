@@ -474,6 +474,77 @@ extend_filter_model <- function(filterfit, newobs, tfin=NULL)
 }
 
 
+#' Update all saved filter models
+#'
+#' Load all the filter models in an input directory and update them with the
+#' latest data.  Write results to a new directory.
+#'
+#' @param indir Directory with input files
+#' @param outdir Directory to save output in.  Default is
+#'   \code{filter-updates.<date>}, where \code{<date>} is the date of the last
+#'   observations in the dataset used in the fits.
+#' @param save Flag indicating whether to save new model fits to disk.
+#' @return List of filter models with the fit extended to the new data
+#' @export
+update_filter_models <- function(indir, outdir=NULL, save=TRUE)
+{
+  filepattern <- 'filter-fit-(.*)\\.rds'
+  savefiles <- list.files(path=indir, pattern=filepattern)
+  localities <- stringr::str_match(savefiles, filepattern)[ ,2]
+  filenames <- file.path(indir, savefiles)
+
+  allobs <- get_obsdata()[[1]]
+
+  runlocal <- function(i) {
+    locality <- localities[i]
+    message('Processing: ', locality)
+    filtermodel <- readRDS(filenames[i])
+    newobs <- allobs[allobs[['locality']] == locality, ]
+    extend_filter_model(filtermodel, newobs)
+  }
+
+  newmodels <- lapply(seq_along(filenames), runlocal)
+
+  if(save) {
+    if(is.null(outdir)) {
+      ## Max date across all models. (Each model should have the same, but it
+      ## never hurts to be sure).
+      dmax <- as.character(
+        as.Date(max(sapply(newmodels,
+                           function(m) {max(m[['obsdata']][['date']])})),
+                origin = '1970-01-01'))
+
+      dirname <- paste0('filter-updates.',dmax)
+      outdir <- here::here('analysis',dirname)
+    }
+    if(!dir.exists(outdir)) {
+      dowrite <- dir.create(outdir, recursive=TRUE)
+      if(!dowrite) {
+        warning('Unable to create directory ', outdir)
+      }
+    }
+    else {
+      dowrite <- TRUE
+    }
+
+
+    if(dowrite) {
+      message('Output directory is ', outdir)
+      for(i in seq_along(localities)) {
+        locality <- localities[i]
+        model <- newmodels[[i]]
+        filename <- file.path(outdir, paste0('filter-fit-',locality,'.rds'))
+        tryCatch(saveRDS(model, filename),
+                 error = function(e) {
+                   warning(conditionMessage(e))
+                 })
+      }
+    }
+  }
+
+  newmodels
+}
+
 #' Continue a run from a fitted filter model.
 #'
 #' Unlike \code{\link{fit_filter}}, this function just continues running the
