@@ -175,6 +175,10 @@ run_parmset <- function(parms, istate, timevals, localityscen=NULL)
       ## of all output times
       tfin <- timebreaks[i]
       tv <- timevals[timevals <= tfin]
+      if(length(tv) == 0) {
+        runs[[i]] <- NULL
+        next
+      }
       timevals <- timevals[timevals >= tfin]
       if(max(tv) < tfin) {
         ## Make sure we run right up to the change time, even if it isn't one of
@@ -206,6 +210,7 @@ run_parmset <- function(parms, istate, timevals, localityscen=NULL)
 
       runs[[i]] <- rr
     }
+    runs <- runs[!is.null(runs)]
     do.call(rbind, runs)
   }
 }
@@ -403,6 +408,147 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
             class = c('filter-fit','list'))
 }
 
+
+#' Extend a filter model with new data.
+#'
+#' This function uses the information in a filter model structure to set up
+#' the input for \code{\link{fit_filter}}.  The observed data is supplemented
+#' with a new dataset, and the fit is continued from the final state stored in
+#' the model.
+#'
+#' @param filterfit Structure of class filter-fit returned by
+#'   \code{fit-filter}.
+#' @param newobs Observed dataset to use to extend the fit.  This dataset should
+#'   have some observations at later times than the final time in the input
+#'   model. Data from times earlier than the final time in the input model will
+#'   be ignored.
+#' @param tfin Last time to use to fit the new model.  Default is to use the
+#'   time of the last observation.
+#' @return A \code{filter-fit} structure for which the fit has been extended
+#'   using the new data
+#' @export
+extend_filter_model <- function(filterfit, newobs, tfin=NULL)
+{
+  stopifnot(inherits(filterfit, 'filter-fit'))
+  tinit <- filterfit[['time']]
+  initstate <- filterfit[['finalstate']]
+  ids <- filterfit[['ids']]
+  history <- filterfit[['history']]
+
+  ## Ensure that new observations have a time column
+  if(!('time' %in% names(newobs))) {
+    newobs[['time']] <- newobs[['date']] - as.Date('2020-01-01')
+  }
+  tobsmax <- max(newobs[['time']])
+  ## If the last week is based on incomplete data, drop it
+  lastdata <- pmin(
+                  max(vdhcovid::vadailytests[['date']]),
+                  max(vdhcovid::vadailycases[['date']]))
+  keepwk <- newobs[['date']] <= lastdata
+  newobs <- newobs[keepwk, ]
+
+  if(is.null(tfin)) {
+    tfin <- tobsmax
+  }
+  else {
+    if(tfin > tobsmax) {
+      warning('Requested stop time ', tfin,
+              ' as after the the final time in the data.  Using ', tobsmax,
+              ' as final time.')
+      tfin <- tobsmax
+    }
+  }
+
+  ## Create a new observed dataset using the old observations up through tinit,
+  ## and the new observations subsequently.
+  oldobs <- filterfit[['obsdata']]
+  oldobs <- oldobs[oldobs[['time']] <= tinit, ]
+  newobs <- newobs[newobs[['time']] > tinit, ]
+  obsdata <- dplyr::bind_rows(oldobs, newobs)
+
+  ## Fit the new data
+  newfit <- fit_filter(initstate, obsdata, tinit, tfin, history, ids)
+
+  ## Append the fit summary from the new fit to the old
+  newfit[['modelfit']] <- dplyr::bind_rows(filterfit[['modelfit']],
+                                           newfit[['modelfit']])
+  ## Add the combined observed data
+  newfit[['obsdata']] <- obsdata
+
+  newfit
+}
+
+
+#' Update all saved filter models
+#'
+#' Load all the filter models in an input directory and update them with the
+#' latest data.  Write results to a new directory.
+#'
+#' @param indir Directory with input files
+#' @param outdir Directory to save output in.  Default is
+#'   \code{filter-updates.<date>}, where \code{<date>} is the date of the last
+#'   observations in the dataset used in the fits.
+#' @param save Flag indicating whether to save new model fits to disk.
+#' @return List of filter models with the fit extended to the new data
+#' @export
+update_filter_models <- function(indir, outdir=NULL, save=TRUE)
+{
+  filepattern <- 'filter-fit-(.*)\\.rds'
+  savefiles <- list.files(path=indir, pattern=filepattern)
+  localities <- stringr::str_match(savefiles, filepattern)[ ,2]
+  filenames <- file.path(indir, savefiles)
+
+  allobs <- get_obsdata()[[1]]
+
+  runlocal <- function(i) {
+    locality <- localities[i]
+    message('Processing: ', locality)
+    filtermodel <- readRDS(filenames[i])
+    newobs <- allobs[allobs[['locality']] == locality, ]
+    extend_filter_model(filtermodel, newobs)
+  }
+
+  newmodels <- lapply(seq_along(filenames), runlocal)
+
+  if(save) {
+    if(is.null(outdir)) {
+      ## Max date across all models. (Each model should have the same, but it
+      ## never hurts to be sure).
+      dmax <- as.character(
+        as.Date(max(sapply(newmodels,
+                           function(m) {max(m[['obsdata']][['date']])})),
+                origin = '1970-01-01'))
+
+      dirname <- paste0('filter-updates.',dmax)
+      outdir <- here::here('analysis',dirname)
+    }
+    if(!dir.exists(outdir)) {
+      dowrite <- dir.create(outdir, recursive=TRUE)
+      if(!dowrite) {
+        warning('Unable to create directory ', outdir)
+      }
+    }
+    else {
+      dowrite <- TRUE
+    }
+
+
+    if(dowrite) {
+      message('Output directory is ', outdir)
+      for(i in seq_along(localities)) {
+        locality <- localities[i]
+        model <- newmodels[[i]]
+        filename <- file.path(outdir, paste0('filter-fit-',locality,'.rds'))
+        tryCatch(saveRDS(model, filename),
+                 error = function(e) {
+                   warning(conditionMessage(e))
+                 })
+      }
+    }
+  }
+
+  newmodels
+}
 
 #' Continue a run from a fitted filter model.
 #'
