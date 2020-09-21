@@ -175,6 +175,10 @@ run_parmset <- function(parms, istate, timevals, localityscen=NULL)
       ## of all output times
       tfin <- timebreaks[i]
       tv <- timevals[timevals <= tfin]
+      if(length(tv) == 0) {
+        runs[[i]] <- NULL
+        next
+      }
       timevals <- timevals[timevals >= tfin]
       if(max(tv) < tfin) {
         ## Make sure we run right up to the change time, even if it isn't one of
@@ -206,6 +210,7 @@ run_parmset <- function(parms, istate, timevals, localityscen=NULL)
 
       runs[[i]] <- rr
     }
+    runs <- runs[!is.null(runs)]
     do.call(rbind, runs)
   }
 }
