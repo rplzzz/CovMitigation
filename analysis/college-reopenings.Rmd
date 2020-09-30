@@ -1,0 +1,121 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Infection response to reopening
+
+We will pull the model for the localities that have colleges that have reopened in or near
+them.  For each such locality we will look for any obvious change in model parameters
+around the time of the relevant reopenings.
+
+```{r setup}
+library(CovMitigation)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+
+read_model_data <- function(dir) {
+  filepat <- 'filter-fit-(.*)\\.rds'
+  savefiles <- list.files(path=dir, pattern=filepat)
+  localities <- str_match(savefiles, filepat)[,2]
+  savefiles <- file.path(dir,savefiles)
+  mods <- lapply(savefiles, readRDS)
+  names(mods) <- localities
+  mods
+}
+```
+
+```{r readdata}
+models <- read_model_data(here::here('analysis','filter-updates.2020-09-20'))
+models <- models[names(models) %in% va_college_reopening$locality]
+```
+
+
+```{r makeplots}
+makeplot <- function(loc, var='beta') {
+  reopendata <- filter(va_college_reopening, locality==loc)
+  modelfit <- models[[loc]][['modelfit']]
+  modelfit$date <- as.Date(modelfit$time, origin='2020-01-01')
+  modelfit$value <- modelfit[[var]]
+  dmax <- max(modelfit$value)
+  
+  ggplot(modelfit, aes(x=date,y=value)) + 
+    geom_line(size=1.2) +
+    geom_vline(data=reopendata, mapping=aes(xintercept=date, color=School), size=1.2) +
+    ggtitle(loc) +
+    ylab(var) +
+    coord_cartesian(ylim=c(0,dmax)) +
+    #coord_cartesian(ylim=c(0,1.5)) +
+    theme_bw()
+}
+
+beta_plots <- lapply(names(models), makeplot)
+for(plot in beta_plots) {
+  print(plot)
+}
+```
+
+```{r import_plots}
+import_plots <- lapply(names(models), makeplot, var='import_cases')
+for(plot in import_plots) {
+  print(plot)
+}
+```
+
+For both `beta` (transmissibility) and `import_cases` (daily case importation rate), 
+The only locality that shows an obvious response is Harrisonburg City, where beta
+jumps from about 0.25 to over 3 in the second week following reopening.  The import
+rate also roughly quadruples during that time.  
+
+This makes some sense because JMU was a COVID-19 hotspot in the weeks following 
+reopening; however, the Radford and Virginia Tech also had outbreaks; yet, the 
+Radford City, Pulaski County, and Montgomery County don't show any effect in `beta`,
+and except for an uptick from 1.5 to 3 in Montgomery County, there's no effect in
+`import_cases` either.  Therefore, our next question is, what was different in the
+Radford/VT area as compared to JMU?
+
+## Detailed comparison: JMU vs. Radford/VT
+
+```{r obsplots}
+localities <- c( 'Harrisonburgcity', 'MontgomeryCounty', 'Radfordcity', 'PulaskiCounty')
+models2 <- models[localities]
+
+dgplots <- lapply(models2, filter_model_diagnositc_plots)
+caseplots <- lapply(localities, function(loc) 
+  {
+    plt <- dgplots[[loc]][['cases']]
+    reopen <- filter(va_college_reopening, locality == loc)
+    plt + geom_vline(data=reopen, mapping=aes(xintercept=date, color=School), size=1.2)
+  })
+
+for(plt in caseplots) {
+  print(plt)
+}
+```
+
+In the Harrisonburg plot, we see that there was a slight uptick in cases in the week 
+following reopening, followed by a huge surge the following week.  The model is
+slow to pick up the change, and so is lagging a bit behind the current state of 
+the infection.  (We might want to check that when we are fitting the model, we 
+apply the inferred change to the _current_ week. It looks like we might not be
+applying it until the following week.)
+
+In Montgomery County, the reopening of Radford doesn't seem to have had much effect (since
+Radford is located in Radford City, this isn't necessarily surprising).  Cases
+are mostly flat immediately following the Virignia Tech opening, with a small 
+uptick visible in the week ending September 6th.  If the model follows the pattern
+from Harrisonburg, it should begin catching up to this change in subsequent weeks.
+
+In Radford City, cases are flat for three weeks following the reopening of Radford
+College, with a small uptick starting in the fourth week following reopening.  
+The increase in cases in this case was from 1 to 2-3, which is a lot smaller than 
+the increases observed for VT and JMU.  In this case the model seems to mostly ignore
+the change, but it will probably start to adjust if the higher level is consistent
+going forward.
+
+There appears to be no effect at all in Pulaski County.  Given the small effect in
+Radford City itself, this is not too surprising.  In any case, the model rightly 
+produced no adjustment.
+
+
