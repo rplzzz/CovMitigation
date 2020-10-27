@@ -27,7 +27,7 @@ read_model_data <- function(dir) {
 ```
 
 ```{r readdata}
-models <- read_model_data(here::here('analysis','filter-updates.2020-09-20'))
+models <- read_model_data(here::here('analysis','filter-updates.2020-10-18'))
 models <- models[names(models) %in% va_college_reopening$locality]
 ```
 
@@ -78,7 +78,8 @@ Radford/VT area as compared to JMU?
 ## Detailed comparison: JMU vs. Radford/VT
 
 ```{r obsplots}
-localities <- c( 'Harrisonburgcity', 'MontgomeryCounty', 'Radfordcity', 'PulaskiCounty')
+localities <- c('Harrisonburgcity', 'MontgomeryCounty', 'Radfordcity', 'PulaskiCounty',
+                'AlbemarleCounty', 'Charlottesvillecity')
 models2 <- models[localities]
 
 dgplots <- lapply(models2, filter_model_diagnositc_plots)

@@ -1,18 +1,20 @@
 library(CovMitigation)
 library(ggplot2)
+library(dplyr)
 
-modeldir <- 'analysis/filter-updates.2020-09-20'
-enddate <- 335
+modeldir <- 'analysis/filter-updates.2020-10-18'
+scenariodate <- 288
+enddate <- 366
 
 bau_scen <- NULL
-statewide_surge_scen <- Scenario(data.frame(locality=NA_character_, time=251,
+statewide_surge_scen <- Scenario(data.frame(locality=NA_character_, time=scenariodate,
                                             parm='beta', isrelative=TRUE,
                                             value=1.2))
 uva_surge_scen <-
     Scenario(dplyr::bind_rows(
-        data.frame(locality='Charlottesvillecity', time=250, parm='beta',
+        data.frame(locality='Charlottesvillecity', time=scenariodate, parm='beta',
                    isrelative=TRUE, value=1.2, stringsAsFactors=FALSE),
-        data.frame(locality='AlbemarleCounty', time=250, parm='beta',
+        data.frame(locality='AlbemarleCounty', time=scenariodate, parm='beta',
                    isrelative=TRUE, value=1.15, stringsAsFactors=FALSE)))
 
 
@@ -29,16 +31,21 @@ combin_plt <- dplyr::group_by(combin_scenario_rslts, time, date, scenario) %>%
                    fracInfection = median(fracInfection), newCases = median(newCases),
                    newSympto = median(newSympto))
 
+newsympto_bounds <- c(0, max(combin_plt$newSympto))
+prev_bounds <- c(0, max(combin_plt$fracInfection))
+
 plt_ns <- ggplot(combin_plt, aes(x=date, y=newSympto, color=scenario)) +
   geom_line(size=1.2) +
   ggtitle('UVA Market Share Adjusted') +
   ylab('Daily New Symptomatic Cases') +
+  coord_cartesian(ylim=newsympto_bounds) +
   theme_bw()
 
 plt_prev <- ggplot(combin_plt, aes(x=date, y=fracInfection, color=scenario)) +
   geom_line(size=1.2) +
   ggtitle('UVA Market Share Adjusted') +
   ylab('Prevalence') +
+  coord_cartesian(ylim=prev_bounds) +
   theme_bw()
 
 print(plt_ns)
