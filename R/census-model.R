@@ -80,6 +80,12 @@ census_model_output <- function(fitdir, tfinal, scenario_name = 'BAU',
    run_county <- function(locality) {
      if(!is.null(scenario)) {
        localityscen <- localize_scenario(scenario, locality)
+       if(all(sapply(localityscen, is.null))) {
+          ## There are no parameter changes in this scenario.  Replace the empty
+          ## local scenario structure with a NULL to signal that for this county
+          ## we can do an ordinary run.
+          localityscen <- NULL
+       }
      }
      else {
        localityscen <- NULL
