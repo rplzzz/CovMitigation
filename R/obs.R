@@ -14,7 +14,7 @@
 #' @param maxdate Maximum date to include in the comparison data.
 #' @export
 #' @keywords internal
-get_obsdata <- function(maxdate = as.Date('2020-12-31'))
+get_obsdata <- function(maxdate = as.Date('2021-12-31'))
 {
   ntesteff <- nposeff <- NULL
   obsdata <- vdhcovid::va_weekly_ntest_county
