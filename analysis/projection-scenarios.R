@@ -2,20 +2,25 @@ library(CovMitigation)
 library(ggplot2)
 library(dplyr)
 
-modeldir <- 'analysis/filter-updates.2020-12-06'
+modeldate <- '2021-01-10'
+modeldir <- paste0('analysis/filter-updates.', modeldate)
+message('model date: ', modeldate, '\tmodel dir: ', modeldir)
 jan01 <- as.Date('2020-01-01')
+nov01 <- as.Date('2020-11-01')
 months <- seq(as.Date('2020-11-01'), as.Date('2021-10-01'), by='month')
 times <- as.numeric(months - jan01)
-enddate <- as.numeric(as.Date('2021-03-31') - jan01)
+enddate <- as.numeric(as.Date('2021-04-30') - jan01)
+lastobsdate <- as.Date('2021-01-13')
+modelmonth <- lubridate::as.period(lubridate::interval(nov01, as.Date(modeldate)))@month
 
 ## Start of the scenario adjustment
-scenariodate <- as.numeric(as.Date('2020-12-08') - jan01)
+scenariodate <- as.numeric(lastobsdate - jan01) + 1
 times <- pmax(times, scenariodate)
 
 ## Sigmoid function for vaccine adjustment
 vadjust <- function(x1, x2, sat) {
   x0 <- 0.5*(x1 + x2)
-  k <- log(20*sat - 1) / (x0-x1)
+  k <- log(100*sat - 1) / (x0-x1)
   function(x) {
     v <- ifelse(x >= x1, sat / (1 + exp(-k*(x-x0))), 0)
     1 - v
@@ -31,15 +36,29 @@ seasonaladj <- c(1.10, 1.15, 1.15, 1.15, 1.10, 1.05, 1.00, 0.95, 0.85, 0.85, 0.9
 traveladj <-   c(1.10, 1.15, 1.05, 1.00, 1.00, 1.00, 1.00, 1.00, 1.05, 1.05, 1.00, 1.00)
 vaccineadj <- vadjust(4, 11, 0.75)(seq(1,12))
 
+## Once the model has been running for a while, it should reflect these projections
+## for seasonal, travel, and vaccine adjustments.  Therefore, we scale the adjustments
+## according to what should be baked into the model already.
+if(modelmonth >= 1 && modelmonth <= 12) {
+  seasonaladj <- seasonaladj / seasonaladj[modelmonth]
+  traveladj <- traveladj / traveladj[modelmonth]
+  vaccineadj <- vaccineadj / vaccineadj[modelmonth]
+}
+
 ## As of the 5 Nov. updates, it looks like the beta values in Charlottesville and
 ## Albemarle are being depressed by the ramp-up in UVA testing.  This adjustment
 ## offsets that effect
-bau_scen <-
-  Scenario(dplyr::bind_rows(
-    data.frame(locality='Charlottesvillecity', time=scenariodate, parm='beta',
-               isrelative=TRUE, value=1.2*vaccineadj, stringsAsFactors=FALSE),
-    data.frame(locality='AlbemarleCounty', time=scenariodate, parm='beta',
-               isrelative=TRUE, value=1.2*vaccineadj, stringsAsFactors=FALSE)))
+# bau_scen <-
+#   Scenario(dplyr::bind_rows(
+#     data.frame(locality='Charlottesvillecity', time=scenariodate, parm='beta',
+#                isrelative=TRUE, value=1.2*vaccineadj, stringsAsFactors=FALSE),
+#     data.frame(locality='AlbemarleCounty', time=scenariodate, parm='beta',
+#                isrelative=TRUE, value=1.2*vaccineadj, stringsAsFactors=FALSE)))
+
+bau_scen <- Scenario(data.frame(locality=NA_character_,
+                     time=times,
+                     parm='beta', isrelative=TRUE,
+                     value=vaccineadj))
 
 seasonality_scen <- Scenario(data.frame(locality=NA_character_, 
                                         time=times,
