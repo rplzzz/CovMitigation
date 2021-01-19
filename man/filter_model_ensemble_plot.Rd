@@ -14,7 +14,8 @@ filter_model_ensemble_plot(
 \arguments{
 \item{filterfit}{Filter-fit object}
 
-\item{what}{Variable to plot.  Default is \code{fi}.}
+\item{what}{Variable to plot (fi, beta, ncase, import_cases).  Default is \code{fi}.
+If ncase is selected, then the observed effective case counts will be plotted as points.}
 
 \item{Nplot}{Number of ensemble members (randomly selected) to plot.  Default
 is to plot 50.  If \code{NULL}, then plot all.}

@@ -370,7 +370,8 @@ filter_model_comparison_plot <- function(filterfits, what='fi')
 #' This plot requires that the history was kept in the filter fit.
 #'
 #' @param filterfit Filter-fit object
-#' @param what Variable to plot.  Default is \code{fi}.
+#' @param what Variable to plot (fi, beta, ncase, import_cases).  Default is \code{fi}.
+#' If ncase is selected, then the observed effective case counts will be plotted as points.
 #' @param Nplot Number of ensemble members (randomly selected) to plot.  Default
 #'   is to plot 50.  If \code{NULL}, then plot all.
 #' @param highlight List of ensemble member ids to overplot in a highlight
@@ -403,6 +404,12 @@ filter_model_ensemble_plot <- function(filterfit, what='fi', Nplot=50, highlight
     hl[['value']] <- hl[[what]]
     hl[['date']] <- hl[['time']] + as.Date('2020-01-01')
     plt <- plt + ggplot2::geom_line(data=hl, color='red', alpha=0.75)
+  }
+  
+  if(what=='ncase') {
+    obs <- filterfit$obsdata
+    plt <- plt + ggplot2::geom_point(data=obs, mapping=ggplot2::aes(x=date,y=npos),
+                                     inherit.aes=FALSE)
   }
 
   plt
