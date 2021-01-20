@@ -5,7 +5,7 @@
 get_ldata <- function(m) 
 {
   ensemble_fcst <- m$history[ , c('time', 'id', 'ncase')]
-  obsdata <- m$obsdata[ , c('time', 'fips', 'ntest', 'npos')]
+  obsdata <- m$obsdata[ , c('time', 'fips', 'locality', 'ntest', 'npos')]
   obsdata$pop <- vdhcovid::getpop(fips=obsdata$fips)
   rslt <- dplyr::left_join(ensemble_fcst, obsdata, by='time')
   if(!all(complete.cases(rslt))) {
@@ -45,15 +45,25 @@ ensemble_eval <- function(modlist)
   ## on whether or not the aggregate log likelihoods are being driven by outlier
   ## counties.
   intermeddata <- 
-    dplyr::group_by(cmpdata, fips, id) %>%
+    dplyr::group_by(cmpdata, fips, locality, pop, id) %>%
     dplyr::summarise(logl = sum(logl)) %>%
     dplyr::ungroup()
+  
+  ## We also want to weight by market share adjusted population, so we need to
+  ## grab the market share
+  mf <- dplyr::filter(marketFractionFinal, TypeAMCDRG == 'fractionAllUVA') %>%
+    dplyr::select(locality=Locality, marketShare)
+  intermeddata <- dplyr::left_join(intermeddata,
+                                   mf,
+                                   by = 'locality')
+  intermeddata$wgt <- intermeddata$marketShare * intermeddata$pop
   
   dplyr::group_by(intermeddata, id) %>%
     dplyr::summarise(meanlogl = mean(logl),
                      varlogl = var(logl),
                      zm2 = (as.numeric(quantile(logl, pnorm(-2))) - meanlogl) / varlogl,
                      zp2 = (as.numeric(quantile(logl, pnorm(2))) - meanlogl) / varlogl,
-                     logl = sum(logl)
-                     )
+                     logl = weighted.mean(logl, wgt)
+                     ) %>%
+    dplyr::arrange(logl)
 }
