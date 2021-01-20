@@ -4,11 +4,14 @@
 \alias{ensemble_eval}
 \title{Evaluate ensemble members according to their agreement with observations.}
 \usage{
-ensemble_eval(modlist)
+ensemble_eval(modlist, mindate = NULL)
 }
 \arguments{
 \item{modlist}{List of \code{filter-fit} objects. Each fit is for a single 
 locality.}
+
+\item{mindate}{Minimum date to consider in the evaluation.  Can be specified
+either as a number (days since 2020-01-01) or a date.}
 }
 \value{
 Table of ensemble ID numbers and log-likelihood values, along with some

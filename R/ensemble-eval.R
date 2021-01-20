@@ -26,10 +26,12 @@ get_ldata <- function(m)
 #' 
 #' @param modlist List of \code{filter-fit} objects. Each fit is for a single 
 #' locality.
+#' @param mindate Minimum date to consider in the evaluation.  Can be specified
+#' either as a number (days since 2020-01-01) or a date.
 #' @return Table of ensemble ID numbers and log-likelihood values, along with some
 #' diagnostic statistics.
 #' @export
-ensemble_eval <- function(modlist)
+ensemble_eval <- function(modlist, mindate=NULL)
 {
   fips <- logl <- id <- meanlogl <- varlogl <- NULL  # silence warnings
   
@@ -40,6 +42,13 @@ ensemble_eval <- function(modlist)
   k <- cmpdata$ntest
   x <- cmpdata$npos
   cmpdata$logl <- dhyper(x, m, n, k, log=TRUE)
+  
+  if(!is.null(mindate)) {
+    if(!is.numeric(mindate)) {
+      mindate <- as.numeric(as.Date(mindate) - as.Date('2020-01-01'))
+    }
+    cmpdata <- cmpdata[cmpdata$time >= mindate, ]
+  }
   
   ## Aggregate to the county level first so that we can produce some statistics
   ## on whether or not the aggregate log likelihoods are being driven by outlier
