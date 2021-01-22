@@ -8,6 +8,7 @@ filter_fit_locality(
   locality,
   inputdir,
   Nens = 100,
+  rndselect = NULL,
   inputpfx = "filter-ensemble-candidates-",
   inputsfx = ".rds",
   datemax = NULL,
@@ -22,6 +23,8 @@ list.  There are 133 localities.}
 The file name will be constructed by appending the locality name to the input file prefix.}
 
 \item{Nens}{Number of ensemble members.}
+
+\item{rndselect}{Vector of random ensemble members to select (see details).}
 
 \item{inputpfx}{Stem of input file name.  Default is \code{'filter-ensemble-candidates-'}.
 The name of the locality will be appended to this, followed by the input file suffix.}
@@ -40,4 +43,11 @@ plus final state}
 This function requires a \code{metrosamp} save file with parameter samples
 for the locality.  An ensemble of models is initialized from these samples,
 and the filter is run for each ensemble member.
+}
+\details{
+The \code{rndselect} argument allows one to select random entries from the MCMC
+samples, consistently across localities (i.e., each locality will get the same
+parameters for each ensemble member).  The input for \code{rndselect} should be
+a vector of \code{Nens} random numbers between 0 and 1.  These will be converted
+to integer values in 1:N, where N is the total number of MCMC samples.
 }
