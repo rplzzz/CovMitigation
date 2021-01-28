@@ -113,3 +113,18 @@ NULL
 
 #' @describeIn growth_categories Ultra-low growth rate counties
 "ulo_counties"
+
+#' UVAHS Covid admissions by date and locality of origin
+#' 
+#' COVID cases at the HS tabulated by date of admission and locality.
+#' 
+#' @format Data frame with 4 columns
+#' \describe{
+#' \item{date} Date of admission
+#' \item{fips} FIPS code for the locality of origin
+#' \item{locality} Name of locality of origin
+#' \item{hospitalizations} Number of hospitalizations
+#' }
+#' 
+#' @source UVAHS records
+"hospitalizations"
