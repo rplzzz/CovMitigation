@@ -1,0 +1,3 @@
+[submodule "data-raw/covid-sql-queries"]
+	path = data-raw/covid-sql-queries
+	url = http://hstsartapp1:8080/tfs/ARTBIDevelopment/Data%20Science%20ART/_git/covid-sql-queries
