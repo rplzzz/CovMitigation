@@ -4,7 +4,15 @@
 \alias{fit_filter}
 \title{Fit a Bayesian filter over time}
 \usage{
-fit_filter(initstates, obsdata, tinit, tfinal, history = TRUE, ids = NULL)
+fit_filter(
+  initstates,
+  obsdata,
+  tinit,
+  tfinal,
+  hospdata = NULL,
+  history = TRUE,
+  ids = NULL
+)
 }
 \arguments{
 \item{initstates}{Matrix containing ensemble of initial states and parameter
@@ -14,6 +22,8 @@ values (see description in \code{\link{bayesian_filter}}.}
 
 \item{tinit}{Initial time corresponding to the states provided in
 \code{initstates}}
+
+\item{hospdata}{Hospitalization data to use in the fit.}
 
 \item{history}{Detailed history for the individual ensemble members (see
 details).}

@@ -114,16 +114,20 @@ NULL
 #' @describeIn growth_categories Ultra-low growth rate counties
 "ulo_counties"
 
-#' UVAHS Covid admissions by date and locality of origin
+#' Weekly UVAHS Covid admissions by date and locality of origin
 #' 
-#' COVID cases at the HS tabulated by date of admission and locality.
+#' Weekly COVID cases at the HS tabulated by date and locality.  Dates of cases been
+#' adjusted by the average time from symptom onset to hospitalization.
+#' 
+#' The \code{date} variable is the date of the last day of the week.  Weeks are
+#' defined to end on Sundays.
 #' 
 #' @format Data frame with 4 columns
 #' \describe{
-#' \item{date} Date of admission
-#' \item{fips} FIPS code for the locality of origin
-#' \item{locality} Name of locality of origin
-#' \item{hospitalizations} Number of hospitalizations
+#' \item{date}{Date of last day of the week being reported}
+#' \item{fips}{FIPS code for the locality of origin}
+#' \item{locality}{Name of locality of origin}
+#' \item{hospitalizations}{Number of hospitalizations from that locality for the week}
 #' }
 #' 
 #' @source UVAHS records

@@ -34,7 +34,9 @@ get_obsdata <- function(maxdate = as.Date('2021-12-31'))
     b1 = 0.0
   )
   
-  list(obsdata=obsdata, default_parm_vals=default_parm_vals)
+  hosp <- hospitalizations
+
+  list(obsdata=obsdata, hosp=hosp, default_parm_vals=default_parm_vals)
 }
 
 

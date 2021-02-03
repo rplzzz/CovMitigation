@@ -100,8 +100,11 @@ filter_fit_locality <- function(locality,
 
   ## Get the observed data
   ### TODO:  make a way to get this data through the public interface
-  obsdata <- get_obsdata()[[1]]
+  obs <- get_obsdata()
+  obsdata <- obs$obsdata
   obsdata <- obsdata[obsdata$locality == locality, ]
+  hosp <- obs$hosp[obs$hosp$locality == locality, ]
+  
   if(is.null(datemax)) {
     datemax <- max(vdhcovid::vaweeklytests$date)
   }

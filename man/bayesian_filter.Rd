@@ -10,6 +10,7 @@ bayesian_filter(
   tinit,
   tfin,
   obsdata = NULL,
+  hospdata = NULL,
   nsamp = 1000,
   prior = bayes_filter_default_prior
 )
@@ -23,6 +24,9 @@ bayesian_filter(
 
 \item{obsdata}{Observed number of tests and number of positive tests by
 county. (See details)}
+
+\item{hospdata}{Observed UVA hospitalizations by week.  This should be
+pre-filtered to the locality being run.}
 
 \item{nsamp}{Number of Monte Carlo Samples to run for each state.  The final set
 of parameters from the Monte Carlo will be used to generate the finals state.}

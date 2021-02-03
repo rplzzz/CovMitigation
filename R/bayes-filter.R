@@ -25,12 +25,15 @@
 #' of parameters from the Monte Carlo will be used to generate the finals state.
 #' @param obsdata Observed number of tests and number of positive tests by
 #'   county. (See details)
+#' @param hospdata Observed UVA hospitalizations by week.  This should be
+#'   pre-filtered to the locality being run.
 #' @return A table of parameter values and final states corresponding to each initial
 #' state.  This output is suitable to feed back into the function as \code{initstates}
 #' for a subsequent week.
 #' @export
 bayesian_filter <- function(initstates, locality, tinit, tfin,
                             obsdata=NULL,
+                            hospdata = NULL,
                             nsamp = 1000,
                             prior=bayes_filter_default_prior)
 {
@@ -84,7 +87,49 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
 
       ## Hypergeometric likelihood.  Ignore if ntest == 0.
       logl <- ifelse(cmp$ntest > 0, dhyper(x, m, n, k, log=TRUE),0)
-      sum(logl)
+
+      ## Another likelihood term for hospitaliztions
+      tsmat <- rbind(istate, runout)
+      ns <- newsympto(tsmat[,4], tsmat[,5], tsmat[,6], dropfirst=TRUE)
+      rundat <- as.data.frame(runout)
+      rundat$newsympto <- ns
+      rundat$week <- ceiling((rundat$time - 4)/7)  # The -4 is because week 0 ends on 2020-01-05.
+      weeklyns <-
+         dplyr::group_by_at(rundat, 'week') %>%
+         dplyr::summarise(newsympto = sum(newsympto))
+
+      ## Our hospitalizations are just UVAHS, so we need to adjust for market
+      ## share.
+      msfac <- marketFractionFinal$marketShare[marketFractionFinal$Locality == locality &
+                                               marketFractionFinal$TypeAMCDRG == 'fractionAllUVA']
+      weeklyns$newsympto <- weeklyns$newsympto * msfac
+
+      ## join the observed hospitalizations attributable to this locality to the
+      ## model predictions.  The observed hospitalizations table has already
+      ## been filtered to the present locality.
+      hospcmp <- dplyr::left_join(weeklyns, hospdata[, c('week','hospitalizations')],
+                                  by= 'week')
+
+      ## Calculate the likelihood.  To do this we need to know what fraction of
+      ## symptomatic cases turn into hospitalizations.  We don't know that
+      ## exactly, so we use a beta(4,98) distribution for the unknown
+      ## hospitalization fraction and integrate over it.  Setting up a function
+      ## to integrate is a pain, so we'll just do a trapezoidal rule with a
+      ## reasonably dense grid of quadrature points and call it good.
+      hfdelta <- 0.005
+      hfmax <- 0.2
+      hospfrac <- seq(hfdelta, hfmax, hfdelta) # dbeta(0, 3, 97) = 0.
+      nhf <- length(hospfrac)
+      hfprior <- dbeta(hospfrac, 4, 98) # peak somewhere around 3%
+      loghfl <- sapply(seq_along(hospcmp$week),
+                       function(i) {
+                         lik <- hfprior * dpois(hospcmp$hospitalizations[i],
+                                                hospcmp$newsympto[i]*hospfrac)
+                         log(sum(0.5*(lik[1:(nhf-1)] + lik[2:nhf]) * hfdelta))
+                       })
+
+
+      sum(logl) + sum(loghfl)
     }
 
     postfun <- function(p) {
@@ -303,6 +348,7 @@ bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
 #' @param tfin Final time (i.e., the time of the last observation to use in
 #'   fitting the filter)
 #' @param obsdata Observed data to use in the fit
+#' @param hospdata Hospitalization data to use in the fit.
 #' @param history Detailed history for the individual ensemble members (see
 #'   details).
 #' @param ids List of serial numbers for the ensemble members.  This is only
@@ -310,6 +356,7 @@ bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
 #'   specify this explicitly.
 #' @export
 fit_filter <- function(initstates, obsdata, tinit, tfinal,
+                       hospdata = NULL,
                        history = TRUE, ids = NULL)
 {
   ## Filter to just the times requested
@@ -336,7 +383,7 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
     }
 
     rslt[[i]] <- bayesian_filter(ist, locality, strttimes[i], endtimes[i],
-                                 obsdata)
+                                 obsdata, hospdata)
   }
   finalstate <- rslt[[length(rslt)]]
 
@@ -466,8 +513,12 @@ extend_filter_model <- function(filterfit, newobs, tfin=NULL)
   newobs <- newobs[newobs[['time']] > tinit, ]
   obsdata <- dplyr::bind_rows(oldobs, newobs)
 
+  ## Also get the hospitalization data
+  loc <- obsdata$locality[1]            # locality stored in the obsdata dataset.
+  hospdata <- hospitalizations[hospitalizations$locality == loc,] # package dataset
+
   ## Fit the new data
-  newfit <- fit_filter(initstate, obsdata, tinit, tfin, history, ids)
+  newfit <- fit_filter(initstate, obsdata, tinit, tfin, hospdata, history, ids)
 
   ## Append the fit summary from the new fit to the old
   newfit[['modelfit']] <- dplyr::bind_rows(filterfit[['modelfit']],
