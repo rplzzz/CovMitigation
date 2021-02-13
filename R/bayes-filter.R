@@ -70,7 +70,7 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
     if(oldparms[['import_cases']] < 0) {
       warning('import cases < 0: tinit = ', tinit, '  tfin= ', tfin, '  irow= ',
               irow)
-      browser()
+      ##browser()
     }
 
     priorfun <- function(p) {
@@ -102,7 +102,7 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
       ## Hypergeometric likelihood.  Ignore if ntest == 0.
       logl <- ifelse(cmp$ntest > 0, dhyper(x, m, n, k, log=TRUE),0)
       if(any(is.nan(logl))) {
-        browser()
+        ##browser()
       }
 
       ## Another likelihood term for hospitaliztions
@@ -168,13 +168,13 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
 
     oldf <- postfun(oldparms[c(ibeta, iimpt, ib0)])
     if(!is.finite(oldf)) {
-      browser()
+      ##browser()
     }
     opt <- optim(oldparms[c(ibeta, iimpt, ib0)], postfun, control=list(fnscale=-1))
 
     optf <- postfun(opt$par)
     if(!is.finite(optf)) {
-      browser()
+      ##browser()
     }
     ms <- metrosamp::metrosamp(postfun, opt$par, nsamp, 1, sampscale)
     if(ms$accept < 0.1) {
@@ -192,7 +192,7 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
     if(newparms[iimpt] < 0) {
       warning('setting import cases < 0.  tinit = ', tinit, '  tfin= ', tfin,
               ' irow= ', irow)
-      browser()
+      ##browser()
     }
     runout <- run_parmset(newparms, istate, timevals)
 
@@ -601,9 +601,11 @@ extend_filter_model <- function(filterfit, newobs, tfin=NULL)
 #'   \code{filter-updates.<date>}, where \code{<date>} is the date of the last
 #'   observations in the dataset used in the fits.
 #' @param save Flag indicating whether to save new model fits to disk.
+#' @param runloc Run just the indicated localities.  Can be either a list of
+#' indices or a list of locality names.
 #' @return List of filter models with the fit extended to the new data
 #' @export
-update_filter_models <- function(indir, outdir=NULL, save=TRUE)
+update_filter_models <- function(indir, runloc = NULL, outdir=NULL, save=TRUE)
 {
   filepattern <- 'filter-fit-(.*)\\.rds'
   savefiles <- list.files(path=indir, pattern=filepattern)
@@ -620,7 +622,19 @@ update_filter_models <- function(indir, outdir=NULL, save=TRUE)
     extend_filter_model(filtermodel, newobs)
   }
 
-  newmodels <- lapply(seq_along(filenames), runlocal)
+  if(is.null(runloc)) {
+    idx <- seq_along(filenames)
+  }
+  else {
+    if(is.numeric(runloc)) {
+      idx <- as.integer(runloc)
+    }
+    else {
+      idx <- match(runloc, localities)
+    }
+  }
+  newmodels <- lapply(idx, runlocal)
+
 
   if(save) {
     if(is.null(outdir)) {
@@ -647,8 +661,8 @@ update_filter_models <- function(indir, outdir=NULL, save=TRUE)
 
     if(dowrite) {
       message('Output directory is ', outdir)
-      for(i in seq_along(localities)) {
-        locality <- localities[i]
+      for(i in seq_along(idx)) {
+        locality <- localities[idx[i]]
         model <- newmodels[[i]]
         filename <- file.path(outdir, paste0('filter-fit-',locality,'.rds'))
         tryCatch(saveRDS(model, filename),

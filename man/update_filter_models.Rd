@@ -4,10 +4,13 @@
 \alias{update_filter_models}
 \title{Update all saved filter models}
 \usage{
-update_filter_models(indir, outdir = NULL, save = TRUE)
+update_filter_models(indir, runloc = NULL, outdir = NULL, save = TRUE)
 }
 \arguments{
 \item{indir}{Directory with input files}
+
+\item{runloc}{Run just the indicated localities.  Can be either a list of 
+indices or a list of locality names.}
 
 \item{outdir}{Directory to save output in.  Default is
 \code{filter-updates.<date>}, where \code{<date>} is the date of the last
