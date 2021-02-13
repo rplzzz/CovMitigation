@@ -1,3 +1,11 @@
+## Canonical ordering of parameter vector and state vector
+statevars <- c('time', 'S','E','I','Is','R')
+parmvars <- c('beta', 'import_cases', 'D0', 'A0', 'Ts',
+              'mask_effect', 'b0', 'b1')  # Note that we don't need I0.
+ibeta <- which(parmvars == 'beta')
+iimpt <- which(parmvars == 'import_cases')
+ib0 <- which(parmvars == 'b0')
+
 #' Project infection in a single county using a Bayesian filter
 #'
 #' This function runs a single county one week forward in time from a distribution
@@ -37,13 +45,11 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
                             nsamp = 1000,
                             prior=bayes_filter_default_prior)
 {
+  message('\ttinit = ', tinit)
   ## values independent of the parameters or the state
   dt <- tfin - tinit
   timevals <- seq(tinit, tfin)
-  sampscale <- c(0.1, 20)
-  statevars <- c('time', 'S','E','I','Is','R')
-  parmvars <- c('beta', 'import_cases', 'D0', 'A0', 'Ts',
-                'mask_effect', 'b0', 'b1')  # Note that we don't need I0.
+  sampscale <- c(0.1, 20, 10)
 
   if(is.null(obsdata)) {
     obsdata <- get_obsdata()[[1]]
@@ -61,32 +67,43 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
     istate <- initstates[irow, statevars]
     oldparms <- initstates[irow, parmvars]
 
+    if(oldparms[['import_cases']] < 0) {
+      warning('import cases < 0: tinit = ', tinit, '  tfin= ', tfin, '  irow= ',
+              irow)
+      browser()
+    }
+
     priorfun <- function(p) {
-      ## p[1] == beta; p[2] == import_cases
-      prior(oldparms[1], p[1], oldparms[2], p[2], dt)
+      newparms <- oldparms
+      newparms[c(ibeta, iimpt, ib0)] <- p
+      prior(oldparms, newparms, dt)
     }
     likelihoodfun <- function(p) {
       newparms <- oldparms
-      newparms[1:2] <- p
+      newparms[c(ibeta, iimpt, ib0)] <- p
       runout <- run_parmset(newparms, istate, timevals)
       prevalence <- average_weekly_prevalence(runout, obsdata)
 
       cmp <- dplyr::left_join(prevalence, obsdata, by=c('time'))
       stopifnot(all(!is.na(cmp$fi) & !is.na(cmp$ntest))) # All data must be present
       nt <- pmax(1, cmp$ntest)                         # Avoid bad values when ntest == 0
-      b <- pmax(oldparms[['b0']] - oldparms[['b1']] * log(nt), 1)
-      cmp$biased_fi <- padjust(cmp$fi, b)
+      b <- pmax(newparms[['b0']] - newparms[['b1']] * log(nt), 1)
+      fi <- pmax(cmp$fi, 1e-6)           # We get occasional negative outputs in the early stages.
+      cmp$biased_fi <- padjust(fi, b)
 
       x <- cmp$npos
-      m <- ceiling(cmp$biased_fi * cmp$population)
-      n <- ceiling((1-cmp$biased_fi) * cmp$population)
-      k <- cmp$nt
+      m <- pmax(ceiling(cmp$biased_fi * cmp$population), 1) # Don't allow 0 because that can generate -Inf.
+      n <- cmp$population - m
+      k <- cmp$ntest
 
       dhpenalty <- -1000 * sum(x > m)
       x <- pmin(x, m)
 
       ## Hypergeometric likelihood.  Ignore if ntest == 0.
       logl <- ifelse(cmp$ntest > 0, dhyper(x, m, n, k, log=TRUE),0)
+      if(any(is.nan(logl))) {
+        browser()
+      }
 
       ## Another likelihood term for hospitaliztions
       tsmat <- rbind(istate, runout)
@@ -109,30 +126,37 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
       ## been filtered to the present locality.
       hospcmp <- dplyr::left_join(weeklyns, hospdata[, c('week','hospitalizations')],
                                   by= 'week')
-
-      ## Calculate the likelihood.  To do this we need to know what fraction of
-      ## symptomatic cases turn into hospitalizations.  We don't know that
-      ## exactly, so we use a beta(4,98) distribution for the unknown
-      ## hospitalization fraction and integrate over it.  Setting up a function
-      ## to integrate is a pain, so we'll just do a trapezoidal rule with a
-      ## reasonably dense grid of quadrature points and call it good.
-      hfdelta <- 0.005
-      hfmax <- 0.2
-      hospfrac <- seq(hfdelta, hfmax, hfdelta) # dbeta(0, 3, 97) = 0.
-      nhf <- length(hospfrac)
-      hfprior <- dbeta(hospfrac, 4, 98) # peak somewhere around 3%
-      loghfl <- sapply(seq_along(hospcmp$week),
-                       function(i) {
-                         lik <- hfprior * dpois(hospcmp$hospitalizations[i],
-                                                hospcmp$newsympto[i]*hospfrac)
-                         log(sum(0.5*(lik[1:(nhf-1)] + lik[2:nhf]) * hfdelta))
-                       })
-
+      hospcmp <- hospcmp[!is.na(hospcmp$hospitalizations),]
+      if(nrow(hospcmp) > 0) {
+        ## Calculate the likelihood.  To do this we need to know what fraction of
+        ## symptomatic cases turn into hospitalizations.  We don't know that
+        ## exactly, so we use a beta(4,98) distribution for the unknown
+        ## hospitalization fraction and integrate over it.  Setting up a function
+        ## to integrate is a pain, so we'll just do a trapezoidal rule with a
+        ## reasonably dense grid of quadrature points and call it good.
+        hfdelta <- 0.005
+        hfmax <- 0.2
+        hospfrac <- seq(hfdelta, hfmax, hfdelta) # dbeta(0, 3, 97) = 0.
+        nhf <- length(hospfrac)
+        hfprior <- dbeta(hospfrac, 4, 98) # peak somewhere around 3%
+        loghfl <- sapply(seq_along(hospcmp$week),
+                         function(i) {
+                           expct <- pmax(hospcmp$newsympto[i], 1e-4)
+                           lik <- hfprior * dpois(hospcmp$hospitalizations[i],
+                                                  expct*hospfrac)
+                           log(sum(0.5*(lik[1:(nhf-1)] + lik[2:nhf]) * hfdelta))
+                         })
+      }
+      else {
+        ## Hospitalization data was missing for this week.
+        loghfl <- 0
+      }
 
       sum(logl) + sum(loghfl)
     }
 
     postfun <- function(p) {
+      ##message('\tparams: ', paste(p, collapse=', '))
       pr <- priorfun(p)
       if(is.finite(pr)) {
         pr + likelihoodfun(p)
@@ -142,8 +166,16 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
       }
     }
 
-    opt <- optim(oldparms[1:2], postfun, control=list(fnscale=-1))
+    oldf <- postfun(oldparms[c(ibeta, iimpt, ib0)])
+    if(!is.finite(oldf)) {
+      browser()
+    }
+    opt <- optim(oldparms[c(ibeta, iimpt, ib0)], postfun, control=list(fnscale=-1))
 
+    optf <- postfun(opt$par)
+    if(!is.finite(optf)) {
+      browser()
+    }
     ms <- metrosamp::metrosamp(postfun, opt$par, nsamp, 1, sampscale)
     if(ms$accept < 0.1) {
       warning('Low sampling acceptance rate: accept = ', ms$accept,
@@ -156,7 +188,12 @@ bayesian_filter <- function(initstates, locality, tinit, tfin,
 
     ## Find the new state for our final parameters
     newparms <- oldparms
-    newparms[1:2] <- ms$plast
+    newparms[c(ibeta, iimpt, ib0)] <- ms$plast
+    if(newparms[iimpt] < 0) {
+      warning('setting import cases < 0.  tinit = ', tinit, '  tfin= ', tfin,
+              ' irow= ', irow)
+      browser()
+    }
     runout <- run_parmset(newparms, istate, timevals)
 
     ilast <- nrow(runout)
@@ -301,8 +338,14 @@ initialize_parmset <- function(parms, obsdata, t1, dt=1)
 
 
 ### Default prior for filter models
-bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
+bayes_filter_default_prior <- function(oldparms, newparms, dt)
 {
+  beta0 <- oldparms[ibeta]
+  beta1 <- newparms[ibeta]
+  imp0 <- oldparms[iimpt]
+  imp1 <- newparms[iimpt]
+  b0_0 <- oldparms[ib0]
+  b0_1 <- newparms[ib0]
   ## each week the change in beta is <= .1, 95% of the time (normally distributed)
   wk <- dt/7
   betasig1wk <- 0.05
@@ -316,9 +359,21 @@ bayes_filter_default_prior <- function(beta0, beta1, imp0, imp1, dt)
   ## length by the number of weeks.
   imprate <- 1/2.5 * wk
 
+  ## Prior for b0 (base enrichmend factor, before adjusting for number of tests)
+  ## We don't really have much information here, other than that b0 seemed to be
+  ## around 60 through most of the summer, so we'll go with a weibull(3, 70)
+  ## distribution (this is a little different than the gamma distribution we used
+  ## in the original MCMC.)  For the change from one week to the next we allow
+  ## a 95% interval of +/- 10
+  b0sig1wk <- 5
+  b0sig <- b0sig1wk * sqrt(wk)
+  b0shp <- 3
+  b0scl <- 70
 
   as.numeric(dnorm(beta1, beta0, betasig, log=TRUE) + dexp(imp1, imprate, log=TRUE) +
-             dgamma(beta1, 5, 15, log=TRUE))
+               dgamma(beta1, 5, 15, log=TRUE) +
+               dweibull(b0_1, b0shp, b0scl, log=TRUE) + dnorm(b0_1, b0_0, b0sig, log=TRUE)
+             )
 }
 
 #' Fit a Bayesian filter over time
@@ -421,9 +476,13 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
   if(!is.null(history)) {
     histvars <- c('time', 'S', 'E', 'I','Is','Itot', 'R',
                   'fi', 'ncase', 'R0', 'Rt',
-                  'beta','import_cases', 'id')
+                  'beta','import_cases', 'b0', 'id')
     if(is.data.frame(history)) {
-      stopifnot(setequal(names(history), histvars))
+      if(!setequal(names(history), histvars)) {
+        for(var in histvars[!histvars %in% names(history)]) {
+          history[[var]] <- NA_real_
+        }
+      }
     }
     else {
       history <- tibble::tibble(time=numeric(0), S=numeric(0), E=numeric(0),
@@ -431,7 +490,9 @@ fit_filter <- function(initstates, obsdata, tinit, tfinal,
                                 R=numeric(0), ncase=numeric(0),
                                 R0=numeric(0), Rt=numeric(0),
                                 fi=numeric(0), beta=numeric(0),
-                                import_cases=numeric(0), id=integer(0))
+                                import_cases=numeric(0),
+                                b0=numeric(0),
+                                id=integer(0))
     }
     if(is.null(ids)) {
       ids <- seq(1,nrow(initstates))
@@ -644,7 +705,7 @@ project_filter_model <- function(filterfit, tfinal, dt=1, tvintage1=NA, dtvintag
   totpop <- sum(finalstate[1,c('S','E','I','Is','R')])
 
   statevars <- c('S','E','I','Is','R')
-  parmvars <- c('beta','import_cases')
+  parmvars <- c('beta','import_cases')  ## XXX Does this need to be updated to include b0?
   parmconst <- c('D0','A0','Ts','mask_effect')
 
   vintage_runs <-
