@@ -9,7 +9,7 @@ update_filter_models(indir, runloc = NULL, outdir = NULL, save = TRUE)
 \arguments{
 \item{indir}{Directory with input files}
 
-\item{runloc}{Run just the indicated localities.  Can be either a list of 
+\item{runloc}{Run just the indicated localities.  Can be either a list of
 indices or a list of locality names.}
 
 \item{outdir}{Directory to save output in.  Default is

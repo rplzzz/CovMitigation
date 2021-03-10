@@ -27,7 +27,7 @@ read_model_data <- function(dir) {
 ```
 
 ```{r readdata}
-models <- read_model_data(here::here('analysis','filter-updates.2021-02-07'))
+models <- read_model_data(here::here('analysis','filter-updates.2021-02-28'))
 models <- models[names(models) %in% va_college_reopening$locality]
 ```
 
@@ -63,6 +63,11 @@ for(plot in import_plots) {
 }
 ```
 
+```{r enrichplot}
+
+
+```
+
 For both `beta` (transmissibility) and `import_cases` (daily case importation rate), 
 The only locality that shows an obvious response is Harrisonburg City, where beta
 jumps from about 0.25 to over 3 in the second week following reopening.  The import
@@ -95,7 +100,7 @@ for(plt in caseplots) {
 }
 ```
 
-(NB: we've updated the data for several weeks after the analysis below was written,
+(NB: we've updated the data for several months after the analysis below was written,
 so it is out of date at this point.)
 
 In the Harrisonburg plot, we see that there was a slight uptick in cases in the week 

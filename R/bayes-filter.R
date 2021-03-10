@@ -780,7 +780,8 @@ collate_results <- function(rsltlist, timevals)
                     fistats <- statcols(rslt, 'fi')
                     R0stats <- statcols(rslt, 'R0')
                     Rtstats <- statcols(rslt, 'Rt')
-                    row <- c(time=t, betastats, impstats, fistats, R0stats, Rtstats)
+                    b0stats <- statcols(rslt, 'b0')
+                    row <- c(time=t, betastats, impstats, fistats, R0stats, Rtstats, b0stats)
                     if('ncase' %in% names(rslt)) {
                       row <- c(row, statcols(rslt, 'ncase'))
                     }
