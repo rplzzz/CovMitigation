@@ -2,15 +2,15 @@ library(CovMitigation)
 library(ggplot2)
 library(dplyr)
 
-modeldate <- '2021-02-28'
+modeldate <- '2021-03-14'
 modeldir <- paste0('analysis/filter-updates.', modeldate)
 message('model date: ', modeldate, '\tmodel dir: ', modeldir)
 jan01 <- as.Date('2020-01-01')
 nov01 <- as.Date('2020-11-01')
 months <- seq(as.Date('2020-11-01'), as.Date('2021-10-01'), by='month')
 times <- as.numeric(months - jan01)
-enddate <- as.numeric(as.Date('2021-06-30') - jan01)
-lastobsdate <- as.Date('2021-03-03')
+enddate <- as.numeric(as.Date('2021-07-31') - jan01)
+lastobsdate <- as.Date('2021-03-17')
 modelmonth <- lubridate::as.period(lubridate::interval(nov01, as.Date(modeldate)))@month
 
 ## Start of the scenario adjustment

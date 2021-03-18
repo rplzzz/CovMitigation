@@ -27,7 +27,7 @@ read_model_data <- function(dir) {
 ```
 
 ```{r readdata}
-models <- read_model_data(here::here('analysis','filter-updates.2021-02-28'))
+models <- read_model_data(here::here('analysis','filter-updates.2021-03-14'))
 models <- models[names(models) %in% va_college_reopening$locality]
 ```
 
@@ -64,8 +64,10 @@ for(plot in import_plots) {
 ```
 
 ```{r enrichplot}
-
-
+enrichment_plots <-  lapply(names(models), makeplot, var='b0')
+for(plot in enrichment_plots) {
+  print(plot)
+}
 ```
 
 For both `beta` (transmissibility) and `import_cases` (daily case importation rate), 
@@ -74,7 +76,7 @@ jumps from about 0.25 to over 3 in the second week following reopening.  The imp
 rate also roughly quadruples during that time.  
 
 This makes some sense because JMU was a COVID-19 hotspot in the weeks following 
-reopening; however, the Radford and Virginia Tech also had outbreaks; yet, the 
+reopening; however, Radford and Virginia Tech also had outbreaks; yet, the 
 Radford City, Pulaski County, and Montgomery County don't show any effect in `beta`,
 and except for an uptick from 1.5 to 3 in Montgomery County, there's no effect in
 `import_cases` either.  Therefore, our next question is, what was different in the
@@ -100,31 +102,5 @@ for(plt in caseplots) {
 }
 ```
 
-(NB: we've updated the data for several months after the analysis below was written,
-so it is out of date at this point.)
-
-In the Harrisonburg plot, we see that there was a slight uptick in cases in the week 
-following reopening, followed by a huge surge the following week.  The model is
-slow to pick up the change, and so is lagging a bit behind the current state of 
-the infection.  (We might want to check that when we are fitting the model, we 
-apply the inferred change to the _current_ week. It looks like we might not be
-applying it until the following week.)
-
-In Montgomery County, the reopening of Radford doesn't seem to have had much effect (since
-Radford is located in Radford City, this isn't necessarily surprising).  Cases
-are mostly flat immediately following the Virignia Tech opening, with a small 
-uptick visible in the week ending September 6th.  If the model follows the pattern
-from Harrisonburg, it should begin catching up to this change in subsequent weeks.
-
-In Radford City, cases are flat for three weeks following the reopening of Radford
-College, with a small uptick starting in the fourth week following reopening.  
-The increase in cases in this case was from 1 to 2-3, which is a lot smaller than 
-the increases observed for VT and JMU.  In this case the model seems to mostly ignore
-the change, but it will probably start to adjust if the higher level is consistent
-going forward.
-
-There appears to be no effect at all in Pulaski County.  Given the small effect in
-Radford City itself, this is not too surprising.  In any case, the model rightly 
-produced no adjustment.
 
 
