@@ -27,7 +27,7 @@ read_model_data <- function(dir) {
 ```
 
 ```{r readdata}
-models <- read_model_data(here::here('analysis','filter-updates.2021-03-28'))
+models <- read_model_data(here::here('analysis','filter-updates.2021-04-04'))
 models <- models[names(models) %in% va_college_reopening$locality]
 ```
 
